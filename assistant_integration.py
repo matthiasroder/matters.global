@@ -73,8 +73,18 @@ class AssistantIntegration:
         """
         # Initialize the OpenAI client with the v2 beta header
         self.client = OpenAI()
-        # Set the beta header for v2 Assistants API
-        self.client.base_headers["OpenAI-Beta"] = "assistants=v2"
+        # Set the beta header for v2 Assistants API - two alternative methods for different versions
+        try:
+            # For newer versions of the openai library
+            self.client.beta_headers = {"OpenAI-Beta": "assistants=v2"}
+        except:
+            try:
+                # For some versions
+                self.client.default_headers = {"OpenAI-Beta": "assistants=v2"}
+            except:
+                # For other versions, create a new client with the headers
+                headers = {"OpenAI-Beta": "assistants=v2"}
+                self.client = OpenAI(default_headers=headers)
         self.assistant_id = assistant_id
         self.problem_manager = mg.ProblemManager()
 

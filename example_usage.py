@@ -51,13 +51,13 @@ def main():
     print(f"Is problem solved now? {is_solved}")
     print(f"Problem state after updating: {problem.state}")
     
-    # Add a solution
-    print("\nAdding a solution to the solved problem...")
-    problem.add_solution("Followed a progressive overload program with proper nutrition")
+    # Add a working solution
+    print("\nAdding a working solution to the solved problem...")
+    problem.add_working_solution("Followed a progressive overload program with proper nutrition")
     
-    # Print all solutions
-    print("\nProblem solutions:")
-    for i, solution in enumerate(problem.solutions):
+    # Print all working solutions
+    print("\nProblem working solutions:")
+    for i, solution in enumerate(problem.working_solutions):
         print(f"  {i+1}. {solution.description}")
     
     # Save the problem to a file

@@ -36,11 +36,11 @@ class Condition(BaseModel):
     )
 
 
-class Solution(BaseModel):
-    """Model representing a solution to a problem."""
+class WorkingSolution(BaseModel):
+    """Model representing a working solution to a problem."""
     description: str = Field(
         ...,
-        description="Detailed description of the solution"
+        description="Detailed description of the working solution"
     )
 
 
@@ -58,10 +58,31 @@ class Problem(BaseModel):
         default_factory=list,
         description="List of conditions that need to be met to solve the problem"
     )
-    solutions: List[Solution] = Field(
+    working_solutions: List[WorkingSolution] = Field(
         default_factory=list,
-        description="Solutions for the problem, added only once the problem is solved"
+        alias="working_solutions",
+        description="Working solutions for the problem, added only once the problem is solved"
     )
+    
+    class Config:
+        populate_by_name = True
+        json_schema_extra = {
+            "example": {
+                "description": "A detailed description of the problem",
+                "state": "not_solved",
+                "conditions": [
+                    {
+                        "description": "Detailed description of the condition",
+                        "is_met": False
+                    }
+                ],
+                "working_solutions": [
+                    {
+                        "description": "Detailed description of the working solution"
+                    }
+                ]
+            }
+        }
 
     def add_condition(self, description: str, is_met: bool = False) -> None:
         """Add a new condition to the problem."""
@@ -70,9 +91,9 @@ class Problem(BaseModel):
             is_met=is_met
         ))
 
-    def add_solution(self, description: str) -> None:
-        """Add a new solution to the problem."""
-        self.solutions.append(Solution(
+    def add_working_solution(self, description: str) -> None:
+        """Add a new working solution to the problem."""
+        self.working_solutions.append(WorkingSolution(
             description=description
         ))
 
@@ -311,9 +332,29 @@ if __name__ == "__main__":
     problem.add_condition("I go train three times a week for 20 consecutive weeks")
     problem.add_condition("I get stronger every week as measured by the kgs I can lift")
     
+    # Check if problem is solved (it's not yet)
+    is_solved = problem.check_if_solved()
+    print(f"Is problem solved? {is_solved}")
+    
+    # Update conditions
+    problem.update_condition(0, True)  # First condition met
+    problem.update_condition(1, True)  # Second condition met
+    
+    # Check if problem is solved now
+    is_solved = problem.check_if_solved()
+    print(f"Is problem solved now? {is_solved}")
+    
+    # Add a working solution since the problem is solved
+    problem.add_working_solution("Followed a progressive overload program with proper nutrition")
+    
     # Save problems to file
     filepath = manager.save_problems()
     print(f"Problems saved to {filepath}")
+    
+    # Print the problem as it would appear in JSON
+    import json
+    problem_json = json.dumps(problem.model_dump(), indent=2)
+    print(f"\nProblem as JSON:\n{problem_json}")
     
     # Check if a statement is a problem
     statement = "The website loads too slowly on mobile devices"

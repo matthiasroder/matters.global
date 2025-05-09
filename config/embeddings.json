@@ -1,0 +1,8 @@
+{
+  "provider_type": "openai",
+  "model_name": "text-embedding-3-small",
+  "dimension": 1536,
+  "normalize": true,
+  "api_key": null,
+  "organization": null
+}

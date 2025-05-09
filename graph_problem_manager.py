@@ -684,19 +684,38 @@ class GraphProblemManager:
         Returns:
             True if successful, False otherwise
         """
-        with self.driver.session() as session:
-            result = session.run(
-                """
-                MATCH (p1:Problem {id: $problem_id})
-                MATCH (p2:Problem {id: $depends_on_id})
-                MERGE (p1)-[:DEPENDS_ON]->(p2)
-                RETURN p1, p2
-                """,
-                problem_id=problem_id,
-                depends_on_id=depends_on_id
-            )
+        # Validate that both problems exist before attempting to create relationship
+        problem1 = self.get_problem_by_id(problem_id)
+        problem2 = self.get_problem_by_id(depends_on_id)
 
-            return result.single() is not None
+        if not problem1 or not problem2:
+            logger.error(f"Cannot create dependency: Problem not found. problem_id: {problem_id}, depends_on_id: {depends_on_id}")
+            return False
+
+        try:
+            with self.driver.session() as session:
+                result = session.run(
+                    """
+                    MATCH (p1:Problem {id: $problem_id})
+                    MATCH (p2:Problem {id: $depends_on_id})
+                    MERGE (p1)-[:DEPENDS_ON]->(p2)
+                    RETURN p1, p2
+                    """,
+                    problem_id=problem_id,
+                    depends_on_id=depends_on_id
+                )
+
+                record = result.single()
+                if record:
+                    logger.info(f"Successfully created dependency from {problem_id} to {depends_on_id}")
+                    return True
+                else:
+                    logger.error(f"Failed to create dependency despite problems existing")
+                    return False
+
+        except Exception as e:
+            logger.error(f"Error creating dependency: {str(e)}")
+            return False
 
     def find_similar_conditions(self, description: str,
                               threshold: float = 0.7,

@@ -2,15 +2,34 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## IMPORTANT: CONDA ENVIRONMENT USAGE
+
+This project STRICTLY uses conda for dependency management:
+- ALWAYS use conda commands for package management, NEVER use pip
+- ALL dependencies should be managed through environment.yml
+- ALWAYS verify you're in the activated conda environment before running commands
+- If you need to add a package, add it to environment.yml and update the environment
+- Run `conda env update -f environment.yml` to update the environment if changes are made
+
 ## Environment Setup
-- Conda environment: `mattersglobal` (already created and activated)
+- Conda environment: `mattersglobal` (created using environment.yml)
 - Python version: 3.9+
 
 ## Commands
+- Create environment: `conda env create -f environment.yml`
 - Activate environment: `conda activate mattersglobal`
-- Run Python: `python mattersglobal.py`
-- Run Jupyter notebook: `jupyter notebook problems.ipynb`
-- Install dependencies: `conda install -n mattersglobal <package>` or `pip install <package>`
+- Update environment: `conda env update -f environment.yml --prune`
+- Check installed packages: `conda list`
+- Start the application: `./start.sh`
+- Run WebSocket server: `python websocket_server.py`
+- Run REST API server: `python server.py`
+- Run UI development server: `cd ui && npm run dev`
+
+## Package Management
+- To install a package: Add it to environment.yml and run `conda env update -f environment.yml`
+- To update a package: Change version in environment.yml and run `conda env update -f environment.yml`
+- To check package versions: `conda list [package_name]`
+- To search for package availability: `conda search -c conda-forge [package_name]`
 
 ## Code Style Guidelines
 - Use Python 3.9+ features
@@ -110,11 +129,17 @@ We've successfully migrated from a JSON-based storage system to a graph database
 - `test_graph_embeddings.py`: Testing embedding storage and retrieval
 - `test_entity_resolution.py`: Testing entity resolution and canonical mapping
 - `README.md`: Comprehensive documentation
+- `environment.yml`: Conda environment specification
 
 ### Required Dependencies
-- neo4j-python-driver (installed)
-- pydantic (for validation, already installed)
-- openai (for embeddings and LLM integration, already installed)
+All dependencies are specified in the environment.yml file, including:
+- neo4j-python-driver
+- pydantic (for validation)
+- openai (for embeddings and LLM integration)
+- flask and flask-cors (for REST API)
+- websockets (for WebSocket server)
+- numpy (for numerical operations)
+- pytest (for testing)
 
 ### Future Considerations
 - Add support for authentication and user management

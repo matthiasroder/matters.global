@@ -79,7 +79,7 @@ We've successfully migrated from a JSON-based storage system to a graph database
 
 - **Relationships**:
   - `(Problem)-[:REQUIRES]->(Condition)`: Problem requires condition
-  - `(Problem)-[:DEPENDS_ON]->(Problem)`: Problem depends on another problem
+  - `(Problem)-[:MUST_BE_RESOLVED_BEFORE]->(Problem)`: Problem must be resolved before another problem
   - `(Problem)-[:SOLVED_BY]->(Solution)`: Solution that solved the problem
   - `(Problem)-[:MAPPED_TO]->(CanonicalProblem)`: Links variant to canonical form
   - `(Condition)-[:MAPPED_TO]->(CanonicalCondition)`: Links variant to canonical form

@@ -631,91 +631,113 @@ class GraphProblemManager:
                     "description": node["description"]
                 })
             
-            # Get dependent problems
-            depends_on_result = session.run(
+            # Get prerequisites (problems that must be resolved before this one)
+            prerequisites_result = session.run(
                 """
-                MATCH (p:Problem {id: $problem_id})-[:DEPENDS_ON]->(dp:Problem)
-                RETURN dp
+                MATCH (prereq:Problem)-[:MUST_BE_RESOLVED_BEFORE]->(p:Problem {id: $problem_id})
+                RETURN prereq
                 """,
                 problem_id=problem_id
             )
-            
-            depends_on = []
-            for record in depends_on_result:
-                node = record["dp"]
-                depends_on.append({
+
+            prerequisites = []
+            for record in prerequisites_result:
+                node = record["prereq"]
+                prerequisites.append({
                     "id": node["id"],
                     "description": node["description"],
                     "state": node["state"]
                 })
-            
-            # Get problems that depend on this one
-            dependents_result = session.run(
+
+            # Get dependent problems (problems that this one must be resolved before)
+            blocked_problems_result = session.run(
                 """
-                MATCH (dp:Problem)-[:DEPENDS_ON]->(p:Problem {id: $problem_id})
-                RETURN dp
+                MATCH (p:Problem {id: $problem_id})-[:MUST_BE_RESOLVED_BEFORE]->(blocked:Problem)
+                RETURN blocked
                 """,
                 problem_id=problem_id
             )
-            
-            dependents = []
-            for record in dependents_result:
-                node = record["dp"]
-                dependents.append({
+
+            blocked_problems = []
+            for record in blocked_problems_result:
+                node = record["blocked"]
+                blocked_problems.append({
                     "id": node["id"],
                     "description": node["description"],
                     "state": node["state"]
                 })
-            
+
+            # For backward compatibility, also map to old field names
             return {
                 "conditions": conditions,
                 "solutions": solutions,
-                "depends_on": depends_on,
-                "dependents": dependents
+                "prerequisites": prerequisites,
+                "blocked_problems": blocked_problems,
+                # Include old field names with the new data for backward compatibility
+                "depends_on": prerequisites,
+                "dependents": blocked_problems
             }
             
-    def add_dependency(self, problem_id: str, depends_on_id: str) -> bool:
-        """Add a dependency between problems.
+    def add_resolution_prerequisite(self, prerequisite_id: str, dependent_id: str) -> bool:
+        """Add a resolution prerequisite relationship between problems.
 
         Args:
-            problem_id: ID of the dependent problem
-            depends_on_id: ID of the problem being depended on
+            prerequisite_id: ID of the problem that must be resolved first
+            dependent_id: ID of the problem that depends on the prerequisite
 
         Returns:
             True if successful, False otherwise
         """
         # Validate that both problems exist before attempting to create relationship
-        problem1 = self.get_problem_by_id(problem_id)
-        problem2 = self.get_problem_by_id(depends_on_id)
+        prerequisite = self.get_problem_by_id(prerequisite_id)
+        dependent = self.get_problem_by_id(dependent_id)
 
-        if not problem1 or not problem2:
-            logger.error(f"Cannot create dependency: Problem not found. problem_id: {problem_id}, depends_on_id: {depends_on_id}")
+        if not prerequisite or not dependent:
+            logger.error(f"Cannot create prerequisite relationship: Problem not found. prerequisite_id: {prerequisite_id}, dependent_id: {dependent_id}")
             return False
 
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (p1:Problem {id: $problem_id})
-                    MATCH (p2:Problem {id: $depends_on_id})
-                    MERGE (p1)-[:DEPENDS_ON]->(p2)
+                    MATCH (p1:Problem {id: $prerequisite_id})
+                    MATCH (p2:Problem {id: $dependent_id})
+                    MERGE (p1)-[:MUST_BE_RESOLVED_BEFORE]->(p2)
                     RETURN p1, p2
                     """,
-                    problem_id=problem_id,
-                    depends_on_id=depends_on_id
+                    prerequisite_id=prerequisite_id,
+                    dependent_id=dependent_id
                 )
 
                 record = result.single()
                 if record:
-                    logger.info(f"Successfully created dependency from {problem_id} to {depends_on_id}")
+                    logger.info(f"Successfully created prerequisite relationship: {prerequisite_id} must be resolved before {dependent_id}")
                     return True
                 else:
-                    logger.error(f"Failed to create dependency despite problems existing")
+                    logger.error(f"Failed to create prerequisite relationship despite problems existing")
                     return False
 
         except Exception as e:
-            logger.error(f"Error creating dependency: {str(e)}")
+            logger.error(f"Error creating prerequisite relationship: {str(e)}")
             return False
+
+    # Keep backward compatibility until all code is updated
+    def add_dependency(self, problem_id: str, depends_on_id: str) -> bool:
+        """Legacy method - use add_resolution_prerequisite instead.
+
+        This now calls add_resolution_prerequisite with reversed parameters
+        to maintain the same semantic meaning but with the new relationship direction.
+
+        Args:
+            problem_id: ID of the dependent problem
+            depends_on_id: ID of the problem being depended on (prerequisite)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        logger.warning("add_dependency is deprecated, use add_resolution_prerequisite instead")
+        # Note the parameter order is reversed to maintain semantic meaning
+        return self.add_resolution_prerequisite(depends_on_id, problem_id)
 
     def find_similar_conditions(self, description: str,
                               threshold: float = 0.7,
@@ -1098,3 +1120,4 @@ class GraphProblemManager:
                 conditions.append(condition_data)
 
             return conditions
+

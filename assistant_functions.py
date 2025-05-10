@@ -166,22 +166,22 @@ FUNCTION_DEFINITIONS = [
     },
     {
         "name": "add_problem_dependency",
-        "description": "Add a dependency relationship between problems",
+        "description": "Add a prerequisite relationship between problems",
         "parameters": {
             "type": "object",
             "properties": {
                 "problem_id": {
                     "type": "string",
-                    "description": "ID of the dependent problem"
+                    "description": "ID of the dependent problem (that can only be solved after prerequisite)"
                 },
                 "depends_on_id": {
                     "type": "string",
-                    "description": "ID of the problem being depended on"
+                    "description": "ID of the prerequisite problem (that must be resolved before dependent problem)"
                 }
             },
             "required": ["problem_id", "depends_on_id"]
         }
-    }
+    },
 ]
 
 # =====================================
@@ -448,50 +448,57 @@ def find_similar_problems(description: str, threshold: float = 0.7, limit: int =
 def add_problem_dependency(problem_id: str, depends_on_id: str) -> Dict[str, Any]:
     """Add a dependency between problems.
 
+    Note: This function maintains the old parameter names and semantics,
+    but internally uses the new relationship model where the direction is reversed.
+
     Args:
         problem_id: ID of the dependent problem
-        depends_on_id: ID of the problem being depended on
+        depends_on_id: ID of the problem being depended on (must be resolved first)
 
     Returns:
         Dictionary with result status
     """
     try:
         # First verify both problems exist
-        problem1 = graph_manager.get_problem_by_id(problem_id)
-        problem2 = graph_manager.get_problem_by_id(depends_on_id)
+        dependent = graph_manager.get_problem_by_id(problem_id)
+        prerequisite = graph_manager.get_problem_by_id(depends_on_id)
 
-        if not problem1:
+        if not dependent:
             logger.error(f"Dependent problem not found with ID: {problem_id}")
             return {
                 "success": False,
                 "error": f"Dependent problem with ID {problem_id} not found in database"
             }
 
-        if not problem2:
-            logger.error(f"Dependency target problem not found with ID: {depends_on_id}")
+        if not prerequisite:
+            logger.error(f"Prerequisite problem not found with ID: {depends_on_id}")
             return {
                 "success": False,
-                "error": f"Target problem with ID {depends_on_id} not found in database"
+                "error": f"Prerequisite problem with ID {depends_on_id} not found in database"
             }
 
-        # If both problems exist, attempt to create dependency
-        logger.info(f"Attempting to create dependency from '{problem1.description}' to '{problem2.description}'")
-        success = graph_manager.add_dependency(problem_id, depends_on_id)
+        # If both problems exist, attempt to create the relationship
+        # Note: In the new model, the relationship direction is reversed
+        # "A must be resolved before B" instead of "B depends on A"
+        logger.info(f"Creating relationship: '{prerequisite.description}' must be resolved before '{dependent.description}'")
+
+        # Use the new method with parameters in correct order
+        success = graph_manager.add_resolution_prerequisite(depends_on_id, problem_id)
 
         if not success:
-            logger.error(f"Failed to add dependency despite problems existing")
+            logger.error(f"Failed to add resolution prerequisite despite problems existing")
             return {
                 "success": False,
-                "error": "Failed to create dependency relationship in database"
+                "error": "Failed to create relationship in database"
             }
 
         return {
             "success": True,
             "problem_id": problem_id,
-            "problem_description": problem1.description,
+            "problem_description": dependent.description,
             "depends_on_id": depends_on_id,
-            "depends_on_description": problem2.description,
-            "message": f"Successfully created dependency: '{problem1.description}' depends on '{problem2.description}'"
+            "depends_on_description": prerequisite.description,
+            "message": f"Successfully created relationship: '{prerequisite.description}' must be resolved before '{dependent.description}'"
         }
 
     except Exception as e:
@@ -502,6 +509,7 @@ def add_problem_dependency(problem_id: str, depends_on_id: str) -> Dict[str, Any
         }
 
 # Function dispatcher to map function names to implementations
+
 FUNCTION_DISPATCH = {
     "list_problems": list_problems,
     "get_problem_details": get_problem_details,

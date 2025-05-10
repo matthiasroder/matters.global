@@ -1,55 +1,31 @@
-# Matters.Global - Graph-Based Problem Management System
+# Matters.Global Problem Management System
 
-A flexible, Neo4j-powered knowledge graph system for managing problems, conditions, solutions, and their relationships with advanced semantic similarity capabilities.
-
-## Overview
-
-Matters.Global is a problem management system that uses a graph database (Neo4j) to store and organize problems, their conditions, and solutions. The system leverages vector embeddings for semantic similarity search and includes an entity resolution system that can identify similar problems and suggest canonical representations.
-
-## Features
-
-- **Neo4j Graph Database Integration**: Store problems in a flexible, connected graph structure
-- **Vector Embeddings**: Generate and store embeddings for semantic similarity
-- **Entity Resolution System**: Identify similar entities and map them to canonical forms
-- **Canonical Form Management**: Create and maintain standardized representations of similar entities
-- **Auto Mapping**: Automatically group similar problems/conditions and create canonical forms
-- **Embedding Provider Flexibility**: Pluggable architecture for different embedding providers (OpenAI, etc.)
-- **Dependency Management**: Track problem dependencies and relationships
-- **Semantic Analysis**: Use NLP techniques and LLMs for problem analysis
+A system for managing, tracking, and resolving problems with semantic similarity features, entity resolution, and graph relationships.
 
 ## Architecture
 
-### Core Components
+The system consists of:
 
-1. **GraphProblemManager**: Main interface for CRUD operations on the graph database
-2. **EmbeddingProviders**: System for generating and using vector embeddings
-3. **EntityResolutionSystem**: Tools for identifying similar entities and suggesting canonical forms
+1. **Backend Implementation**
+   - Graph database (Neo4j) for problem storage
+   - Embedding-based similarity features
+   - Entity resolution system
 
-### Data Model
+2. **Chat Interface**
+   - Conversational UI for interacting with the system
+   - OpenAI Assistant integration
+   - Function calling to manage problems
 
-- **Node Types**:
-  - `Problem`: {id, description, state, embedding}
-  - `Condition`: {id, description, is_met, embedding}
-  - `Solution`: {id, description, embedding}
-  - `CanonicalProblem`: {id, description}
-  - `CanonicalCondition`: {id, description}
-
-- **Relationships**:
-  - `(Problem)-[:REQUIRES]->(Condition)`: Problem requires condition
-  - `(Problem)-[:DEPENDS_ON]->(Problem)`: Problem depends on another problem
-  - `(Problem)-[:SOLVED_BY]->(Solution)`: Solution that solved the problem
-  - `(Problem)-[:MAPPED_TO]->(CanonicalProblem)`: Links variant to canonical form
-  - `(Condition)-[:MAPPED_TO]->(CanonicalCondition)`: Links variant to canonical form
-
-## Getting Started
+## Setup Instructions
 
 ### Prerequisites
 
-- Python 3.9+
-- Neo4j Database (version 5.x recommended, 5.11+ for vector indexing)
-- Conda Environment Manager (recommended)
+- [Conda](https://docs.conda.io/en/latest/miniconda.html) package manager
+- Neo4j database (5.11+ recommended for vector search)
+- OpenAI API key
+- Node.js and npm (for the UI)
 
-### Installation
+### Environment Setup
 
 1. Clone the repository:
    ```bash
@@ -57,213 +33,145 @@ Matters.Global is a problem management system that uses a graph database (Neo4j)
    cd matters.global
    ```
 
-2. Create and activate the conda environment:
+2. Create the conda environment from the environment.yml file:
    ```bash
-   conda create -n mattersglobal python=3.9
+   conda env create -f environment.yml
+   ```
+
+3. Activate the environment:
+   ```bash
    conda activate mattersglobal
    ```
 
-3. Install required packages:
+4. Set up environment variables:
    ```bash
-   pip install neo4j pydantic openai numpy
+   export OPENAI_API_KEY="your_openai_api_key"
+   export NEO4J_URI="bolt://localhost:7687"
+   export NEO4J_USERNAME="neo4j"
+   export NEO4J_PASSWORD="password"
    ```
 
-4. Configure your Neo4j connection and OpenAI API key:
-   - Update Neo4j credentials in your scripts or use environment variables
-   - Set up the OpenAI API key in your environment:
-     ```bash
-     export OPENAI_API_KEY=your_api_key_here
-     ```
-
-5. Set up the embeddings configuration:
+5. Quick start (automated setup and launch):
    ```bash
-   mkdir -p config
-   cp config/embeddings.json.example config/embeddings.json
-   # Edit config/embeddings.json with your configuration
+   ./start_new.sh
+   ```
+   This script will check dependencies, start the WebSocket server, and launch the UI.
+
+### Neo4j Setup
+
+1. Install and start Neo4j:
+   - Download from [Neo4j website](https://neo4j.com/download/)
+   - Or use Docker: `docker run -p 7474:7474 -p 7687:7687 neo4j:5.11`
+
+2. Create a new database and set password
+
+3. Ensure the database is accessible at the URI specified in your environment variables
+
+### Running the Server
+
+You have two server options:
+
+#### Option 1: WebSocket Server (recommended for the UI)
+
+1. Start the WebSocket server:
+   ```bash
+   python websocket_server.py
    ```
 
-### Database Setup
+   The server will start on port 8090 by default.
 
-1. Start Neo4j database
-2. Run the initialization script to set up constraints and indexes:
+2. You should see output confirming:
+   - Connection to Neo4j
+   - Creation or retrieval of the OpenAI Assistant
+   - WebSocket server running and ready for connections
+
+#### Option 2: REST API Server
+
+1. Start the Flask server:
    ```bash
-   python test_graph_connection.py
+   python server.py
    ```
 
-## Usage
+   The server will start on port 5000 by default.
 
-### Basic Operations
+2. You should see output confirming:
+   - Connection to Neo4j
+   - Creation or retrieval of the OpenAI Assistant
+   - REST API server running and ready for connections
 
-```python
-from graph_problem_manager import GraphProblemManager
+### Setting up the Chat UI
 
-# Initialize manager
-manager = GraphProblemManager(
-    uri="bolt://localhost:7687",
-    username="neo4j",
-    password="your_password",
-    embedding_config_path="config/embeddings.json"
-)
-
-# Connect to Neo4j
-manager.connect()
-
-# Initialize schema (creates indexes and constraints)
-manager.initialize_schema()
-
-# Create a problem
-problem = manager.create_problem("Understanding vector embeddings for semantic similarity")
-
-# Add conditions
-condition1 = manager.add_condition_to_problem(
-    problem.id,
-    "Implement vector embedding generation"
-)
-condition2 = manager.add_condition_to_problem(
-    problem.id,
-    "Create similarity search functionality"
-)
-
-# Mark a condition as met
-manager.update_condition(condition1.id, True)
-
-# Check if problem is solved
-is_solved = manager.check_if_problem_solved(problem.id)
-
-# Find similar problems
-similar_problems = manager.find_similar_problems("vector similarity search", threshold=0.7)
-```
-
-### Entity Resolution
-
-```python
-from entity_resolution import EntityResolutionSystem
-
-# Create entity resolution system
-er_system = EntityResolutionSystem(manager)
-
-# Find similar entities for a specific problem
-matches = er_system.find_similar_entities(problem.id, entity_type="Problem")
-
-# Group similar problems
-groups = er_system.group_similar_entities(entity_type="Problem", threshold=0.7)
-
-# Get canonical suggestion for a group of problems
-entity_ids = [problem1.id, problem2.id, problem3.id]
-suggestion = er_system.suggest_canonical_form(entity_ids, entity_type="Problem")
-
-# Create canonical node and map entities to it
-canonical_id = er_system.create_canonical_node(suggestion)
-
-# Auto-resolve similar entities
-results = er_system.auto_resolve_entities(
-    entity_type="Problem",
-    threshold=0.7,
-    min_group_size=2
-)
-```
-
-### Running Tests
-
-The repository includes several test scripts to demonstrate functionality:
-
-1. **Test Graph Connection**:
+1. The chatbot UI is included in the `ui` directory:
    ```bash
-   python test_graph_connection.py
+   cd ui
    ```
 
-2. **Test Embeddings**:
+2. Install dependencies:
    ```bash
-   python test_embeddings.py
+   npm install
    ```
 
-3. **Test Graph Embeddings**:
+3. The UI is already configured to connect to the WebSocket server at `ws://localhost:8091`. If you need to modify this:
+   - Edit `src/config.ts` to change the `WEBSOCKET_ENDPOINT` value
+
+4. Start the UI development server:
    ```bash
-   python test_graph_embeddings.py
+   npm run dev
    ```
 
-4. **Test Entity Resolution**:
-   ```bash
-   python test_entity_resolution.py
-   ```
+5. Access the chat interface at: `http://localhost:5173` or `http://localhost:3000` (depending on Vite configuration)
 
-## Configuration
+## API Endpoints
 
-### Embedding Configuration
+The server exposes these main endpoints:
 
-The `config/embeddings.json` file controls the embedding provider settings:
+- `POST /api/chat/message` - Send a message to the assistant
+- `GET /api/chat/history` - Get message history for a session
+- `POST /api/chat/reset` - Reset or create a new session
+- `GET /api/health` - Health check endpoint
 
-```json
-{
-  "provider_type": "openai",
-  "model_name": "text-embedding-3-small",
-  "dimension": 1536,
-  "normalize": true,
-  "api_key": null,
-  "organization": null
-}
-```
+## Environment Variables
 
-- `provider_type`: Type of embedding provider (e.g., "openai")
-- `model_name`: Name of the embedding model to use
-- `dimension`: Dimension of the embedding vectors
-- `normalize`: Whether to normalize the embeddings to unit length
-- `api_key`: API key (will use environment variable if null)
-- `organization`: Organization ID for the API
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENAI_API_KEY` | Your OpenAI API key | None (Required) |
+| `OPENAI_ASSISTANT_ID` | Optional existing assistant ID | None (Creates new) |
+| `NEO4J_URI` | Neo4j connection URI | bolt://localhost:7687 |
+| `NEO4J_USERNAME` | Neo4j username | neo4j |
+| `NEO4J_PASSWORD` | Neo4j password | password |
+| `PORT` | Server port | 5000 |
+| `FLASK_SECRET_KEY` | Flask session secret | Random UUID |
 
-## Advanced Features
+## Customization
 
-### Canonical Node Management
+### System Message
 
-The system includes tools for managing canonical representations of similar entities:
+To modify the assistant's behavior, edit the `SYSTEM_MESSAGE` in `assistant_manager.py`.
 
-1. **Create Canonical Problems/Conditions**: Create standardized forms for similar entities
-2. **Map to Canonical Forms**: Link variants to their canonical representations
-3. **Get Variants**: Retrieve all problems/conditions mapped to a canonical form
+### Function Definitions
 
-### Automatic Entity Resolution
+OpenAI function schemas are defined in `assistant_functions.py`. You can add new functions by:
 
-The entity resolution system can automatically:
+1. Adding a function schema to the `FUNCTION_DEFINITIONS` list
+2. Implementing a handler function
+3. Adding the handler to the `FUNCTION_DISPATCH` dictionary
 
-1. Group similar entities based on semantic similarity
-2. Suggest the best canonical description for each group
-3. Create canonical nodes and map variants to them
+## Graph Relationships
 
-### Vector Similarity Search
+The system uses Neo4j relationships to model connections between problems:
 
-Search for similar entities using:
+- `(Problem)-[:REQUIRES]->(Condition)`: A problem requires a condition to be met
+- `(Problem)-[:MUST_BE_RESOLVED_BEFORE]->(Problem)`: Problem A must be resolved before Problem B can be solved
+- `(Problem)-[:SOLVED_BY]->(Solution)`: A problem is solved by a solution
+- `(Problem)-[:MAPPED_TO]->(CanonicalProblem)`: Maps problem variants to canonical form
+- `(Condition)-[:MAPPED_TO]->(CanonicalCondition)`: Maps condition variants to canonical form
 
-1. **Vector Indexes**: Fast similarity search using Neo4j's vector capabilities
-2. **Fallback Text Search**: Text-based matching when vectors aren't available
+The `MUST_BE_RESOLVED_BEFORE` relationship models a clear sequential dependency between problems. For example, if Problem A must be resolved before Problem B, there is a direct relationship: `(A)-[:MUST_BE_RESOLVED_BEFORE]->(B)`.
 
-## Future Enhancements
+## Future Development
 
-Planned features include:
-
-1. **User Interface for Entity Resolution**: Review and approve suggested canonical forms
-2. **Visualization Tools**: Visual exploration of the problem network
-3. **Monitoring Dashboard**: Track problem relationships and statistics
-4. **API Layer**: RESTful API for integration with other systems
-5. **Multi-user Support**: Authentication and authorization for collaborative use
-
-## Project Structure
-
-- `graph_problem_manager.py`: Core Neo4j implementation
-- `embedding_providers.py`: Modular embedding system
-- `entity_resolution.py`: Entity resolution and canonical mapping
-- `config/embeddings.json`: Configuration for embedding providers
-- `test_*.py`: Test scripts for various components
-
-## License
-
-[MIT License](LICENSE)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
-
-## Acknowledgments
-
-- This project uses Neo4j for graph database storage
-- Embedding capabilities provided by OpenAI's API
-- Built with Python and Pydantic
+See the BRAINSTORMING.md file for plans on future development, including:
+- User interfaces
+- Visualization tools
+- Monitoring dashboard
+- Authentication system

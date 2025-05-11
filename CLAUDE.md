@@ -41,6 +41,8 @@ This project STRICTLY uses conda for dependency management:
 - Handle errors with try/except blocks and clear error messages
 - Use docstrings for functions and classes
 - Keep code modular and functions focused on a single responsibility
+- NEVER mention Claude, Anthropic, AI, or LLMs in any code, comments, documentation, or commit messages
+- Keep all code completely "AI-free" in terms of references or attributions
 
 ## Implementation Progress Summary
 

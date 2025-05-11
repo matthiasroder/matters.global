@@ -2,16 +2,17 @@
 Entity Resolution System for matters.global
 
 This module provides functionality to:
-- Identify similar problems and conditions based on semantic similarity
+- Identify similar matters (goals, problems, conditions, solutions) based on semantic similarity
 - Suggest canonical forms for similar entities
 - Merge or link related entities
-- Manage the canonical representation of problems and conditions
+- Manage the canonical representation of matters
 """
 
 from typing import List, Dict, Any, Optional, Tuple, Set, Union
 import logging
 from pydantic import BaseModel, Field
 import numpy as np
+from graph_problem_manager import GraphManager, MatterLabel, Matter, CanonicalMatter
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -21,19 +22,19 @@ class EntityMatch(BaseModel):
     """Model representing a potential match between two entities."""
     source_id: str = Field(..., description="ID of the source entity")
     target_id: str = Field(..., description="ID of the target entity")
-    source_type: str = Field(..., description="Type of the source entity (Problem, Condition)")
-    target_type: str = Field(..., description="Type of the target entity (Problem, Condition)")
+    source_labels: List[str] = Field(..., description="Labels of the source entity (Goal, Problem, Condition, Solution)")
+    target_labels: List[str] = Field(..., description="Labels of the target entity (Goal, Problem, Condition, Solution)")
     similarity_score: float = Field(..., description="Similarity score between the entities")
     confidence: float = Field(..., description="Confidence in the match")
     match_factors: Dict[str, float] = Field(
-        default_factory=dict, 
+        default_factory=dict,
         description="Factors contributing to the match with their weights"
     )
 
 class CanonicalSuggestion(BaseModel):
     """Model representing a suggested canonical form for a group of entities."""
     entity_ids: List[str] = Field(..., description="IDs of the entities in this group")
-    entity_type: str = Field(..., description="Type of the entities (Problem, Condition)")
+    entity_labels: List[str] = Field(..., description="Common labels of the entities in this group")
     suggested_description: str = Field(..., description="Suggested canonical description")
     confidence: float = Field(..., description="Confidence in the suggestion")
     supporting_factors: Dict[str, Any] = Field(
@@ -43,66 +44,64 @@ class CanonicalSuggestion(BaseModel):
 
 class EntityResolutionSystem:
     """Class for identifying and resolving similar entities in the graph database."""
-    
-    def __init__(self, graph_manager):
+
+    def __init__(self, graph_manager: GraphManager):
         """Initialize the EntityResolutionSystem.
-        
+
         Args:
-            graph_manager: Instance of GraphProblemManager for database access
+            graph_manager: Instance of GraphManager for database access
         """
         self.graph_manager = graph_manager
         
-    def find_similar_entities(self, 
-                             entity_id: str, 
-                             entity_type: str = "Problem",
+    def find_similar_entities(self,
+                             entity_id: str,
+                             labels: List[str] = None,
                              threshold: float = 0.7,
                              limit: int = 10) -> List[EntityMatch]:
         """Find similar entities to the given entity.
-        
+
         Args:
             entity_id: ID of the entity to find matches for
-            entity_type: Type of the entity (Problem, Condition)
+            labels: Optional list of labels to filter by (e.g., ["Problem", "Goal"])
             threshold: Similarity threshold (0-1)
             limit: Maximum number of matches to return
-            
+
         Returns:
             List of potential entity matches
         """
         # Get the entity from the database
-        if entity_type == "Problem":
-            entity = self.graph_manager.get_problem_by_id(entity_id)
-            if not entity:
-                logger.error(f"Problem with ID {entity_id} not found")
-                return []
-            
-            # Find similar problems
-            similar_entities = self.graph_manager.find_similar_problems(
-                entity.description,
-                threshold=threshold,
-                limit=limit
-            )
-            
-        elif entity_type == "Condition":
-            # For future implementation
-            # Need to add get_condition_by_id to GraphProblemManager
-            logger.warning("Condition similarity search not fully implemented yet")
+        entity = self.graph_manager.get_matter_by_id(entity_id)
+        if not entity:
+            logger.error(f"Matter with ID {entity_id} not found")
             return []
+
+        # Use the entity's labels as the filter if none provided
+        if not labels:
+            # Filter out the base Matter label which is always present
+            search_labels = [label for label in entity.labels if label != MatterLabel.MATTER.value]
         else:
-            logger.error(f"Unknown entity type: {entity_type}")
-            return []
-        
+            search_labels = labels
+
+        # Find similar matters
+        similar_entities = self.graph_manager.find_similar_matters(
+            entity.description,
+            labels=search_labels,
+            threshold=threshold,
+            limit=limit
+        )
+
         # Convert to EntityMatch objects
         matches = []
         for similar in similar_entities:
             # Skip the entity itself
             if similar["id"] == entity_id:
                 continue
-                
+
             match = EntityMatch(
                 source_id=entity_id,
                 target_id=similar["id"],
-                source_type=entity_type,
-                target_type=entity_type,
+                source_labels=entity.labels,
+                target_labels=similar.get("labels", [MatterLabel.MATTER.value]),
                 similarity_score=similar.get("similarity", 0.0),
                 confidence=self._calculate_confidence(similar),
                 match_factors={
@@ -111,33 +110,85 @@ class EntityResolutionSystem:
                 }
             )
             matches.append(match)
-        
+
         return matches
+
+    # Legacy method for backward compatibility
+    def find_similar_problems(self,
+                             problem_id: str,
+                             threshold: float = 0.7,
+                             limit: int = 10) -> List[EntityMatch]:
+        """Legacy method to find similar problems.
+
+        Args:
+            problem_id: ID of the problem to find matches for
+            threshold: Similarity threshold (0-1)
+            limit: Maximum number of matches to return
+
+        Returns:
+            List of potential problem matches
+        """
+        return self.find_similar_entities(
+            entity_id=problem_id,
+            labels=[MatterLabel.PROBLEM.value],
+            threshold=threshold,
+            limit=limit
+        )
+
+    # Legacy method for backward compatibility
+    def find_similar_conditions(self,
+                             condition_id: str,
+                             threshold: float = 0.7,
+                             limit: int = 10) -> List[EntityMatch]:
+        """Legacy method to find similar conditions.
+
+        Args:
+            condition_id: ID of the condition to find matches for
+            threshold: Similarity threshold (0-1)
+            limit: Maximum number of matches to return
+
+        Returns:
+            List of potential condition matches
+        """
+        return self.find_similar_entities(
+            entity_id=condition_id,
+            labels=[MatterLabel.CONDITION.value],
+            threshold=threshold,
+            limit=limit
+        )
     
     def group_similar_entities(self,
-                              entity_type: str = "Problem",
+                              labels: List[str] = None,
                               threshold: float = 0.7,
                               min_group_size: int = 2) -> List[List[Dict[str, Any]]]:
         """Group similar entities into clusters using a graph-based approach.
 
         Args:
-            entity_type: Type of entities to group (Problem, Condition)
+            labels: List of labels to filter by (e.g., ["Problem", "Goal", "Condition"])
             threshold: Similarity threshold (0-1)
             min_group_size: Minimum number of entities in a group
 
         Returns:
             List of entity groups, where each group is a list of entities
         """
-        logger.info(f"Grouping similar {entity_type}s with threshold {threshold}")
+        # Use all labels if none provided
+        if not labels:
+            labels_str = "all matters"
+            cypher_labels = "Matter"
+        else:
+            labels_str = ", ".join(labels)
+            cypher_labels = ":".join(["Matter"] + labels)
 
-        # Step 1: Get all entities of the given type
-        entities = self._get_all_entities(entity_type)
+        logger.info(f"Grouping similar matters ({labels_str}) with threshold {threshold}")
+
+        # Step 1: Get all entities with the given labels
+        entities = self._get_all_entities(cypher_labels)
         if not entities:
             return []
 
         # Step 2: Build similarity graph (adjacency list)
         # Key is entity ID, value is list of (target_id, similarity) tuples
-        similarity_graph = self._build_similarity_graph(entities, threshold, entity_type)
+        similarity_graph = self._build_similarity_graph(entities, threshold)
 
         # Step 3: Find connected components (groups of similar entities)
         groups = self._find_connected_components(similarity_graph)
@@ -158,81 +209,108 @@ class EntityResolutionSystem:
             if group_entities:
                 result.append(group_entities)
 
-        logger.info(f"Found {len(result)} groups of similar {entity_type}s")
+        logger.info(f"Found {len(result)} groups of similar matters ({labels_str})")
         return result
 
-    def _get_all_entities(self, entity_type: str) -> List[Dict[str, Any]]:
-        """Get all entities of the given type from the database.
+    # Legacy method for backward compatibility
+    def group_similar_problems(self,
+                              threshold: float = 0.7,
+                              min_group_size: int = 2) -> List[List[Dict[str, Any]]]:
+        """Group similar problems into clusters (legacy method).
 
         Args:
-            entity_type: Type of entities to get (Problem, Condition)
+            threshold: Similarity threshold (0-1)
+            min_group_size: Minimum number of entities in a group
+
+        Returns:
+            List of problem groups, where each group is a list of problems
+        """
+        return self.group_similar_entities(
+            labels=[MatterLabel.PROBLEM.value],
+            threshold=threshold,
+            min_group_size=min_group_size
+        )
+
+    # Legacy method for backward compatibility
+    def group_similar_conditions(self,
+                              threshold: float = 0.7,
+                              min_group_size: int = 2) -> List[List[Dict[str, Any]]]:
+        """Group similar conditions into clusters (legacy method).
+
+        Args:
+            threshold: Similarity threshold (0-1)
+            min_group_size: Minimum number of entities in a group
+
+        Returns:
+            List of condition groups, where each group is a list of conditions
+        """
+        return self.group_similar_entities(
+            labels=[MatterLabel.CONDITION.value],
+            threshold=threshold,
+            min_group_size=min_group_size
+        )
+
+    def _get_all_entities(self, label_pattern: str) -> List[Dict[str, Any]]:
+        """Get all entities with the given labels from the database.
+
+        Args:
+            label_pattern: Label pattern to match (e.g., "Matter:Problem", "Matter:Condition")
 
         Returns:
             List of entities
         """
         with self.graph_manager.driver.session() as session:
-            if entity_type == "Problem":
-                result = session.run(
-                    """
-                    MATCH (p:Problem)
-                    RETURN p
-                    """
-                )
+            # Use the provided label pattern in the Cypher query
+            result = session.run(
+                f"""
+                MATCH (m:{label_pattern})
+                RETURN m, labels(m) as labels
+                """
+            )
 
-                entities = []
-                for record in result:
-                    node = record["p"]
-                    entity_data = {
-                        "id": node["id"],
-                        "description": node["description"],
-                        "state": node["state"]
-                    }
+            entities = []
+            for record in result:
+                node = record["m"]
+                node_labels = record["labels"]
 
-                    if "embedding" in node:
-                        entity_data["embedding"] = node["embedding"]
+                # Base entity data
+                entity_data = {
+                    "id": node["id"],
+                    "description": node["description"],
+                    "labels": node_labels,
+                    "created_at": node.get("created_at"),
+                    "updated_at": node.get("updated_at"),
+                    "tags": node.get("tags", [])
+                }
 
-                    entities.append(entity_data)
+                # Add label-specific properties
+                if MatterLabel.PROBLEM.value in node_labels and "state" in node:
+                    entity_data["state"] = node["state"]
 
-                return entities
+                if MatterLabel.CONDITION.value in node_labels and "is_met" in node:
+                    entity_data["is_met"] = node["is_met"]
 
-            elif entity_type == "Condition":
-                result = session.run(
-                    """
-                    MATCH (c:Condition)
-                    RETURN c
-                    """
-                )
+                if MatterLabel.GOAL.value in node_labels and "progress" in node:
+                    entity_data["progress"] = node["progress"]
 
-                entities = []
-                for record in result:
-                    node = record["c"]
-                    entity_data = {
-                        "id": node["id"],
-                        "description": node["description"],
-                        "is_met": node["is_met"]
-                    }
+                if MatterLabel.SOLUTION.value in node_labels and "state" in node:
+                    entity_data["state"] = node["state"]
 
-                    if "embedding" in node:
-                        entity_data["embedding"] = node["embedding"]
+                if "embedding" in node:
+                    entity_data["embedding"] = node["embedding"]
 
-                    entities.append(entity_data)
+                entities.append(entity_data)
 
-                return entities
-
-            else:
-                logger.error(f"Unknown entity type: {entity_type}")
-                return []
+            return entities
 
     def _build_similarity_graph(self,
                               entities: List[Dict[str, Any]],
-                              threshold: float,
-                              entity_type: str) -> Dict[str, List[Tuple[str, float]]]:
+                              threshold: float) -> Dict[str, List[Tuple[str, float]]]:
         """Build a similarity graph as an adjacency list.
 
         Args:
             entities: List of entity dictionaries
             threshold: Similarity threshold (0-1)
-            entity_type: Type of entities (Problem, Condition)
 
         Returns:
             Adjacency list where keys are entity IDs and values are lists of
@@ -346,7 +424,7 @@ class EntityResolutionSystem:
     
     def suggest_canonical_form(self,
                               entity_ids: List[str],
-                              entity_type: str = "Problem") -> Optional[CanonicalSuggestion]:
+                              target_label: str = None) -> Optional[CanonicalSuggestion]:
         """Suggest a canonical form for a group of similar entities.
 
         Uses a combination of approaches:
@@ -355,7 +433,8 @@ class EntityResolutionSystem:
 
         Args:
             entity_ids: List of entity IDs to create a canonical form for
-            entity_type: Type of the entities (Problem, Condition)
+            target_label: Optional specific label to focus on (e.g., "Problem", "Goal")
+                          If None, uses the most common label among the entities
 
         Returns:
             A suggested canonical form, or None if no suggestion could be made
@@ -363,21 +442,43 @@ class EntityResolutionSystem:
         if not entity_ids:
             return None
 
-        # Get all entities
+        # Get all entities and find common labels
         entities = []
+        label_counts = {}
+
         for entity_id in entity_ids:
-            if entity_type == "Problem":
-                entity = self.graph_manager.get_problem_by_id(entity_id)
-                if entity:
-                    entities.append(entity)
-            elif entity_type == "Condition":
-                # In a real implementation, we would get conditions here
-                # For now, we just log a warning
-                logger.warning("Canonical suggestion for Conditions not fully implemented yet")
-                return None
+            entity = self.graph_manager.get_matter_by_id(entity_id)
+            if entity:
+                entities.append(entity)
+                # Count labels (excluding Matter which is on everything)
+                for label in entity.labels:
+                    if label != MatterLabel.MATTER.value:
+                        label_counts[label] = label_counts.get(label, 0) + 1
 
         if not entities:
             return None
+
+        # Determine the common labels for these entities
+        if target_label:
+            # Use the specified label if provided
+            common_labels = [target_label]
+        else:
+            # Find the most common labels
+            # Sort labels by frequency, highest first
+            common_labels = sorted(
+                label_counts.keys(),
+                key=lambda label: label_counts[label],
+                reverse=True
+            )
+
+            # Filter to labels present in at least half the entities
+            min_count = len(entities) // 2
+            common_labels = [label for label in common_labels
+                            if label_counts[label] >= min_count]
+
+            # Always include Matter as a fallback
+            if not common_labels:
+                common_labels = [MatterLabel.MATTER.value]
 
         # Try different methods for suggesting canonical forms
         methods_to_try = [
@@ -388,7 +489,7 @@ class EntityResolutionSystem:
 
         for method in methods_to_try:
             try:
-                suggestion = method(entities, entity_type)
+                suggestion = method(entities, common_labels)
                 if suggestion:
                     return suggestion
             except Exception as e:
@@ -398,23 +499,48 @@ class EntityResolutionSystem:
         # If all methods fail, use the first entity description as canonical
         return CanonicalSuggestion(
             entity_ids=entity_ids,
-            entity_type=entity_type,
+            entity_labels=common_labels,
             suggested_description=entities[0].description,
             confidence=0.5,  # Low confidence since this is a fallback
             supporting_factors={
                 "method": "fallback_first_entity",
-                "num_entities": len(entities)
+                "num_entities": len(entities),
+                "labels": common_labels
             }
         )
 
+    # Legacy method for backward compatibility
+    def suggest_canonical_problem_form(self, problem_ids: List[str]) -> Optional[CanonicalSuggestion]:
+        """Suggest a canonical form for problems (legacy method).
+
+        Args:
+            problem_ids: List of problem IDs to create a canonical form for
+
+        Returns:
+            A suggested canonical form, or None if no suggestion could be made
+        """
+        return self.suggest_canonical_form(problem_ids, MatterLabel.PROBLEM.value)
+
+    # Legacy method for backward compatibility
+    def suggest_canonical_condition_form(self, condition_ids: List[str]) -> Optional[CanonicalSuggestion]:
+        """Suggest a canonical form for conditions (legacy method).
+
+        Args:
+            condition_ids: List of condition IDs to create a canonical form for
+
+        Returns:
+            A suggested canonical form, or None if no suggestion could be made
+        """
+        return self.suggest_canonical_form(condition_ids, MatterLabel.CONDITION.value)
+
     def _suggest_canonical_with_openai(self,
                                      entities: List[Any],
-                                     entity_type: str) -> Optional[CanonicalSuggestion]:
+                                     labels: List[str]) -> Optional[CanonicalSuggestion]:
         """Use OpenAI to generate a canonical description for a group of entities.
 
         Args:
-            entities: List of entities (Problem or Condition objects)
-            entity_type: Type of the entities
+            entities: List of entities (Matter objects)
+            labels: Common labels for these entities
 
         Returns:
             A suggested canonical form, or None if generation failed
@@ -433,20 +559,24 @@ class EntityResolutionSystem:
             descriptions = [entity.description for entity in entities]
             context = "\n\n".join([f"- {desc}" for desc in descriptions])
 
+            # Format label text for prompt
+            label_text = ", ".join(labels)
+
             # Format the prompt for canonical form generation
             prompt = f"""You are an expert in knowledge organization and entity resolution.
 
-I have a group of similar {entity_type.lower()} descriptions. I need a single canonical description
-that accurately represents the core concept shared by all of these descriptions.
+I have a group of similar descriptions that are classified as: {label_text}.
+I need a single canonical description that accurately represents the core concept shared by all of these descriptions.
 
 Here are the descriptions:
 {context}
 
 Please generate a consolidated canonical description for this group. The description should:
 1. Capture the essential shared concept
-2. Be clear and concise
+2. Be clear and concise (aim for 1-2 sentences)
 3. Use precise, general terminology
 4. Be written in a consistent style
+5. Be appropriate for entities with these labels: {label_text}
 
 Return ONLY the canonical description, nothing else.
 """
@@ -473,13 +603,14 @@ Return ONLY the canonical description, nothing else.
 
             return CanonicalSuggestion(
                 entity_ids=[entity.id for entity in entities],
-                entity_type=entity_type,
+                entity_labels=labels,
                 suggested_description=suggested_description,
                 confidence=confidence,
                 supporting_factors={
                     "method": "openai_generation",
                     "num_entities": len(entities),
-                    "model": "gpt-3.5-turbo"
+                    "model": "gpt-3.5-turbo",
+                    "labels": labels
                 }
             )
 
@@ -489,14 +620,14 @@ Return ONLY the canonical description, nothing else.
 
     def _suggest_canonical_with_text_analysis(self,
                                            entities: List[Any],
-                                           entity_type: str) -> Optional[CanonicalSuggestion]:
+                                           labels: List[str]) -> Optional[CanonicalSuggestion]:
         """Use text analysis to generate a canonical description.
 
         Extracts key terms and patterns from the descriptions to create a canonical form.
 
         Args:
-            entities: List of entities (Problem or Condition objects)
-            entity_type: Type of the entities
+            entities: List of entities (Matter objects)
+            labels: Common labels for these entities
 
         Returns:
             A suggested canonical form, or None if analysis failed
@@ -559,13 +690,14 @@ Return ONLY the canonical description, nothing else.
 
             return CanonicalSuggestion(
                 entity_ids=[entity.id for entity in entities],
-                entity_type=entity_type,
+                entity_labels=labels,
                 suggested_description=suggested_description,
                 confidence=confidence,
                 supporting_factors={
                     "method": "text_analysis",
                     "num_entities": len(entities),
-                    "common_words": len(common_words)
+                    "common_words": len(common_words),
+                    "labels": labels
                 }
             )
 
@@ -575,14 +707,14 @@ Return ONLY the canonical description, nothing else.
 
     def _suggest_canonical_simple(self,
                                entities: List[Any],
-                               entity_type: str) -> Optional[CanonicalSuggestion]:
+                               labels: List[str]) -> Optional[CanonicalSuggestion]:
         """Simple method to generate a canonical form.
 
         Uses the longest description as the canonical form.
 
         Args:
-            entities: List of entities (Problem or Condition objects)
-            entity_type: Type of the entities
+            entities: List of entities (Matter objects)
+            labels: Common labels for these entities
 
         Returns:
             A suggested canonical form
@@ -593,13 +725,14 @@ Return ONLY the canonical description, nothing else.
 
         return CanonicalSuggestion(
             entity_ids=[entity.id for entity in entities],
-            entity_type=entity_type,
+            entity_labels=labels,
             suggested_description=suggested_description,
             confidence=0.7,  # Moderate confidence for this approach
             supporting_factors={
                 "method": "longest_description",
                 "num_entities": len(entities),
-                "description_length": len(suggested_description)
+                "description_length": len(suggested_description),
+                "labels": labels
             }
         )
     
@@ -620,45 +753,67 @@ Return ONLY the canonical description, nothing else.
             return None
 
         try:
-            # Create the canonical node based on entity type
-            if suggestion.entity_type == "Problem":
-                canonical = self.graph_manager.create_canonical_problem(
-                    suggestion.suggested_description
-                )
+            # Determine the most specific canonical type based on labels
+            # Order from most specific to least specific
+            canonical_type = None
+            for label in suggestion.entity_labels:
+                if label == MatterLabel.PROBLEM.value:
+                    canonical_type = "CanonicalProblem"
+                    break
+                elif label == MatterLabel.CONDITION.value:
+                    canonical_type = "CanonicalCondition"
+                    break
+                elif label == MatterLabel.GOAL.value:
+                    canonical_type = "CanonicalGoal"
+                    break
+                elif label == MatterLabel.SOLUTION.value:
+                    canonical_type = "CanonicalSolution"
+                    break
 
-                # Map each entity to the canonical form
-                for entity_id in suggestion.entity_ids:
-                    self.graph_manager.map_problem_to_canonical(entity_id, canonical.id)
+            # Default to CanonicalMatter if no specific label matches
+            if not canonical_type:
+                canonical_type = "CanonicalMatter"
 
-                logger.info(f"Created canonical problem '{canonical.id}' and mapped "
-                           f"{len(suggestion.entity_ids)} problems to it")
+            # Create the canonical node using the generic method
+            canonical = self.graph_manager.create_canonical_matter(
+                suggestion.suggested_description,
+                canonical_type
+            )
 
-                return canonical.id
+            # Map each entity to the canonical form
+            for entity_id in suggestion.entity_ids:
+                self.graph_manager.map_matter_to_canonical(entity_id, canonical.id)
 
-            elif suggestion.entity_type == "Condition":
-                canonical = self.graph_manager.create_canonical_condition(
-                    suggestion.suggested_description
-                )
+            logger.info(f"Created canonical {canonical_type} '{canonical.id}' and mapped "
+                       f"{len(suggestion.entity_ids)} matters to it")
 
-                # Map each entity to the canonical form
-                for entity_id in suggestion.entity_ids:
-                    self.graph_manager.map_condition_to_canonical(entity_id, canonical.id)
-
-                logger.info(f"Created canonical condition '{canonical.id}' and mapped "
-                           f"{len(suggestion.entity_ids)} conditions to it")
-
-                return canonical.id
-
-            else:
-                logger.error(f"Unknown entity type: {suggestion.entity_type}")
-                return None
+            return canonical.id
 
         except Exception as e:
             logger.error(f"Error creating canonical node: {str(e)}")
             return None
 
+    # Legacy method for backward compatibility
+    def create_canonical_problem_node(self,
+                             suggestion: CanonicalSuggestion,
+                             user_approved: bool = False) -> Optional[str]:
+        """Create a canonical problem node based on a suggestion (legacy method).
+
+        Args:
+            suggestion: The canonical form suggestion
+            user_approved: Whether the suggestion was approved by a user
+
+        Returns:
+            ID of the created canonical problem node, or None if creation failed
+        """
+        # Ensure the suggestion has the Problem label
+        if MatterLabel.PROBLEM.value not in suggestion.entity_labels:
+            suggestion.entity_labels.append(MatterLabel.PROBLEM.value)
+
+        return self.create_canonical_node(suggestion, user_approved)
+
     def auto_resolve_entities(self,
-                           entity_type: str = "Problem",
+                           labels: List[str] = None,
                            threshold: float = 0.8,
                            min_group_size: int = 2,
                            confidence_threshold: float = 0.7) -> List[Dict[str, Any]]:
@@ -670,7 +825,7 @@ Return ONLY the canonical description, nothing else.
         3. Create canonical nodes and map entities to them
 
         Args:
-            entity_type: Type of entities to resolve (Problem, Condition)
+            labels: Optional list of labels to filter by (e.g., ["Problem", "Goal"])
             threshold: Similarity threshold for grouping entities
             min_group_size: Minimum number of entities in a group
             confidence_threshold: Minimum confidence for accepting suggestions
@@ -678,20 +833,21 @@ Return ONLY the canonical description, nothing else.
         Returns:
             List of created canonical nodes with their mapped entities
         """
-        logger.info(f"Auto-resolving {entity_type} entities with threshold {threshold}")
+        labels_str = ", ".join(labels) if labels else "all matters"
+        logger.info(f"Auto-resolving entities ({labels_str}) with threshold {threshold}")
 
         # Step 1: Group similar entities
         groups = self.group_similar_entities(
-            entity_type=entity_type,
+            labels=labels,
             threshold=threshold,
             min_group_size=min_group_size
         )
 
         if not groups:
-            logger.info(f"No similar {entity_type} groups found")
+            logger.info(f"No similar entity groups found for {labels_str}")
             return []
 
-        logger.info(f"Found {len(groups)} groups of similar {entity_type}s")
+        logger.info(f"Found {len(groups)} groups of similar entities ({labels_str})")
 
         # Step 2 & 3: Suggest canonical forms and create canonical nodes
         results = []
@@ -700,7 +856,7 @@ Return ONLY the canonical description, nothing else.
             entity_ids = [entity["id"] for entity in group]
 
             # Suggest a canonical form
-            suggestion = self.suggest_canonical_form(entity_ids, entity_type)
+            suggestion = self.suggest_canonical_form(entity_ids, target_label=None)
 
             if not suggestion or suggestion.confidence < confidence_threshold:
                 logger.info(f"Skipping group {i+1}: low confidence "
@@ -716,15 +872,60 @@ Return ONLY the canonical description, nothing else.
                     "canonical_id": canonical_id,
                     "canonical_description": suggestion.suggested_description,
                     "entity_ids": suggestion.entity_ids,
+                    "entity_labels": suggestion.entity_labels,
                     "confidence": suggestion.confidence,
                     "method": suggestion.supporting_factors.get("method", "unknown")
                 })
 
-        logger.info(f"Auto-resolved {len(results)} groups of {entity_type}s")
+        logger.info(f"Auto-resolved {len(results)} groups of entities ({labels_str})")
         return results
 
+    # Legacy method for backward compatibility
+    def auto_resolve_problems(self,
+                           threshold: float = 0.8,
+                           min_group_size: int = 2,
+                           confidence_threshold: float = 0.7) -> List[Dict[str, Any]]:
+        """Automatically resolve similar problems by creating canonical forms (legacy method).
+
+        Args:
+            threshold: Similarity threshold for grouping problems
+            min_group_size: Minimum number of problems in a group
+            confidence_threshold: Minimum confidence for accepting suggestions
+
+        Returns:
+            List of created canonical nodes with their mapped problems
+        """
+        return self.auto_resolve_entities(
+            labels=[MatterLabel.PROBLEM.value],
+            threshold=threshold,
+            min_group_size=min_group_size,
+            confidence_threshold=confidence_threshold
+        )
+
+    # Legacy method for backward compatibility
+    def auto_resolve_conditions(self,
+                           threshold: float = 0.8,
+                           min_group_size: int = 2,
+                           confidence_threshold: float = 0.7) -> List[Dict[str, Any]]:
+        """Automatically resolve similar conditions by creating canonical forms (legacy method).
+
+        Args:
+            threshold: Similarity threshold for grouping conditions
+            min_group_size: Minimum number of conditions in a group
+            confidence_threshold: Minimum confidence for accepting suggestions
+
+        Returns:
+            List of created canonical nodes with their mapped conditions
+        """
+        return self.auto_resolve_entities(
+            labels=[MatterLabel.CONDITION.value],
+            threshold=threshold,
+            min_group_size=min_group_size,
+            confidence_threshold=confidence_threshold
+        )
+
     def merge_duplicates(self,
-                       entity_type: str = "Problem",
+                       labels: List[str] = None,
                        threshold: float = 0.9,
                        require_user_approval: bool = True) -> List[Dict[str, Any]]:
         """Identify and merge duplicate entities.
@@ -733,14 +934,15 @@ Return ONLY the canonical description, nothing else.
         and merge them instead of just creating canonical mappings.
 
         Args:
-            entity_type: Type of entities to merge (Problem, Condition)
+            labels: Optional list of labels to filter by (e.g., ["Problem", "Goal"])
             threshold: Similarity threshold for considering duplicates (should be high)
             require_user_approval: Whether user approval is required for merging
 
         Returns:
             List of merge operations performed
         """
-        logger.info(f"Identifying duplicate {entity_type}s with threshold {threshold}")
+        labels_str = ", ".join(labels) if labels else "all matters"
+        logger.info(f"Identifying duplicate entities ({labels_str}) with threshold {threshold}")
 
         # This is a placeholder for a future implementation
         # In a real system, this would:
@@ -756,6 +958,44 @@ Return ONLY the canonical description, nothing else.
 
         # Placeholder for future implementation
         return []
+
+    # Legacy method for backward compatibility
+    def merge_duplicate_problems(self,
+                               threshold: float = 0.9,
+                               require_user_approval: bool = True) -> List[Dict[str, Any]]:
+        """Identify and merge duplicate problems (legacy method).
+
+        Args:
+            threshold: Similarity threshold for considering duplicates (should be high)
+            require_user_approval: Whether user approval is required for merging
+
+        Returns:
+            List of merge operations performed
+        """
+        return self.merge_duplicates(
+            labels=[MatterLabel.PROBLEM.value],
+            threshold=threshold,
+            require_user_approval=require_user_approval
+        )
+
+    # Legacy method for backward compatibility
+    def merge_duplicate_conditions(self,
+                                threshold: float = 0.9,
+                                require_user_approval: bool = True) -> List[Dict[str, Any]]:
+        """Identify and merge duplicate conditions (legacy method).
+
+        Args:
+            threshold: Similarity threshold for considering duplicates (should be high)
+            require_user_approval: Whether user approval is required for merging
+
+        Returns:
+            List of merge operations performed
+        """
+        return self.merge_duplicates(
+            labels=[MatterLabel.CONDITION.value],
+            threshold=threshold,
+            require_user_approval=require_user_approval
+        )
     
     def _calculate_confidence(self, entity_data: Dict[str, Any]) -> float:
         """Calculate confidence score for an entity match.

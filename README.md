@@ -1,20 +1,21 @@
-# Matters.Global Problem Management System
+# Matters.Global Knowledge Management System
 
-A system for managing, tracking, and resolving problems with semantic similarity features, entity resolution, and graph relationships.
+A flexible system for managing goals, problems, conditions, and solutions with semantic similarity features, entity resolution, and graph relationships.
 
 ## Architecture
 
 The system consists of:
 
 1. **Backend Implementation**
-   - Graph database (Neo4j) for problem storage
-   - Embedding-based similarity features
-   - Entity resolution system
+   - Graph database (Neo4j) with flexible multi-label schema
+   - Embedding-based semantic similarity features
+   - Entity resolution and canonical mapping system
+   - Multiple relationship types for connecting matters
 
 2. **Chat Interface**
    - Conversational UI for interacting with the system
-   - OpenAI Assistant integration
-   - Function calling to manage problems
+   - OpenAI Assistant integration with multi-label awareness
+   - Function calling to manage different matter types
 
 ## Setup Instructions
 
@@ -156,22 +157,121 @@ OpenAI function schemas are defined in `assistant_functions.py`. You can add new
 2. Implementing a handler function
 3. Adding the handler to the `FUNCTION_DISPATCH` dictionary
 
+## Multi-Label Schema
+
+The system uses a flexible multi-label schema that allows entities to serve multiple purposes simultaneously:
+
+### Entity Types (Labels)
+
+- **Matter**: Base type for all entities in the system
+- **Goal**: A desired outcome or future state (e.g., "Launch mobile app by Q3")
+- **Problem**: An issue that needs to be resolved (e.g., "API response times are too slow")
+- **Condition**: A requirement that must be met (e.g., "System must pass security audit")
+- **Solution**: An approach to solve a problem or achieve a goal (e.g., "Implement caching")
+
+An entity can have multiple labels, reflecting its multiple roles in the system. For example:
+- A requirement might be both a **Condition** and a **Problem** that needs solving
+- A milestone might be both a **Goal** to achieve and a **Condition** for a larger goal
+- An implementation task might be both a **Problem** to solve and a **Solution** to another problem
+
+### Entity Properties
+
+Each entity type has specific properties relevant to its role:
+
+```
+Matter {
+    id: String,                 // Unique identifier
+    description: String,        // Human-readable description
+    created_at: DateTime,       // Creation timestamp
+    updated_at: DateTime,       // Last update timestamp
+    embedding: [Float],         // Vector embedding for similarity
+    tags: [String]              // Optional categorization tags
+}
+
+Goal {
+    target_date: DateTime,      // When the goal should be achieved
+    progress: Float             // Progress toward completion (0-1)
+}
+
+Problem {
+    problem_state: String,      // "solved", "not_solved", or "obsolete"
+    priority: Integer           // Optional priority ranking
+}
+
+Condition {
+    is_met: Boolean,            // Whether the condition is satisfied
+    verification_method: String // How to verify the condition
+}
+
+Solution {
+    solution_state: String,     // "theoretical", "in_progress", "implemented", or "failed"
+    implementation_date: DateTime // When the solution was implemented
+}
+```
+
 ## Graph Relationships
 
-The system uses Neo4j relationships to model connections between problems:
+The system uses Neo4j relationships to model connections between different matter types:
 
-- `(Problem)-[:REQUIRES]->(Condition)`: A problem requires a condition to be met
-- `(Problem)-[:MUST_BE_RESOLVED_BEFORE]->(Problem)`: Problem A must be resolved before Problem B can be solved
-- `(Problem)-[:SOLVED_BY]->(Solution)`: A problem is solved by a solution
-- `(Problem)-[:MAPPED_TO]->(CanonicalProblem)`: Maps problem variants to canonical form
-- `(Condition)-[:MAPPED_TO]->(CanonicalCondition)`: Maps condition variants to canonical form
+### Core Structural Relationships
 
-The `MUST_BE_RESOLVED_BEFORE` relationship models a clear sequential dependency between problems. For example, if Problem A must be resolved before Problem B, there is a direct relationship: `(A)-[:MUST_BE_RESOLVED_BEFORE]->(B)`.
+- `(:Matter)-[:REQUIRES]->(:Matter)`: Entity A requires entity B to be resolved/achieved
+- `(:Matter)-[:BLOCKS]->(:Matter)`: Entity A blocks progress on entity B
+- `(:Matter)-[:ENABLES]->(:Matter)`: Entity A enables or facilitates entity B
+- `(:Matter)-[:RELATES_TO]->(:Matter)`: Generic association between entities
+
+### Temporal and Sequencing Relationships
+
+- `(:Matter)-[:PRECEDES]->(:Matter)`: Entity A must be handled before entity B
+- `(:Matter)-[:FOLLOWS]->(:Matter)`: Entity A should be handled after entity B
+
+### Compositional Relationships
+
+- `(:Matter)-[:PART_OF]->(:Matter)`: Entity A is a component of entity B
+- `(:Matter)-[:CONSISTS_OF]->(:Matter)`: Entity A consists of entity B
+
+### Resolution Relationships
+
+- `(:Matter)-[:SOLVED_BY]->(:Matter:Solution)`: Entity A is resolved by solution B
+- `(:Matter:Solution)-[:ADDRESSES]->(:Matter)`: Solution A addresses entity B
+- `(:Matter:Solution)-[:FULFILLS]->(:Matter:Condition)`: Solution A fulfills condition B
+
+### Canonical Relationships
+
+- `(:Matter)-[:MAPPED_TO]->(:Matter)`: Entity A is a variant of canonical form B
+- `(:Matter)-[:DERIVED_FROM]->(:Matter)`: Entity A is derived from or inspired by entity B
+
+## Features
+
+### Semantic Similarity
+
+The system uses embedding-based semantic similarity to:
+- Find similar entities regardless of exact wording
+- Group related matters for canonical form mapping
+- Suggest potential connections between entities
+- Support "fuzzy" search across the knowledge graph
+
+### Entity Resolution
+
+The multi-stage entity resolution system helps maintain a clean knowledge graph by:
+- Identifying semantically similar entities using vector embeddings
+- Suggesting canonical forms for groups of similar entities
+- Providing multiple resolution strategies with fallbacks
+- Supporting both automatic and user-guided resolution
+
+### Hybrid Vector + LLM Approach
+
+The system combines vector embeddings and LLM capabilities:
+- Vector similarity for efficient first-pass filtering
+- LLM-based refinement for deeper semantic understanding
+- Explanation generation for detected similarities
+- Fallback mechanisms when vector search yields poor results
 
 ## Future Development
 
 See the BRAINSTORMING.md file for plans on future development, including:
-- User interfaces
-- Visualization tools
-- Monitoring dashboard
-- Authentication system
+- Advanced visualization tools for the multi-label graph
+- User interfaces for reviewing and confirming mappings
+- Monitoring dashboard for knowledge graph analytics
+- Multi-user support with authentication
+- Native mobile applications with offline capabilities

@@ -160,20 +160,14 @@ All dependencies are specified in the environment.yml file, including:
 - numpy: For numerical operations with embeddings
 - pytest: For testing
 
-### Future Development Focus
-
-- **Advanced Visualization**: Interactive graph visualization with multi-label awareness
-- **Enhanced Entity Resolution**: Improved resolution strategies for complex entities
-- **User Management**: Authentication and authorization for multi-user environments
+## ROADMAP
+- **Test multi label implementation**
+- **Enhance and test AI Assistant Functions**: See AIFeatures.md
+- **Move to pip-based**
+- **Make multi-user**: Authentication and authorization for multi-user environments
+- **Implement local llm**
+- **Move to server for beta test**
 - **Mobile Integration**: Support for mobile clients with offline capabilities
+- **Public (local) vs private (cloud)graphs**
+- **Integrate ocean protocol as persistent layer**
 - **Performance Optimization**: Scaling strategies for large knowledge graphs
-
-### Completed Multi-Label Schema Implementation ✓
-
-The multi-label schema implementation has been successfully completed with:
-
-1. Database layer supporting multiple labels per entity
-2. API layer with type-specific and generic matter operations
-3. OpenAI assistant prompt updated to properly explain and leverage multi-label capabilities
-4. Documentation updated to reflect the flexible entity model
-5. Test cases demonstrating problem-condition duality and other multi-label patterns

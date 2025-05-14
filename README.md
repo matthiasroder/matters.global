@@ -269,9 +269,4 @@ The system combines vector embeddings and LLM capabilities:
 
 ## Future Development
 
-See the BRAINSTORMING.md file for plans on future development, including:
-- Advanced visualization tools for the multi-label graph
-- User interfaces for reviewing and confirming mappings
-- Monitoring dashboard for knowledge graph analytics
-- Multi-user support with authentication
-- Native mobile applications with offline capabilities
+See the CLAUDE.md file for roadmap. See BRAINSTORMING.md for potential ideas.

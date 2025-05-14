@@ -30,6 +30,8 @@ add_relationship(source_id: str, relationship_type: str, target_id: str)
 update_matter(matter_id: str, properties: Dict)
 find_similar_matters(description: str, labels: List[str], threshold: float)
 get_related_matters(matter_id: str, relationship_types: List[str], direction: str)
+explain_similarity(source_id: str, target_id: str)  # Uses LLM to explain why matters are similar
+refine_similarity_results(candidates: List[Dict], query: str)  # LLM refines vector search results
 ```
 
 ### 5. Feedback Loop
@@ -105,6 +107,18 @@ get_related_matters(matter_id: str, relationship_types: List[str], direction: st
 - Relationship extraction (understanding connections between entities)
 - Intent classification (distinguishing information sharing from requests for insight)
 - Context tracking (maintaining conversation state across turns)
+
+### Hybrid Similarity Search Implementation
+- **Two-Stage Process**:
+  1. Use vector similarity to efficiently filter candidate matches from the graph
+  2. Send top candidates to the LLM for re-ranking and explanation
+- **Similarity Explanation**: LLM analyzes why two matters are similar and explains in natural language
+- **Fallback Processing**: When vector search yields poor results, use LLM directly to find matches
+- **Benefits of the Approach**:
+  - Scales efficiently with growing knowledge graph
+  - Provides richer explanations than pure vector similarity
+  - Reduces costs compared to pure LLM-based matching
+  - Maintains consistent performance even with complex queries
 
 ### Contextual Awareness
 - Recognizes when to shift between capture mode and coaching mode

@@ -15,13 +15,31 @@ import uuid
 import json
 from pathlib import Path
 import logging
-from pydantic import BaseModel, Field, root_validator
+import re
+from pydantic import BaseModel, Field, model_validator
 from neo4j import GraphDatabase, Driver, Session, Transaction, Result
 
 from embedding_providers import (
     EmbeddingProvider,
     EmbeddingProviderFactory
 )
+
+class Neo4jConfig:
+    """Configuration for Neo4j capabilities.
+
+    This class stores detected capabilities of the Neo4j instance and
+    helps optimize queries based on available features.
+    """
+    def __init__(self):
+        self.enterprise_edition = False
+        self.version = "unknown"
+        self.major_version = 0
+        self.minor_version = 0
+        self.gds_library_available = False
+        self.full_text_indexes_available = False
+        self.vector_indexes_available = False
+        self.property_existence_constraints_available = False
+        self.compound_label_indexes_available = False
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -82,6 +100,13 @@ class Matter(BaseModel):
     tags: List[str] = Field(default_factory=list, description="Optional categorization tags")
     labels: List[str] = Field(default_factory=lambda: [MatterLabel.MATTER.value], description="Neo4j labels for this node")
 
+    # Property-based type indicators for more efficient filtering
+    # These are especially useful for Neo4j Community Edition
+    is_goal: bool = Field(default=False, description="Property indicator for Goal type")
+    is_problem: bool = Field(default=False, description="Property indicator for Problem type")
+    is_condition: bool = Field(default=False, description="Property indicator for Condition type")
+    is_solution: bool = Field(default=False, description="Property indicator for Solution type")
+
     def add_label(self, label: Union[str, MatterLabel]) -> None:
         """Add a label to this matter if it doesn't already exist."""
         if isinstance(label, MatterLabel):
@@ -90,6 +115,16 @@ class Matter(BaseModel):
         if label not in self.labels:
             self.labels.append(label)
             self.updated_at = datetime.now()
+
+            # Update property-based type indicators
+            if label == MatterLabel.GOAL.value:
+                self.is_goal = True
+            elif label == MatterLabel.PROBLEM.value:
+                self.is_problem = True
+            elif label == MatterLabel.CONDITION.value:
+                self.is_condition = True
+            elif label == MatterLabel.SOLUTION.value:
+                self.is_solution = True
 
     def remove_label(self, label: Union[str, MatterLabel]) -> None:
         """Remove a label from this matter if it exists."""
@@ -100,6 +135,16 @@ class Matter(BaseModel):
             self.labels.remove(label)
             self.updated_at = datetime.now()
 
+            # Update property-based type indicators
+            if label == MatterLabel.GOAL.value:
+                self.is_goal = False
+            elif label == MatterLabel.PROBLEM.value:
+                self.is_problem = False
+            elif label == MatterLabel.CONDITION.value:
+                self.is_condition = False
+            elif label == MatterLabel.SOLUTION.value:
+                self.is_solution = False
+
     def has_label(self, label: Union[str, MatterLabel]) -> bool:
         """Check if this matter has a specific label."""
         if isinstance(label, MatterLabel):
@@ -107,13 +152,39 @@ class Matter(BaseModel):
 
         return label in self.labels
 
-    @root_validator
-    def ensure_matter_label(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode='after')
+    def ensure_matter_label(self) -> 'Matter':
         """Ensure the Matter label is always present."""
-        if "labels" in values:
-            if MatterLabel.MATTER.value not in values["labels"]:
-                values["labels"].append(MatterLabel.MATTER.value)
-        return values
+        if hasattr(self, 'labels'):
+            if MatterLabel.MATTER.value not in self.labels:
+                self.labels.append(MatterLabel.MATTER.value)
+
+        # Ensure property indicators match labels
+        if hasattr(self, 'labels'):
+            self.is_goal = MatterLabel.GOAL.value in self.labels
+            self.is_problem = MatterLabel.PROBLEM.value in self.labels
+            self.is_condition = MatterLabel.CONDITION.value in self.labels
+            self.is_solution = MatterLabel.SOLUTION.value in self.labels
+
+        return self
+
+    @model_validator(mode='after')
+    def validate_required_properties(self) -> 'Matter':
+        """Validate that all required properties are present.
+
+        This application-level validation replaces Neo4j property existence
+        constraints which are only available in Enterprise Edition.
+        """
+        if not hasattr(self, 'description') or not self.description:
+            raise ValueError("Matter must have a description")
+
+        if not hasattr(self, 'created_at') or not self.created_at:
+            raise ValueError("Matter must have a created_at timestamp")
+
+        if not hasattr(self, 'updated_at') or not self.updated_at:
+            raise ValueError("Matter must have an updated_at timestamp")
+
+        return self
 
 
 class Goal(Matter):
@@ -136,7 +207,7 @@ class Goal(Matter):
 
 class Problem(Matter):
     """Model representing a problem definition."""
-    state: ProblemState = Field(
+    problem_state: ProblemState = Field(
         default=ProblemState.NOT_SOLVED,
         description="The state of the problem: solved, not_solved, or obsolete"
     )
@@ -146,8 +217,22 @@ class Problem(Matter):
     )
 
     def __init__(self, **data):
+        # Support backward compatibility with 'state' field
+        if 'state' in data and 'problem_state' not in data:
+            data['problem_state'] = data.pop('state')
+
         super().__init__(**data)
         self.add_label(MatterLabel.PROBLEM)
+
+    @property
+    def state(self) -> ProblemState:
+        """Backward compatibility for state property."""
+        return self.problem_state
+
+    @state.setter
+    def state(self, value: ProblemState):
+        """Backward compatibility for state property setter."""
+        self.problem_state = value
 
 
 class Condition(Matter):
@@ -168,7 +253,7 @@ class Condition(Matter):
 
 class Solution(Matter):
     """Model representing a solution to a problem or for achieving a goal."""
-    state: SolutionState = Field(
+    solution_state: SolutionState = Field(
         default=SolutionState.THEORETICAL,
         description="The state of the solution implementation"
     )
@@ -178,8 +263,22 @@ class Solution(Matter):
     )
 
     def __init__(self, **data):
+        # Support backward compatibility with 'state' field
+        if 'state' in data and 'solution_state' not in data:
+            data['solution_state'] = data.pop('state')
+
         super().__init__(**data)
         self.add_label(MatterLabel.SOLUTION)
+
+    @property
+    def state(self) -> SolutionState:
+        """Backward compatibility for state property."""
+        return self.solution_state
+
+    @state.setter
+    def state(self, value: SolutionState):
+        """Backward compatibility for state property setter."""
+        self.solution_state = value
 
 
 class CanonicalMatter(BaseModel):
@@ -236,6 +335,7 @@ class GraphManager:
         self.password = password
         self.driver = None
         self.embedding_provider = None
+        self.neo4j_config = Neo4jConfig()
 
         # Initialize embedding provider if config path is provided
         if embedding_config_path:
@@ -251,13 +351,89 @@ class GraphManager:
     def connect(self) -> None:
         """Establish connection to Neo4j database."""
         self.driver = GraphDatabase.driver(
-            self.uri, 
+            self.uri,
             auth=(self.username, self.password)
         )
         # Test connection
         with self.driver.session() as session:
             result = session.run("RETURN 'Connection successful' AS message")
             print(result.single()["message"])
+
+            # Detect Neo4j capabilities after connecting
+            self._detect_neo4j_capabilities(session)
+
+    def _detect_neo4j_capabilities(self, session: Session) -> None:
+        """Detect Neo4j capabilities to optimize query strategies.
+
+        Args:
+            session: Active Neo4j session
+        """
+        try:
+            # Get Neo4j version
+            result = session.run("CALL dbms.components() YIELD name, versions, edition WHERE name = 'Neo4j Kernel' RETURN versions, edition")
+            record = result.single()
+            if record:
+                self.neo4j_config.version = record["versions"][0]
+                self.neo4j_config.enterprise_edition = record["edition"] == "enterprise"
+
+                # Parse version
+                match = re.match(r"(\d+)\.(\d+)\..*", self.neo4j_config.version)
+                if match:
+                    self.neo4j_config.major_version = int(match.group(1))
+                    self.neo4j_config.minor_version = int(match.group(2))
+
+                logger.info(f"Neo4j version: {self.neo4j_config.version} ({record['edition']} edition)")
+
+                # Feature detection based on version and edition
+                self.neo4j_config.property_existence_constraints_available = self.neo4j_config.enterprise_edition
+
+                # Full-text indexes available in Neo4j 3.5+
+                self.neo4j_config.full_text_indexes_available = (
+                    self.neo4j_config.major_version > 3 or
+                    (self.neo4j_config.major_version == 3 and self.neo4j_config.minor_version >= 5)
+                )
+
+                # Vector indexes available in Neo4j 5.11+
+                self.neo4j_config.vector_indexes_available = (
+                    self.neo4j_config.major_version > 5 or
+                    (self.neo4j_config.major_version == 5 and self.neo4j_config.minor_version >= 11)
+                )
+
+                # Compound label indexes fixed in 4.4+
+                self.neo4j_config.compound_label_indexes_available = (
+                    self.neo4j_config.major_version > 4 or
+                    (self.neo4j_config.major_version == 4 and self.neo4j_config.minor_version >= 4)
+                )
+
+            # Check for GDS library
+            try:
+                result = session.run("CALL gds.list() YIELD name RETURN count(name) AS count")
+                record = result.single()
+                self.neo4j_config.gds_library_available = record and record["count"] > 0
+                if self.neo4j_config.gds_library_available:
+                    logger.info("Neo4j Graph Data Science library is available")
+            except Exception:
+                self.neo4j_config.gds_library_available = False
+                logger.info("Neo4j Graph Data Science library is not available")
+
+            # Log detected capabilities
+            logger.info(f"Neo4j capabilities detected: " +
+                       f"Enterprise: {self.neo4j_config.enterprise_edition}, " +
+                       f"Property constraints: {self.neo4j_config.property_existence_constraints_available}, " +
+                       f"Full-text: {self.neo4j_config.full_text_indexes_available}, " +
+                       f"Vector: {self.neo4j_config.vector_indexes_available}, " +
+                       f"GDS: {self.neo4j_config.gds_library_available}")
+
+        except Exception as e:
+            logger.warning(f"Error detecting Neo4j capabilities: {str(e)}")
+            logger.warning("Assuming minimal Neo4j functionality (Community Edition)")
+            # Set safe defaults for all capabilities
+            self.neo4j_config.enterprise_edition = False
+            self.neo4j_config.property_existence_constraints_available = False
+            self.neo4j_config.full_text_indexes_available = False
+            self.neo4j_config.vector_indexes_available = False
+            self.neo4j_config.gds_library_available = False
+            self.neo4j_config.compound_label_indexes_available = False
     
     def close(self) -> None:
         """Close the database connection."""
@@ -265,26 +441,48 @@ class GraphManager:
             self.driver.close()
     
     def initialize_schema(self) -> None:
-        """Create constraints and indexes for the graph schema."""
+        """Create constraints and indexes for the graph schema.
+
+        This method creates a schema optimized for Neo4j Community Edition,
+        with graceful fallbacks for Enterprise features.
+        """
         with self.driver.session() as session:
             # Create constraints for uniqueness across all Matter nodes
+            # This works in both Community and Enterprise
             session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (m:Matter) REQUIRE m.id IS UNIQUE")
 
-            # Create property existence constraints for required properties
-            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (m:Matter) REQUIRE m.description IS NOT NULL")
-            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (m:Matter) REQUIRE m.created_at IS NOT NULL")
-            session.run("CREATE CONSTRAINT IF NOT EXISTS FOR (m:Matter) REQUIRE m.updated_at IS NOT NULL")
+            # Note about property existence constraints:
+            # We intentionally avoid property existence constraints as they require Neo4j Enterprise Edition
+            # Instead, we enforce required properties at the application level through Pydantic validation
 
-            # Create indexes for faster lookups
-            session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.description)")
-            session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.created_at)")
-            session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.updated_at)")
-            session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter:Goal) ON (m.target_date)")
-            session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter:Problem) ON (m.state)")
-            session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter:Condition) ON (m.is_met)")
-            session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter:Solution) ON (m.state)")
+            # Create basic indexes that work across all Neo4j versions
+            try:
+                # Core indexes for fast lookups by Matter properties
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.description)")
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.created_at)")
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.updated_at)")
+                logger.info("Created basic Matter property indexes")
 
-            # Create full-text search index for descriptions
+                # Create single-label indexes for specific entity types
+                # Always use this approach for better compatibility across Neo4j versions
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Goal) ON (m.target_date)")
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Problem) ON (m.problem_state)")
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Condition) ON (m.is_met)")
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Solution) ON (m.solution_state)")
+                logger.info("Created single-label type-specific indexes")
+
+                # Create indexes for label filtering using property indicators
+                # These will be populated in the Matter model when we add is_* properties
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.is_goal)")
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.is_problem)")
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.is_condition)")
+                session.run("CREATE INDEX IF NOT EXISTS FOR (m:Matter) ON (m.is_solution)")
+                logger.info("Created property-based type indicator indexes")
+            except Exception as e:
+                logger.warning(f"Failed to create basic indexes: {str(e)}")
+                logger.warning("The application will continue, but queries may be slower")
+
+            # Create full-text search index for descriptions (available from Neo4j 3.5+)
             try:
                 session.run("""
                     CREATE FULLTEXT INDEX matter_description_index IF NOT EXISTS
@@ -295,8 +493,9 @@ class GraphManager:
             except Exception as e:
                 logger.warning(f"Failed to create full-text search index: {str(e)}")
                 logger.warning("This may happen if your Neo4j version doesn't support full-text search")
+                logger.warning("Text search will use basic CONTAINS operations instead")
 
-            # Check if Neo4j supports vector indexes (Neo4j 5.11+)
+            # Try to create vector index - Enterprise feature for Neo4j 5.11+
             try:
                 # Create vector index for matter embeddings
                 session.run("""
@@ -308,12 +507,13 @@ class GraphManager:
                         `vector.similarity_function`: 'cosine'
                     }}
                 """)
-
                 logger.info("Vector index created successfully")
             except Exception as e:
                 logger.warning(f"Failed to create vector index: {str(e)}")
-                logger.warning("This may happen if your Neo4j version doesn't support vector indexes")
-                logger.warning("Vector similarity search will be slower")
+                logger.warning("Vector similarity search will fall back to text-based search")
+
+            # Try to detect Neo4j capabilities to optimize later operations
+            self._detect_neo4j_capabilities(session)
     
     def create_matter(self, matter: Matter) -> Matter:
         """Create a new matter in the database with appropriate labels.
@@ -326,6 +526,9 @@ class GraphManager:
         Returns:
             The created Matter object with any updates (like embeddings)
         """
+        # Application-level validation to replace Neo4j property existence constraints
+        matter.validate_required_properties()
+
         # Generate embedding if provider is available
         if self.embedding_provider and matter.embedding is None:
             try:
@@ -334,6 +537,12 @@ class GraphManager:
                 logger.info(f"Generated embedding for matter: {matter.id}")
             except Exception as e:
                 logger.warning(f"Failed to generate embedding: {str(e)}")
+
+        # Ensure property-based type indicators match labels
+        matter.is_goal = MatterLabel.GOAL.value in matter.labels
+        matter.is_problem = MatterLabel.PROBLEM.value in matter.labels
+        matter.is_condition = MatterLabel.CONDITION.value in matter.labels
+        matter.is_solution = MatterLabel.SOLUTION.value in matter.labels
 
         # Prepare properties for the database
         properties = matter.dict(exclude={"labels"})
@@ -406,7 +615,7 @@ class GraphManager:
         """
         problem = Problem(
             description=description,
-            state=state,
+            problem_state=state,  # Use the new field name
             priority=priority,
             tags=tags or []
         )
@@ -453,7 +662,7 @@ class GraphManager:
         """
         solution = Solution(
             description=description,
-            state=state,
+            solution_state=state,  # Use the new field name
             implementation_date=implementation_date,
             tags=tags or []
         )
@@ -488,7 +697,38 @@ class GraphManager:
             # Convert Neo4j date formats to Python datetime objects
             properties = dict(node)
 
-            # Create appropriate object based on labels
+            # Handle dual-purpose entities (entities with multiple type labels)
+            has_multiple_type_labels = sum(1 for label in node_labels if label in [
+                MatterLabel.GOAL.value,
+                MatterLabel.PROBLEM.value,
+                MatterLabel.CONDITION.value,
+                MatterLabel.SOLUTION.value
+            ]) > 1
+
+            # For dual-purpose entities, we need to handle state fields carefully
+            if has_multiple_type_labels:
+                # Handle custom state fields for dual-purpose entities
+                if MatterLabel.SOLUTION.value in node_labels and "solution_state" in properties:
+                    properties["state"] = properties["solution_state"]
+
+                # Convert date formats
+                if "target_date" in properties and properties["target_date"]:
+                    properties["target_date"] = datetime.fromisoformat(properties["target_date"])
+                if "implementation_date" in properties and properties["implementation_date"]:
+                    properties["implementation_date"] = datetime.fromisoformat(properties["implementation_date"])
+
+                # Choose the most specific class based on priority
+                if MatterLabel.GOAL.value in node_labels:
+                    return Goal(**properties, labels=node_labels)
+                elif MatterLabel.PROBLEM.value in node_labels:
+                    return Problem(**properties, labels=node_labels)
+                elif MatterLabel.SOLUTION.value in node_labels:
+                    return Solution(**properties, labels=node_labels)
+                elif MatterLabel.CONDITION.value in node_labels:
+                    return Condition(**properties, labels=node_labels)
+
+            # If not a dual-purpose entity, use standard approach
+            # Create appropriate object based on primary label
             if MatterLabel.GOAL.value in node_labels:
                 # Handle Goal-specific properties
                 if "target_date" in properties and properties["target_date"]:
@@ -505,6 +745,13 @@ class GraphManager:
                 # Handle Solution-specific properties
                 if "implementation_date" in properties and properties["implementation_date"]:
                     properties["implementation_date"] = datetime.fromisoformat(properties["implementation_date"])
+
+                # Use solution_state if available
+                if "solution_state" in properties:
+                    properties["state"] = properties["solution_state"]
+                elif "state" not in properties or not properties["state"]:
+                    properties["state"] = SolutionState.THEORETICAL.value
+
                 return Solution(**properties, labels=node_labels)
 
             else:
@@ -520,16 +767,51 @@ class GraphManager:
         Returns:
             Problem if found, None otherwise
         """
-        matter = self.get_matter_by_id(problem_id)
+        # Query the database using property-based type indicators for better compatibility
+        with self.driver.session() as session:
+            result = session.run(
+                """
+                MATCH (m:Matter {id: $id, is_problem: true})
+                RETURN m, labels(m) as labels
+                """,
+                id=problem_id
+            )
 
-        if matter and matter.has_label(MatterLabel.PROBLEM):
-            # If it's a matter with Problem label, convert it to Problem type
-            if not isinstance(matter, Problem):
-                problem_data = matter.dict()
-                return Problem(**problem_data)
-            return matter
+            record = result.single()
+            if not record:
+                return None
 
-        return None
+            node = record["m"]
+            node_labels = record["labels"]
+
+            # Create a clean dict to avoid validation errors
+            properties = dict(node)
+
+            # For entities that are both Problem and Solution:
+            # If there's a conflict with state (e.g., it has a Solution state),
+            # ensure we use a valid ProblemState
+            if MatterLabel.SOLUTION.value in node_labels:
+                # Ensure we have a valid Problem state
+                if "state" in properties and properties["state"] not in [
+                    ProblemState.SOLVED.value,
+                    ProblemState.NOT_SOLVED.value,
+                    ProblemState.OBSOLETE.value
+                ]:
+                    # Default to NOT_SOLVED if current state is invalid for Problem
+                    properties["state"] = ProblemState.NOT_SOLVED.value
+
+            # Handle ISO date conversion
+            if "created_at" in properties and properties["created_at"]:
+                properties["created_at"] = datetime.fromisoformat(properties["created_at"])
+            if "updated_at" in properties and properties["updated_at"]:
+                properties["updated_at"] = datetime.fromisoformat(properties["updated_at"])
+
+            # Ensure we have a list for tags
+            if "tags" not in properties:
+                properties["tags"] = []
+
+            # Create the Problem object
+            return Problem(**properties, labels=node_labels)
 
     def get_goal_by_id(self, goal_id: str) -> Optional[Goal]:
         """Get a goal by its ID.
@@ -580,16 +862,54 @@ class GraphManager:
         Returns:
             Solution if found, None otherwise
         """
-        matter = self.get_matter_by_id(solution_id)
+        # First check if the entity exists with the Solution label
+        with self.driver.session() as session:
+            # Retrieve the raw node directly using property-based type indicators
+            result = session.run(
+                """
+                MATCH (m:Matter {id: $id, is_solution: true})
+                RETURN m, labels(m) as labels
+                """,
+                id=solution_id
+            )
 
-        if matter and matter.has_label(MatterLabel.SOLUTION):
-            # If it's a matter with Solution label, convert it to Solution type
-            if not isinstance(matter, Solution):
-                solution_data = matter.dict()
-                return Solution(**solution_data)
-            return matter
+            record = result.single()
+            if not record:
+                return None
 
-        return None
+            node = record["m"]
+            node_labels = record["labels"]
+
+            # Create a clean dict to avoid validation errors
+            properties = dict(node)
+
+            # For entities that are both Problem and Solution:
+            if MatterLabel.PROBLEM.value in node_labels:
+                # Check if solution_state field is present
+                if "solution_state" in properties:
+                    # Use solution_state instead of state to avoid conflict
+                    properties["state"] = properties["solution_state"]
+                else:
+                    # Set default solution state
+                    properties["state"] = SolutionState.THEORETICAL.value
+            elif "state" not in properties or not properties["state"]:
+                # Default state
+                properties["state"] = SolutionState.THEORETICAL.value
+
+            # Handle ISO date conversion
+            if "implementation_date" in properties and properties["implementation_date"]:
+                properties["implementation_date"] = datetime.fromisoformat(properties["implementation_date"])
+            if "created_at" in properties and properties["created_at"]:
+                properties["created_at"] = datetime.fromisoformat(properties["created_at"])
+            if "updated_at" in properties and properties["updated_at"]:
+                properties["updated_at"] = datetime.fromisoformat(properties["updated_at"])
+
+            # Ensure we have a list for tags
+            if "tags" not in properties:
+                properties["tags"] = []
+
+            # Create the Solution object
+            return Solution(**properties, labels=node_labels)
 
     def create_relationship(self, relationship: MatterRelationship) -> bool:
         """Create a relationship between two matters.
@@ -610,23 +930,146 @@ class GraphManager:
 
         try:
             with self.driver.session() as session:
-                result = session.run(
-                    """
+                # Some Neo4j drivers/servers have issues with parameterized relationship types
+                # So we'll use a case-based approach with supported relationship types
+                rel_type = relationship.type
+
+                # Create a query with the specific relationship type hardcoded
+                if rel_type == RelationshipType.REQUIRES.value:
+                    query = """
                     MATCH (source:Matter {id: $source_id})
                     MATCH (target:Matter {id: $target_id})
-                    CREATE (source)-[r:$type]->(target)
+                    CREATE (source)-[r:REQUIRES]->(target)
                     SET r = $properties
                     RETURN r
-                    """,
+                    """
+                elif rel_type == RelationshipType.BLOCKS.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:BLOCKS]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.ENABLES.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:ENABLES]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.RELATES_TO.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:RELATES_TO]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.PRECEDES.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:PRECEDES]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.FOLLOWS.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:FOLLOWS]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.PART_OF.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:PART_OF]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.CONSISTS_OF.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:CONSISTS_OF]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.SOLVED_BY.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:SOLVED_BY]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.ADDRESSES.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:ADDRESSES]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.FULFILLS.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:FULFILLS]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.MAPPED_TO.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:MAPPED_TO]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                elif rel_type == RelationshipType.DERIVED_FROM.value:
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:DERIVED_FROM]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                # Legacy relationship
+                elif rel_type == "MUST_BE_RESOLVED_BEFORE":
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:MUST_BE_RESOLVED_BEFORE]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+                else:
+                    # Fall back to a generic relationship if none of the above match
+                    logger.warning(f"Unknown relationship type: {rel_type}, using generic RELATES_TO")
+                    query = """
+                    MATCH (source:Matter {id: $source_id})
+                    MATCH (target:Matter {id: $target_id})
+                    CREATE (source)-[r:RELATES_TO]->(target)
+                    SET r = $properties
+                    RETURN r
+                    """
+
+                # Execute the query
+                result = session.run(
+                    query,
                     source_id=relationship.source_id,
                     target_id=relationship.target_id,
-                    type=relationship.type,
                     properties=relationship.properties
                 )
 
                 record = result.single()
                 if record:
-                    logger.info(f"Created relationship: ({source.id})-[:{relationship.type}]->({target.id})")
+                    logger.info(f"Created relationship: ({source.id})-[:{rel_type}]->({target.id})")
                     return True
                 else:
                     logger.error(f"Failed to create relationship despite matters existing")
@@ -915,10 +1358,10 @@ class GraphManager:
             True if all conditions are met, False otherwise
         """
         with self.driver.session() as session:
-            # Get all conditions for the problem
+            # Get all conditions for the problem - using property indicators
             result = session.run(
                 """
-                MATCH (p:Matter:Problem {id: $problem_id})-[:REQUIRES]->(c:Matter:Condition)
+                MATCH (p:Matter {id: $problem_id, is_problem: true})-[:REQUIRES]->(c:Matter {is_condition: true})
                 WHERE c.is_met = false
                 RETURN COUNT(c) as unmet_count
                 """,
@@ -931,8 +1374,8 @@ class GraphManager:
             if unmet_count == 0:
                 session.run(
                     """
-                    MATCH (p:Matter:Problem {id: $problem_id})
-                    SET p.state = $solved
+                    MATCH (p:Matter {id: $problem_id, is_problem: true})
+                    SET p.problem_state = $solved
                     SET p.updated_at = $updated_at
                     """,
                     problem_id=problem_id,
@@ -953,10 +1396,10 @@ class GraphManager:
             Current progress value between 0 and 1
         """
         with self.driver.session() as session:
-            # Count total and met conditions
+            # Count total and met conditions - using property indicators
             result = session.run(
                 """
-                MATCH (g:Matter:Goal {id: $goal_id})-[:REQUIRES]->(c:Matter:Condition)
+                MATCH (g:Matter {id: $goal_id, is_goal: true})-[:REQUIRES]->(c:Matter {is_condition: true})
                 WITH g, COUNT(c) as total_conditions,
                      COUNT(c.is_met = true) as met_conditions
                 SET g.progress = CASE
@@ -1012,8 +1455,10 @@ class GraphManager:
                             limit: int = 10) -> List[Dict[str, Any]]:
         """Find matters similar to the given description.
 
-        Uses vector similarity search if embeddings are available,
-        otherwise falls back to text-based matching.
+        This method uses a cascading fallback approach to find similar matters:
+        1. Try vector similarity if embeddings are available (optimal)
+        2. Use full-text search if available
+        3. Fall back to enhanced text search with relevance scoring
 
         Args:
             description: Description to compare against
@@ -1035,28 +1480,42 @@ class GraphManager:
         if MatterLabel.MATTER.value not in labels:
             labels.append(MatterLabel.MATTER.value)
 
-        # Check if embedding provider is available
-        if not self.embedding_provider:
-            logger.warning("Embedding provider not available, falling back to text search")
-            return self._find_similar_by_text(description, labels, limit)
+        # Cascading fallback approach to find similar matters
+        matters = []
 
-        try:
-            # Generate embedding for the query
-            query_embedding = self.embedding_provider.generate_embedding(description)
+        # Strategy 1: Vector similarity (best quality if available)
+        if self.embedding_provider:
+            try:
+                # Generate embedding for the query
+                query_embedding = self.embedding_provider.generate_embedding(description)
 
-            # Try to use vector index if available
-            matters = self._find_similar_by_vector(query_embedding, labels, threshold, limit)
+                # Use vector search if capabilities are available
+                if (self.neo4j_config.vector_indexes_available or
+                    self.neo4j_config.gds_library_available):
+                    matters = self._find_similar_by_vector(query_embedding, labels, threshold, limit)
 
-            # If no results, fall back to text search
-            if not matters:
-                logger.info("No vector search results, falling back to text search")
+                    if matters:
+                        logger.info(f"Found {len(matters)} similar matters using vector similarity")
+                        return matters
+            except Exception as e:
+                logger.warning(f"Vector similarity search failed: {str(e)}")
+
+        # Strategy 2: Full-text search (good quality, widely available)
+        if self.neo4j_config.full_text_indexes_available:
+            try:
                 matters = self._find_similar_by_text(description, labels, limit)
 
-            return matters
+                if matters:
+                    logger.info(f"Found {len(matters)} similar matters using full-text search")
+                    return matters
+            except Exception as e:
+                logger.warning(f"Full-text search failed: {str(e)}")
 
-        except Exception as e:
-            logger.error(f"Error in vector similarity search: {str(e)}")
-            return self._find_similar_by_text(description, labels, limit)
+        # Strategy 3: Enhanced text search (always works, but lowest quality)
+        logger.info("Using enhanced text search as final fallback")
+        matters = self._find_similar_by_text(description, labels, limit)
+
+        return matters
 
     # Legacy method for compatibility
     def find_similar_problems(self, description: str,
@@ -1150,7 +1609,7 @@ class GraphManager:
 
                 # Add type-specific properties based on labels
                 if MatterLabel.PROBLEM.value in node_labels:
-                    matter_data["state"] = node.get("state")
+                    matter_data["state"] = node.get("problem_state", node.get("state"))
                     matter_data["priority"] = node.get("priority")
 
                 if MatterLabel.GOAL.value in node_labels:
@@ -1162,7 +1621,7 @@ class GraphManager:
                     matter_data["verification_method"] = node.get("verification_method")
 
                 if MatterLabel.SOLUTION.value in node_labels:
-                    matter_data["state"] = node.get("state")
+                    matter_data["state"] = node.get("solution_state", node.get("state"))
                     matter_data["implementation_date"] = node.get("implementation_date")
 
                 if "embedding" in node:
@@ -1183,86 +1642,228 @@ class GraphManager:
         Returns:
             List of similar matters
         """
-        # Build dynamic label match clause based on provided labels
-        label_clause = " AND ".join([f"m:{label}" for label in labels])
+        # Tokenize the description for better partial matching
+        search_terms = [term.lower() for term in re.findall(r'\b\w+\b', description.lower()) if len(term) > 3]
+
+        # Use property-based type indicators if available for more efficient filtering
+        with self.driver.session() as session:
+            # Build appropriate WHERE clause based on capabilities and labels
+            where_clause = self._build_type_filter_clause(labels)
+
+            # Try using full-text search index if available
+            if self.neo4j_config.full_text_indexes_available:
+                try:
+                    result = session.run(
+                        f"""
+                        CALL db.index.fulltext.queryNodes('matter_description_index', $text)
+                        YIELD node, score
+                        WHERE {where_clause}
+                        RETURN node as m, score, labels(node) as node_labels
+                        ORDER BY score DESC
+                        LIMIT $limit
+                        """,
+                        text=description,
+                        limit=limit
+                    )
+
+                    # If we get results, use them
+                    if result.peek():
+                        return self._process_search_results(result)
+                except Exception as e:
+                    logger.warning(f"Full-text search failed: {str(e)}")
+
+            # Multi-term relevance-based search fallback
+            logger.info("Using enhanced text search fallback")
+
+            # Use tokenized terms to improve matching quality
+            term_conditions = []
+            for i, term in enumerate(search_terms[:5]):  # Limit to 5 terms to avoid query complexity
+                term_conditions.append(f"CASE WHEN toLower(m.description) CONTAINS toLower($term{i}) THEN 0.2 ELSE 0 END")
+
+            # If no terms, fall back to basic CONTAINS
+            if not term_conditions:
+                term_conditions = ["CASE WHEN toLower(m.description) CONTAINS toLower($text) THEN 0.5 ELSE 0 END"]
+
+            # Build a more sophisticated relevance calculation with multiple factors
+            relevance_calculation = " + ".join(term_conditions)
+            relevance_calculation += " + CASE WHEN toLower(m.description) STARTS WITH toLower($text) THEN 0.3 ELSE 0 END"
+
+            # Build parameter dict for the query
+            params = {"text": description, "limit": limit}
+            for i, term in enumerate(search_terms[:5]):
+                params[f"term{i}"] = term
+
+            # Execute the query with relevance calculation
+            query = f"""
+            MATCH (m:Matter)
+            WHERE {where_clause}
+            WITH m, labels(m) as node_labels, ({relevance_calculation}) as score
+            WHERE score > 0
+            RETURN m, score, node_labels
+            ORDER BY score DESC
+            LIMIT $limit
+            """
+
+            result = session.run(query, **params)
+
+            return self._process_search_results(result)
+
+    def _build_type_filter_clause(self, labels: List[str]) -> str:
+        """Build an appropriate WHERE clause for type filtering.
+
+        This method optimizes filtering based on Neo4j capabilities:
+        - For Neo4j versions with compound label support, uses label predicates
+        - For older versions, uses property-based type indicators
+
+        Args:
+            labels: List of labels to filter by
+
+        Returns:
+            WHERE clause string for Cypher queries
+        """
+        if not labels:
+            return "true"  # No filtering
+
+        # Use property-based type indicators for better compatibility
+        conditions = []
+
+        for label in labels:
+            if label == MatterLabel.GOAL.value:
+                conditions.append("m.is_goal = true")
+            elif label == MatterLabel.PROBLEM.value:
+                conditions.append("m.is_problem = true")
+            elif label == MatterLabel.CONDITION.value:
+                conditions.append("m.is_condition = true")
+            elif label == MatterLabel.SOLUTION.value:
+                conditions.append("m.is_solution = true")
+            elif label != MatterLabel.MATTER.value:  # Skip base Matter label
+                conditions.append(f"m:{label}")
+
+        if not conditions:
+            return "true"
+
+        return "(" + " OR ".join(conditions) + ")"
+
+    def _process_search_results(self, result: Result) -> List[Dict[str, Any]]:
+        """Process search query results into a consistent format.
+
+        Args:
+            result: Neo4j query result
+
+        Returns:
+            List of matter dictionaries with consistent properties
+        """
+        matters = []
+        for record in result:
+            node = record["m"]
+            node_labels = record["node_labels"]
+            score = record["score"]
+
+            # Create data dictionary with core properties
+            matter_data = {
+                "id": node["id"],
+                "description": node["description"],
+                "labels": node_labels,
+                "similarity": float(score),
+                "created_at": node.get("created_at"),
+                "updated_at": node.get("updated_at"),
+                "tags": node.get("tags", [])
+            }
+
+            # Add type-specific properties based on labels
+            if MatterLabel.PROBLEM.value in node_labels:
+                matter_data["state"] = node.get("problem_state", node.get("state"))
+                matter_data["priority"] = node.get("priority")
+
+            if MatterLabel.GOAL.value in node_labels:
+                matter_data["target_date"] = node.get("target_date")
+                matter_data["progress"] = node.get("progress", 0.0)
+
+            if MatterLabel.CONDITION.value in node_labels:
+                matter_data["is_met"] = node.get("is_met", False)
+                matter_data["verification_method"] = node.get("verification_method")
+
+            if MatterLabel.SOLUTION.value in node_labels:
+                matter_data["state"] = node.get("solution_state", node.get("state"))
+                matter_data["implementation_date"] = node.get("implementation_date")
+
+            if "embedding" in node:
+                matter_data["embedding"] = node["embedding"]
+
+            matters.append(matter_data)
+
+        return matters
+
+    def _find_similar_by_vector(self,
+                          query_embedding: List[float],
+                          labels: List[str],
+                          threshold: float = 0.7,
+                          limit: int = 10) -> List[Dict[str, Any]]:
+        """Find matters similar to the given embedding using vector search.
+
+        This method adapts to available Neo4j capabilities:
+        - Uses vector indexes for Neo4j 5.11+
+        - Falls back to manual similarity calculation when indexes unavailable
+        - Uses GDS library when available
+        - Uses property-based type indicators for more efficient filtering
+
+        Args:
+            query_embedding: The embedding to compare against
+            labels: List of labels to filter by
+            threshold: Similarity threshold (0-1)
+            limit: Maximum number of results to return
+
+        Returns:
+            List of similar matters with similarity scores
+        """
+        # Build appropriate WHERE clause based on capabilities
+        where_clause = self._build_type_filter_clause(labels)
 
         with self.driver.session() as session:
-            # Try using full-text search index if available
             try:
-                result = session.run(
-                    f"""
-                    CALL db.index.fulltext.queryNodes('matter_description_index', $text)
-                    YIELD node, score
-                    WHERE {label_clause}
-                    RETURN node as m, score, labels(node) as node_labels
-                    ORDER BY score DESC
-                    LIMIT $limit
-                    """,
-                    text=description,
-                    limit=limit
-                )
+                # Try using vector index with native similarity search (Neo4j 5.11+)
+                if self.neo4j_config.vector_indexes_available:
+                    result = session.run(
+                        f"""
+                        CALL db.index.vector.queryNodes('matter_embedding_index', $limit, $embedding)
+                        YIELD node, score
+                        WHERE score >= $threshold AND {where_clause}
+                        RETURN node as m, score, labels(node) as node_labels
+                        ORDER BY score DESC
+                        """,
+                        embedding=query_embedding,
+                        threshold=threshold,
+                        limit=limit
+                    )
+                    logger.info("Using vector index for similarity search")
+                    return self._process_search_results(result)
 
-                # If we get results, use them
-                if result.peek():
-                    pass  # Continue with processing
+                # Fall back to GDS library if available
+                elif self.neo4j_config.gds_library_available:
+                    result = session.run(
+                        f"""
+                        MATCH (m:Matter)
+                        WHERE {where_clause} AND m.embedding IS NOT NULL
+                        WITH m, gds.similarity.cosine(m.embedding, $embedding) AS score
+                        WHERE score >= $threshold
+                        RETURN m, score, labels(m) as node_labels
+                        ORDER BY score DESC
+                        LIMIT $limit
+                        """,
+                        embedding=query_embedding,
+                        threshold=threshold,
+                        limit=limit
+                    )
+                    logger.info("Using GDS library for similarity calculation")
+                    return self._process_search_results(result)
+
                 else:
-                    # Fall back to simple text matching
-                    raise Exception("No full-text search results")
+                    # Fallback to text-based search
+                    raise Exception("Vector capabilities not available")
 
-            except Exception:
-                # Fall back to simple text-based matching
-                logger.info("Full-text index not available, using simple text matching")
-                result = session.run(
-                    f"""
-                    MATCH (m:Matter)
-                    WHERE {label_clause} AND toLower(m.description) CONTAINS toLower($text)
-                    RETURN m, 0.0 as score, labels(m) as node_labels
-                    LIMIT $limit
-                    """,
-                    text=description,
-                    limit=limit
-                )
-
-            matters = []
-            for record in result:
-                node = record["m"]
-                score = record["score"]
-                node_labels = record["node_labels"]
-
-                # Create data dictionary with type-specific properties
-                matter_data = {
-                    "id": node["id"],
-                    "description": node["description"],
-                    "labels": node_labels,
-                    "similarity": score,
-                    "created_at": node.get("created_at"),
-                    "updated_at": node.get("updated_at"),
-                    "tags": node.get("tags", [])
-                }
-
-                # Add type-specific properties based on labels
-                if MatterLabel.PROBLEM.value in node_labels:
-                    matter_data["state"] = node.get("state")
-                    matter_data["priority"] = node.get("priority")
-
-                if MatterLabel.GOAL.value in node_labels:
-                    matter_data["target_date"] = node.get("target_date")
-                    matter_data["progress"] = node.get("progress", 0.0)
-
-                if MatterLabel.CONDITION.value in node_labels:
-                    matter_data["is_met"] = node.get("is_met", False)
-                    matter_data["verification_method"] = node.get("verification_method")
-
-                if MatterLabel.SOLUTION.value in node_labels:
-                    matter_data["state"] = node.get("state")
-                    matter_data["implementation_date"] = node.get("implementation_date")
-
-                if "embedding" in node:
-                    matter_data["embedding"] = node["embedding"]
-
-                matters.append(matter_data)
-
-            return matters
+            except Exception as e:
+                logger.error(f"Error in vector similarity search: {str(e)}")
+                return []
     
     def find_matter_connections(self, matter_id: str) -> Dict[str, Any]:
         """Find all connections for a given matter.
@@ -1305,7 +1906,7 @@ class GraphManager:
             # Get conditions required by this matter
             conditions_result = session.run(
                 """
-                MATCH (m:Matter {id: $matter_id})-[:REQUIRES]->(c:Matter:Condition)
+                MATCH (m:Matter {id: $matter_id})-[:REQUIRES]->(c:Matter {is_condition: true})
                 RETURN c, labels(c) as labels
                 """,
                 matter_id=matter_id
@@ -1329,7 +1930,7 @@ class GraphManager:
             # Get solutions addressing this matter
             solutions_result = session.run(
                 """
-                MATCH (m:Matter {id: $matter_id})-[:SOLVED_BY]->(s:Matter:Solution)
+                MATCH (m:Matter {id: $matter_id})-[:SOLVED_BY]->(s:Matter {is_solution: true})
                 RETURN s, labels(s) as labels
                 """,
                 matter_id=matter_id

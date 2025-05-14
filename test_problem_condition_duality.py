@@ -280,7 +280,7 @@ def create_solutions_and_resolve_problems(manager: GraphManager, entities: Dict[
                 session.run(
                     """
                     MATCH (p:Problem {id: $id})
-                    SET p.state = $state
+                    SET p.problem_state = $state
                     """,
                     id=problem.id,
                     state=ProblemState.SOLVED.value

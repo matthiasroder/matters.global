@@ -54,14 +54,16 @@ class EntityResolutionSystem:
         self.graph_manager = graph_manager
         
     def find_similar_entities(self,
-                             entity_id: str,
+                             entity_id: str = None,
+                             description: str = None,
                              labels: List[str] = None,
                              threshold: float = 0.7,
                              limit: int = 10) -> List[EntityMatch]:
-        """Find similar entities to the given entity.
+        """Find similar entities to the given entity or description.
 
         Args:
-            entity_id: ID of the entity to find matches for
+            entity_id: ID of the entity to find matches for (optional if description is provided)
+            description: Text description to search for (optional if entity_id is provided)
             labels: Optional list of labels to filter by (e.g., ["Problem", "Goal"])
             threshold: Similarity threshold (0-1)
             limit: Maximum number of matches to return
@@ -69,14 +71,25 @@ class EntityResolutionSystem:
         Returns:
             List of potential entity matches
         """
-        # Get the entity from the database
-        entity = self.graph_manager.get_matter_by_id(entity_id)
-        if not entity:
-            logger.error(f"Matter with ID {entity_id} not found")
+        # Check that either entity_id or description is provided
+        if entity_id is None and description is None:
+            logger.error("Either entity_id or description must be provided")
             return []
 
+        # Use either entity from database or direct text search
+        entity = None
+        entity_description = description
+
+        if entity_id:
+            # Get the entity from the database
+            entity = self.graph_manager.get_matter_by_id(entity_id)
+            if not entity:
+                logger.error(f"Matter with ID {entity_id} not found")
+                return []
+            entity_description = entity.description
+
         # Use the entity's labels as the filter if none provided
-        if not labels:
+        if entity and not labels:
             # Filter out the base Matter label which is always present
             search_labels = [label for label in entity.labels if label != MatterLabel.MATTER.value]
         else:
@@ -84,23 +97,27 @@ class EntityResolutionSystem:
 
         # Find similar matters
         similar_entities = self.graph_manager.find_similar_matters(
-            entity.description,
+            entity_description,
             labels=search_labels,
             threshold=threshold,
-            limit=limit
+            limit=limit + 1 if entity_id else limit  # +1 to allow for filtering out self if entity_id is provided
         )
 
         # Convert to EntityMatch objects
         matches = []
         for similar in similar_entities:
-            # Skip the entity itself
-            if similar["id"] == entity_id:
+            # Skip the entity itself if we're searching by entity_id
+            if entity_id and similar["id"] == entity_id:
                 continue
 
+            # For direct description search, we need a dummy source ID
+            source_id = entity_id if entity_id else "description_search"
+            source_labels = entity.labels if entity else [MatterLabel.MATTER.value]
+
             match = EntityMatch(
-                source_id=entity_id,
+                source_id=source_id,
                 target_id=similar["id"],
-                source_labels=entity.labels,
+                source_labels=source_labels,
                 target_labels=similar.get("labels", [MatterLabel.MATTER.value]),
                 similarity_score=similar.get("similarity", 0.0),
                 confidence=self._calculate_confidence(similar),

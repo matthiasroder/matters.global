@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm install && npm run build"
+
+[deploy]
+numReplicas = 1
+sleepApplication = false
+staticPublishPath = "dist"

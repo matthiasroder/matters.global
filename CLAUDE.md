@@ -2,34 +2,36 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## IMPORTANT: CONDA ENVIRONMENT USAGE
+## IMPORTANT: PIP ENVIRONMENT USAGE
 
-This project STRICTLY uses conda for dependency management:
-- ALWAYS use conda commands for package management, NEVER use pip
-- ALL dependencies should be managed through environment.yml
-- ALWAYS verify you're in the activated conda environment before running commands
-- If you need to add a package, add it to environment.yml and update the environment
-- Run `conda env update -f environment.yml` to update the environment if changes are made
+This project uses pip and virtual environments for dependency management:
+- ALWAYS use pip commands for package management
+- ALL dependencies are managed through requirements.txt
+- ALWAYS verify you're in the activated virtual environment before running commands
+- If you need to add a package, add it to requirements.txt and run `pip install -r requirements.txt`
+- Use `pip freeze > requirements.txt` to update requirements after installing new packages
 
 ## Environment Setup
-- Conda environment: `mattersglobal` (created using environment.yml)
-- Python version: 3.9+
+- Virtual environment: `venv` (Python 3.9+)
+- Dependencies: Managed via requirements.txt
 
 ## Commands
-- Create environment: `conda env create -f environment.yml`
-- Activate environment: `conda activate mattersglobal`
-- Update environment: `conda env update -f environment.yml --prune`
-- Check installed packages: `conda list`
+- Create environment: `python -m venv venv`
+- Activate environment: 
+  - Linux/Mac: `source venv/bin/activate`
+  - Windows: `venv\Scripts\activate`
+- Install dependencies: `pip install -r requirements.txt`
+- Check installed packages: `pip list`
 - Start the application: `./start.sh`
 - Run WebSocket server: `python websocket_server.py`
 - Run REST API server: `python server.py`
 - Run UI development server: `cd ui && npm run dev`
 
 ## Package Management
-- To install a package: Add it to environment.yml and run `conda env update -f environment.yml`
-- To update a package: Change version in environment.yml and run `conda env update -f environment.yml`
-- To check package versions: `conda list [package_name]`
-- To search for package availability: `conda search -c conda-forge [package_name]`
+- To install a package: `pip install package_name` then `pip freeze > requirements.txt`
+- To update a package: `pip install --upgrade package_name` then `pip freeze > requirements.txt`
+- To check package versions: `pip show package_name`
+- To search for packages: `pip search package_name` (or use PyPI web interface)
 
 ## Code Style Guidelines
 - Use Python 3.9+ features

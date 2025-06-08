@@ -1,5 +1,5 @@
 #!/bin/bash
-# Start script for matters.global with conda environment
+# Start script for matters.global with pip virtual environment
 
 # Check for OpenAI API key
 if [ -z "$OPENAI_API_KEY" ]; then
@@ -8,11 +8,11 @@ if [ -z "$OPENAI_API_KEY" ]; then
     exit 1
 fi
 
-# Check for Conda environment
-if [ -z "$CONDA_PREFIX" ] || [[ "$CONDA_PREFIX" != *"mattersglobal"* ]]; then
-    echo "Error: Conda environment 'mattersglobal' is not active."
-    echo "Please activate it with: conda activate mattersglobal"
-    echo "If the environment doesn't exist, create it with: conda env create -f environment.yml"
+# Check for virtual environment
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "Error: Virtual environment is not active."
+    echo "Please activate it with: source venv/bin/activate"
+    echo "If the environment doesn't exist, create it with: python -m venv venv && pip install -r requirements.txt"
     exit 1
 fi
 

@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingConfig(BaseModel):
     """Base configuration for embedding providers."""
+    model_config = {"protected_namespaces": ()}
+    
     provider_type: str = Field(
         ..., 
         description="Type of embedding provider to use"

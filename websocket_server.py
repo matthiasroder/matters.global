@@ -24,7 +24,14 @@ logger = logging.getLogger(__name__)
 # Initialize AssistantManager
 api_key = os.environ.get("OPENAI_API_KEY")
 assistant_id = os.environ.get("OPENAI_ASSISTANT_ID")
-assistant_manager = AssistantManager(api_key=api_key, assistant_id=assistant_id)
+
+try:
+    assistant_manager = AssistantManager(api_key=api_key, assistant_id=assistant_id)
+    logger.info("AssistantManager initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize AssistantManager: {str(e)}")
+    # Continue without assistant for now - you could implement fallback behavior
+    assistant_manager = None
 
 # We'll use this to track active user sessions
 user_sessions = {}
@@ -50,6 +57,11 @@ async def handle_message(websocket):
             # Process the message through the assistant
             try:
                 logger.info(f"Processing message from {user_id}: '{message}'")
+
+                if not assistant_manager:
+                    await websocket.send("Assistant not available. Please check configuration.")
+                    await websocket.send("[END]")
+                    continue
 
                 # This is a synchronous call - in a production app, you'd want to make this non-blocking
                 messages = assistant_manager.process_message(user_id, message)
@@ -113,9 +125,15 @@ async def handle_message(websocket):
 async def main():
     # Create or retrieve the assistant before starting the server
     # and store it in the manager to be reused
-    assistant_id = assistant_manager.get_or_create_assistant()
-    assistant_manager.assistant_id = assistant_id
-    logger.info(f"Using assistant: {assistant_id}")
+    if assistant_manager:
+        try:
+            assistant_id = assistant_manager.get_or_create_assistant()
+            assistant_manager.assistant_id = assistant_id
+            logger.info(f"Using assistant: {assistant_id}")
+        except Exception as e:
+            logger.error(f"Failed to initialize assistant: {str(e)}")
+    else:
+        logger.warning("Assistant manager not available - running in degraded mode")
 
     # Note about setup
     logger.info("WebSocket server starting...")

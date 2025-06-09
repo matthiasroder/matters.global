@@ -18,11 +18,16 @@ This guide walks you through deploying Matters.Global to Railway with separate s
 4. Choose your matters.global repository
 5. Select the `dev` branch
 
-### 2. Set Up Neo4j Database
+### 2. Set Up Neo4j Database Service
 
 1. In your Railway project dashboard, click "New Service"
-2. Choose "Database" → "Add Neo4j"
-3. Note the connection details (Railway will provide these as environment variables)
+2. Choose "GitHub Repo" and select your repository
+3. Set the "Root Directory" to `neo4j`
+4. Railway will detect the Dockerfile and deploy Neo4j
+5. Note the internal service URL (will be something like `neo4j-service.railway.internal:7687`)
+6. The default credentials are:
+   - Username: `neo4j`
+   - Password: `matters2025`
 
 ### 3. Deploy Backend Service
 
@@ -60,9 +65,9 @@ This guide walks you through deploying Matters.Global to Railway with separate s
 
 ### Backend Service
 - `OPENAI_API_KEY`: Your OpenAI API key
-- `NEO4J_URI`: Provided by Railway Neo4j service
-- `NEO4J_USERNAME`: Provided by Railway Neo4j service
-- `NEO4J_PASSWORD`: Provided by Railway Neo4j service
+- `NEO4J_URI`: `neo4j://neo4j-service.railway.internal:7687` (use your actual Neo4j service name)
+- `NEO4J_USERNAME`: `neo4j`
+- `NEO4J_PASSWORD`: `matters2025`
 - `PORT`: 8080 (or Railway's default)
 
 ### Frontend Service
@@ -78,6 +83,9 @@ matters.global/
 ├── requirements.txt          # Python dependencies
 ├── *.py                      # Backend Python files
 ├── config/                   # Backend config files
+├── neo4j/
+│   ├── Dockerfile            # Neo4j container
+│   └── railway.toml          # Neo4j Railway config
 └── ui/
     ├── railway.toml          # Frontend Railway config
     ├── package.json          # Node.js dependencies
@@ -107,10 +115,29 @@ matters.global/
 2. Set up health checks if needed
 3. Monitor resource usage in Railway dashboard
 
+## Railway Services Overview
+
+You'll deploy 3 separate services:
+
+1. **Neo4j Database Service**
+   - Root directory: `neo4j/`
+   - Purpose: Graph database storage
+   - Internal URL: `neo4j-service.railway.internal:7687`
+
+2. **Backend API Service** 
+   - Root directory: `/` (repository root)
+   - Purpose: Python WebSocket/REST server
+   - Connects to Neo4j and OpenAI
+
+3. **Frontend Service**
+   - Root directory: `ui/`
+   - Purpose: React chat interface
+   - Connects to backend via WebSocket
+
 ## Cost Estimation
 
-- **Hobby Plan**: ~$5-10/month for small usage
-- **Pro Plan**: ~$20+/month for production usage
+- **Hobby Plan**: ~$15-25/month for 3 services (small usage)
+- **Pro Plan**: ~$30+/month for production usage
 - Costs scale with resource usage (CPU, memory, network)
 
 ## Next Steps

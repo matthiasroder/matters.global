@@ -1,7 +1,7 @@
 // Configuration for the chatbot UI
 
 // WebSocket endpoint for the matters.global backend
-export const WEBSOCKET_ENDPOINT = "ws://localhost:8091";
+export const WEBSOCKET_ENDPOINT = "wss://mattersglobal-production.up.railway.app";
 
 // Application settings
 export const APP_SETTINGS = {

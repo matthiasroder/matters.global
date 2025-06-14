@@ -1,7 +1,7 @@
 // Configuration for the chatbot UI
 
 // WebSocket endpoint for the matters.global backend
-export const WEBSOCKET_ENDPOINT = "wss://backend.railway.internal";
+export const WEBSOCKET_ENDPOINT = "wss://backend-production-6296.up.railway.app";
 
 // Application settings
 export const APP_SETTINGS = {

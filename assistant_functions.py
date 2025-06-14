@@ -13,6 +13,7 @@ This module supports the multi-label schema where entities can have multiple typ
 """
 
 import json
+import os
 from typing import List, Dict, Any, Optional, Union
 import logging
 
@@ -28,12 +29,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize manager with default settings
-# In production, these would come from environment variables or config
+# Initialize manager with environment variables for Railway deployment
 graph_manager = GraphManager(
-    uri="bolt://localhost:7687",
-    username="neo4j",
-    password="matters2025",
+    uri=os.environ.get("NEO4J_URI", "bolt://localhost:7687"),
+    username=os.environ.get("NEO4J_USERNAME", "neo4j"),
+    password=os.environ.get("NEO4J_PASSWORD", "matters2025"),
     embedding_config_path="config/embeddings.json"
 )
 

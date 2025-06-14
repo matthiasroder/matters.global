@@ -9,7 +9,7 @@
     "serve": "serve dist -p 8501",
     "lint": "eslint .",
     "preview": "vite preview",
-    "prepare": "husky"
+    "prepare": "[ -d .git ] && husky || echo 'Skipping husky in production'"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",

@@ -1624,9 +1624,6 @@ class GraphManager:
                     matter_data["state"] = node.get("solution_state", node.get("state"))
                     matter_data["implementation_date"] = node.get("implementation_date")
 
-                if "embedding" in node:
-                    matter_data["embedding"] = node["embedding"]
-
                 matters.append(matter_data)
 
             return matters
@@ -1786,9 +1783,6 @@ class GraphManager:
             if MatterLabel.SOLUTION.value in node_labels:
                 matter_data["state"] = node.get("solution_state", node.get("state"))
                 matter_data["implementation_date"] = node.get("implementation_date")
-
-            if "embedding" in node:
-                matter_data["embedding"] = node["embedding"]
 
             matters.append(matter_data)
 
@@ -2681,9 +2675,6 @@ class GraphManager:
                 if MatterLabel.SOLUTION.value in labels:
                     matter_data["state"] = node.get("state")
                     matter_data["implementation_date"] = node.get("implementation_date")
-
-                if "embedding" in node:
-                    matter_data["embedding"] = node["embedding"]
 
                 matters.append(matter_data)
 

@@ -535,7 +535,7 @@ def get_matter_details(matter_id: str) -> Dict[str, Any]:
         connections = graph_manager.find_matter_connections(matter_id)
 
         # Convert the matter object to a dictionary
-        matter_data = matter.dict()
+        matter_data = matter.dict(exclude={"embedding"})
 
         # Format response
         return {
@@ -675,7 +675,7 @@ def create_goal(description: str, target_date: Optional[str] = None,
 
         return {
             "success": True,
-            "goal": goal.dict()
+            "goal": goal.dict(exclude={"embedding"})
         }
 
     except Exception as e:
@@ -789,7 +789,7 @@ def get_problem_details(problem_id: str) -> Dict[str, Any]:
         # Format response
         return {
             "success": True,
-            "problem": problem.dict(),
+            "problem": problem.dict(exclude={"embedding"}),
             "connections": connections
         }
 
@@ -825,7 +825,7 @@ def create_problem(description: str, state: str = "not_solved",
 
         return {
             "success": True,
-            "problem": problem.dict()
+            "problem": problem.dict(exclude={"embedding"})
         }
 
     except Exception as e:
@@ -860,7 +860,7 @@ def create_condition(description: str, is_met: bool = False,
 
         return {
             "success": True,
-            "condition": condition.dict()
+            "condition": condition.dict(exclude={"embedding"})
         }
 
     except Exception as e:
@@ -896,7 +896,7 @@ def add_condition_to_problem(problem_id: str, condition_description: str, is_met
 
         return {
             "success": True,
-            "condition": condition.dict(),
+            "condition": condition.dict(exclude={"embedding"}),
             "problem_id": problem_id
         }
 
@@ -989,7 +989,7 @@ def create_solution(description: str, state: str = "theoretical",
 
         return {
             "success": True,
-            "solution": solution.dict()
+            "solution": solution.dict(exclude={"embedding"})
         }
 
     except Exception as e:

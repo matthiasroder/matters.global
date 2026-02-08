@@ -2,3 +2,5 @@ node_modules/
 venv/
 dist/
 __pycache__/
+.env.local
+.env.*.local

@@ -5,21 +5,32 @@ This server provides a WebSocket interface for the chatbot UI to interact
 with the OpenAI Assistant-powered backend.
 """
 
+# Load .env before any imports that read environment variables at module level
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).parent / ".env")
+
+# Setup logging BEFORE importing modules that call basicConfig (only the first call takes effect)
+import logging
+log_dir = Path(__file__).parent / "logs"
+log_dir.mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(log_dir / "matters.log"),
+    ]
+)
+logger = logging.getLogger(__name__)
+
 import asyncio
 import json
-import logging
 import os
 import uuid
 import websockets
 from assistant_manager import AssistantManager
-
-# Setup logging with timestamps
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-logger = logging.getLogger(__name__)
 
 # Initialize AssistantManager
 api_key = os.environ.get("OPENAI_API_KEY")

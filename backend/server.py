@@ -2,9 +2,14 @@
 Simple REST API server for matters.global chatbot
 
 This server provides endpoints for the chatbot UI to interact with the
-OpenAI Assistant-powered backend. It handles message routing, session 
+OpenAI Assistant-powered backend. It handles message routing, session
 management, and API access.
 """
+
+# Load .env before any imports that read environment variables at module level
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).parent / ".env")
 
 import os
 import uuid

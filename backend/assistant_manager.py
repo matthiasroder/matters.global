@@ -299,7 +299,7 @@ Maintain a conversational, helpful tone while respecting that the matters belong
             
             tool_outputs.append({
                 "tool_call_id": tool_call.id,
-                "output": json.dumps(result)
+                "output": json.dumps(result, default=str)
             })
         
         # Submit the results back to the assistant

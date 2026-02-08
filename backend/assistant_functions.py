@@ -448,13 +448,14 @@ def list_matters(labels: Optional[List[str]] = None, limit: Optional[int] = None
 
             # Add label filters if specified
             if labels and len(labels) > 0:
+                valid_labels = {"Matter", "Goal", "Problem", "Condition", "Solution", "CanonicalMatter"}
                 label_clauses = []
-                for i, label in enumerate(labels):
-                    label_param = f"label_{i}"
-                    label_clauses.append(f"m:{{{label_param}}}")
-                    params[label_param] = label
+                for label in labels:
+                    if label in valid_labels:
+                        label_clauses.append(f"m:{label}")
 
-                query += " WHERE " + " AND ".join(label_clauses)
+                if label_clauses:
+                    query += " WHERE " + " AND ".join(label_clauses)
 
             query += " RETURN m, labels(m) as node_labels ORDER BY m.created_at DESC"
 

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "matters-graph": {
+      "command": "python",
+      "args": ["backend/mcp_server.py"]
+    }
+  }
+}

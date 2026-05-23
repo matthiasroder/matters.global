@@ -758,6 +758,27 @@ class GraphManager:
                 # Base Matter type if no specific label
                 return Matter(**properties, labels=node_labels)
 
+    def delete_matter(self, matter_id: str) -> bool:
+        """Delete a matter and all its relationships.
+
+        Args:
+            matter_id: The ID of the matter to delete
+
+        Returns:
+            True if deleted, False if not found
+        """
+        with self.driver.session() as session:
+            result = session.run(
+                """
+                MATCH (m:Matter {id: $id})
+                DETACH DELETE m
+                RETURN count(m) as deleted
+                """,
+                id=matter_id
+            )
+            record = result.single()
+            return record["deleted"] > 0
+
     def get_problem_by_id(self, problem_id: str) -> Optional[Problem]:
         """Get a problem by its ID.
 
@@ -1077,6 +1098,58 @@ class GraphManager:
 
         except Exception as e:
             logger.error(f"Error creating relationship: {str(e)}")
+            return False
+
+    def get_all_relationships(self) -> list:
+        """Get all relationships between matters.
+
+        Returns:
+            List of dicts with source, target, and type keys
+        """
+        try:
+            with self.driver.session() as session:
+                result = session.run("""
+                    MATCH (a:Matter)-[r]->(b:Matter)
+                    RETURN a.id AS source_id, type(r) AS rel_type, b.id AS target_id
+                """)
+                return [{"source": r["source_id"], "target": r["target_id"], "type": r["rel_type"]} for r in result]
+        except Exception as e:
+            logger.error(f"Error getting all relationships: {str(e)}")
+            return []
+
+    def delete_relationship(self, source_id: str, target_id: str, relationship_type: str) -> bool:
+        """Delete a relationship between two matters.
+
+        Args:
+            source_id: ID of the source matter
+            target_id: ID of the target matter
+            relationship_type: Type of relationship to delete
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            with self.driver.session() as session:
+                query = f"""
+                MATCH (source:Matter {{id: $source_id}})-[r:{relationship_type}]->(target:Matter {{id: $target_id}})
+                DELETE r
+                RETURN count(r) as deleted
+                """
+                result = session.run(
+                    query,
+                    source_id=source_id,
+                    target_id=target_id
+                )
+                record = result.single()
+                deleted = record["deleted"] if record else 0
+                if deleted > 0:
+                    logger.info(f"Deleted relationship: ({source_id})-[:{relationship_type}]->({target_id})")
+                    return True
+                else:
+                    logger.warning(f"No relationship found to delete: ({source_id})-[:{relationship_type}]->({target_id})")
+                    return False
+        except Exception as e:
+            logger.error(f"Error deleting relationship: {str(e)}")
             return False
 
     def add_condition_to_problem(self, problem_id: str,

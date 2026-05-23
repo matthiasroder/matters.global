@@ -643,6 +643,333 @@ def add_relationship(source_id: str, target_id: str, relationship_type: str) -> 
             "error": str(e)
         }
 
+
+def remove_relationship(source_id: str, target_id: str, relationship_type: str) -> Dict[str, Any]:
+    """Remove a relationship between two matters.
+
+    Args:
+        source_id: ID of the source matter
+        target_id: ID of the target matter
+        relationship_type: Type of relationship to remove
+
+    Returns:
+        Dictionary with result information
+    """
+    try:
+        source = graph_manager.get_matter_by_id(source_id)
+        target = graph_manager.get_matter_by_id(target_id)
+
+        if not source:
+            return {
+                "success": False,
+                "error": f"Source matter with ID {source_id} not found"
+            }
+
+        if not target:
+            return {
+                "success": False,
+                "error": f"Target matter with ID {target_id} not found"
+            }
+
+        success = graph_manager.delete_relationship(
+            source_id=source_id,
+            target_id=target_id,
+            relationship_type=relationship_type
+        )
+
+        if not success:
+            return {
+                "success": False,
+                "error": f"No {relationship_type} relationship found between these matters"
+            }
+
+        return {
+            "success": True,
+            "source_id": source_id,
+            "source_description": source.description,
+            "target_id": target_id,
+            "target_description": target.description,
+            "relationship_type": relationship_type,
+            "message": f"Successfully removed {relationship_type} relationship"
+        }
+
+    except Exception as e:
+        logger.error(f"Error removing relationship: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+def visualize_graph() -> Dict[str, Any]:
+    """Generate an interactive HTML visualization of the matters graph."""
+    try:
+        # Get all matters
+        matters_result = list_matters()
+        if not matters_result.get("success"):
+            return {"success": False, "error": "Failed to fetch matters"}
+
+        matters = matters_result["matters"]
+
+        # Get all relationships
+        relationships = graph_manager.get_all_relationships()
+
+        # Build nodes
+        nodes = []
+        for m in matters:
+            mlabels = m.get("labels", [])
+            if "Goal" in mlabels:
+                ntype = "goal"
+            elif "Problem" in mlabels:
+                ntype = "problem"
+            elif "Condition" in mlabels:
+                ntype = "condition"
+            elif "Solution" in mlabels:
+                ntype = "solution"
+            else:
+                ntype = "condition"
+
+            desc = m.get("description", "")
+            label = desc[:28] + "..." if len(desc) > 28 else desc
+
+            node = {
+                "id": m["id"],
+                "label": label,
+                "type": ntype,
+                "desc": desc,
+            }
+            if ntype == "condition":
+                node["met"] = m.get("is_met", False)
+
+            nodes.append(node)
+
+        # Build links with type mapping
+        edge_type_map = {
+            "BLOCKS": "blocks",
+            "ENABLES": "enables",
+            "MUST_BE_RESOLVED_BEFORE": "depends",
+            "DEPENDS_ON": "depends",
+            "REQUIRES": "condition",
+            "HAS_CONDITION": "condition",
+            "SOLVED_BY": "condition",
+            "ADDRESSES": "condition",
+            "RELATES_TO": "condition",
+            "PART_OF": "condition",
+            "CONSISTS_OF": "condition",
+            "FULFILLS": "condition",
+            "PRECEDES": "depends",
+            "FOLLOWS": "depends",
+            "MAPPED_TO": "condition",
+            "DERIVED_FROM": "condition",
+        }
+
+        edge_links = []
+        node_ids = {n["id"] for n in nodes}
+        for r in relationships:
+            if r["source"] in node_ids and r["target"] in node_ids:
+                edge_links.append({
+                    "source": r["source"],
+                    "target": r["target"],
+                    "type": edge_type_map.get(r["type"], "condition"),
+                    "raw_type": r["type"],
+                })
+
+        nodes_json = json.dumps(nodes)
+        links_json = json.dumps(edge_links)
+
+        html = _GRAPH_HTML_TEMPLATE.replace("__NODES_DATA__", nodes_json).replace("__LINKS_DATA__", links_json)
+
+        output_path = "/tmp/matters-graph.html"
+        with open(output_path, "w") as f:
+            f.write(html)
+
+        return {
+            "success": True,
+            "file_path": output_path,
+            "node_count": len(nodes),
+            "edge_count": len(edge_links),
+            "message": f"Graph visualization saved to {output_path}"
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating graph visualization: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+_GRAPH_HTML_TEMPLATE = r'''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Matters Graph</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
+  svg { width: 100vw; height: 100vh; }
+  .legend { position: fixed; top: 20px; left: 20px; background: rgba(20,20,20,0.9); padding: 16px; border-radius: 8px; border: 1px solid #333; font-size: 13px; z-index: 10; }
+  .legend div { margin: 6px 0; display: flex; align-items: center; gap: 8px; }
+  .legend .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  .title { position: fixed; top: 20px; right: 20px; background: rgba(20,20,20,0.9); padding: 16px; border-radius: 8px; border: 1px solid #333; font-size: 13px; z-index: 10; text-align: right; }
+  .title h2 { font-size: 16px; margin-bottom: 4px; }
+  .tooltip { position: fixed; background: rgba(20,20,20,0.95); border: 1px solid #555; border-radius: 6px; padding: 10px 14px; font-size: 12px; max-width: 320px; pointer-events: none; display: none; z-index: 20; }
+  .tooltip .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="legend">
+  <div><span class="dot" style="background:#FFD700"></span> Goal</div>
+  <div><span class="dot" style="background:#FF4444"></span> Problem</div>
+  <div><span class="dot" style="background:#4488FF"></span> Condition (not met)</div>
+  <div><span class="dot" style="background:#44FF88"></span> Condition (met)</div>
+  <div style="margin-top:10px; font-size:11px; color:#888;">
+    <span style="color:#FF6666">&#8212;</span> BLOCKS &nbsp;
+    <span style="color:#66FF66">&#8212;</span> ENABLES &nbsp;
+    <span style="color:#6688FF">&#8212;</span> DEPENDS ON<br>
+    <span style="color:#FFAA44">&#8212;</span> HAS CONDITION &nbsp;
+    <span style="color:#FF44FF">&#8212;</span> REQUIRES
+  </div>
+</div>
+<div class="title">
+  <h2>Matters Graph</h2>
+  <div style="color:#888">Click node to highlight branch. Click background to reset.</div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<svg id="graph"></svg>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+const nodes = __NODES_DATA__;
+const links = __LINKS_DATA__;
+
+const colorMap = { goal: "#FFD700", problem: "#FF4444", condition: "#4488FF", conditionMet: "#44FF88", solution: "#FF44FF" };
+const edgeColorMap = { blocks: "#FF6666", enables: "#66FF66", depends: "#6688FF", condition: "#FFAA44", requires: "#FF44FF" };
+
+const width = window.innerWidth;
+const height = window.innerHeight;
+const svg = d3.select("#graph").attr("viewBox", [0, 0, width, height]);
+const g = svg.append("g");
+
+svg.call(d3.zoom().scaleExtent([0.2, 4]).on("zoom", (e) => g.attr("transform", e.transform)));
+
+Object.entries(edgeColorMap).forEach(([type, color]) => {
+  svg.append("defs").append("marker")
+    .attr("id", `arrow-${type}`).attr("viewBox", "0 -5 10 10")
+    .attr("refX", 20).attr("refY", 0).attr("markerWidth", 6).attr("markerHeight", 6).attr("orient", "auto")
+    .append("path").attr("fill", color).attr("d", "M0,-5L10,0L0,5");
+});
+
+const simulation = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(links).id(d => d.id).distance(d => d.type === "condition" ? 60 : 120))
+  .force("charge", d3.forceManyBody().strength(d => d.type === "goal" ? -600 : d.type === "problem" ? -300 : -100))
+  .force("center", d3.forceCenter(width / 2, height / 2))
+  .force("collision", d3.forceCollide().radius(d => d.type === "goal" ? 30 : d.type === "problem" ? 22 : 14))
+  .force("x", d3.forceX(width / 2).strength(0.03))
+  .force("y", d3.forceY(height / 2).strength(0.03));
+
+const link = g.append("g").selectAll("line").data(links).join("line")
+  .attr("stroke", d => edgeColorMap[d.type]).attr("stroke-opacity", 0.5)
+  .attr("stroke-width", d => d.type === "condition" ? 1 : 2)
+  .attr("marker-end", d => `url(#arrow-${d.type})`);
+
+const node = g.append("g").selectAll("circle").data(nodes).join("circle")
+  .attr("r", d => d.type === "goal" ? 22 : d.type === "problem" ? 14 : 8)
+  .attr("fill", d => { if (d.type === "condition" && d.met) return colorMap.conditionMet; if (d.type === "condition") return colorMap.condition; return colorMap[d.type] || "#888"; })
+  .attr("stroke", d => d.type === "goal" ? "#FFF" : "none")
+  .attr("stroke-width", d => d.type === "goal" ? 2 : 0)
+  .attr("opacity", d => d.type === "condition" ? 0.7 : 1)
+  .call(d3.drag()
+    .on("start", (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+    .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
+    .on("end", (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+const labels = g.append("g").selectAll("text").data(nodes).join("text")
+  .text(d => d.label)
+  .attr("font-size", d => d.type === "goal" ? 13 : d.type === "problem" ? 11 : 9)
+  .attr("font-weight", d => d.type === "goal" ? "bold" : "normal")
+  .attr("fill", d => { if (d.type === "goal") return "#FFD700"; if (d.type === "problem") return "#FFA0A0"; if (d.met) return "#88FFBB"; return "#99BBFF"; })
+  .attr("dx", d => d.type === "goal" ? 28 : d.type === "problem" ? 18 : 12)
+  .attr("dy", 4).style("pointer-events", "none");
+
+const tooltip = d3.select("#tooltip");
+let selectedNode = null;
+
+function getDirectBranch(nodeId) {
+  const connected = new Set([nodeId]);
+  const connectedLinks = new Set();
+  links.forEach((l, i) => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (sid === nodeId || tid === nodeId) { connected.add(sid); connected.add(tid); connectedLinks.add(i); }
+  });
+  const firstHop = new Set(connected);
+  links.forEach((l, i) => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (firstHop.has(sid) && (l.type === "condition" || l.type === "depends")) { connected.add(tid); connectedLinks.add(i); }
+    if (firstHop.has(tid) && (l.type === "condition" || l.type === "depends")) { connected.add(sid); connectedLinks.add(i); }
+  });
+  const secondHop = new Set(connected);
+  links.forEach((l, i) => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (secondHop.has(sid) && !firstHop.has(sid) && l.type === "condition") { connected.add(tid); connectedLinks.add(i); }
+  });
+  return { connected, connectedLinks };
+}
+
+node.on("mouseover", (e, d) => {
+  if (selectedNode) return;
+  const typeLabel = d.type === "goal" ? "GOAL" : d.type === "problem" ? "PROBLEM" : d.met ? "CONDITION (MET)" : "CONDITION";
+  const color = d.type === "goal" ? "#FFD700" : d.type === "problem" ? "#FF4444" : d.met ? "#44FF88" : "#4488FF";
+  tooltip.style("display", "block").html(`<div class="label" style="color:${color}">${typeLabel}</div><div>${d.desc || d.label}</div>`)
+    .style("left", (e.clientX + 15) + "px").style("top", (e.clientY - 10) + "px");
+})
+.on("mousemove", (e) => { tooltip.style("left", (e.clientX + 15) + "px").style("top", (e.clientY - 10) + "px"); })
+.on("mouseout", () => tooltip.style("display", "none"));
+
+node.on("click", (e, d) => {
+  e.stopPropagation();
+  if (selectedNode === d.id) { selectedNode = null; resetHighlight(); return; }
+  selectedNode = d.id;
+  const { connected, connectedLinks } = getDirectBranch(d.id);
+  node.attr("opacity", n => connected.has(n.id) ? 1 : 0.08);
+  labels.attr("opacity", n => connected.has(n.id) ? 1 : 0.05);
+  link.attr("stroke-opacity", (l, i) => connectedLinks.has(i) ? 0.8 : 0.03)
+      .attr("stroke-width", (l, i) => connectedLinks.has(i) ? (l.type === "condition" ? 1.5 : 3) : 0.5);
+
+  const typeLabel = d.type === "goal" ? "GOAL" : d.type === "problem" ? "PROBLEM" : d.met ? "CONDITION (MET)" : "CONDITION";
+  const color = d.type === "goal" ? "#FFD700" : d.type === "problem" ? "#FF4444" : d.met ? "#44FF88" : "#4488FF";
+  const connectedNodes = nodes.filter(n => connected.has(n.id) && n.id !== d.id);
+  const problems = connectedNodes.filter(n => n.type === "problem");
+  const conditions = connectedNodes.filter(n => n.type === "condition");
+  const goals = connectedNodes.filter(n => n.type === "goal");
+
+  let html = `<div class="label" style="color:${color}">${typeLabel}</div>`;
+  html += `<div style="font-size:14px;font-weight:bold;margin-bottom:8px">${d.desc || d.label}</div>`;
+  if (goals.length) { html += `<div style="color:#FFD700;font-size:10px;margin-top:6px">GOALS</div>`; goals.forEach(g => html += `<div style="font-size:11px;margin:2px 0">&bull; ${g.label}</div>`); }
+  if (problems.length) { html += `<div style="color:#FF4444;font-size:10px;margin-top:6px">PROBLEMS</div>`; problems.forEach(p => html += `<div style="font-size:11px;margin:2px 0">&bull; ${p.label}</div>`); }
+  if (conditions.length) { html += `<div style="color:#4488FF;font-size:10px;margin-top:6px">CONDITIONS</div>`; conditions.forEach(c => { const icon = c.met ? "&#9989;" : "&#11036;"; html += `<div style="font-size:11px;margin:2px 0">${icon} ${c.label}</div>`; }); }
+
+  tooltip.style("display", "block").html(html).style("left", (e.clientX + 15) + "px").style("top", (e.clientY - 10) + "px");
+});
+
+function resetHighlight() {
+  node.attr("opacity", d => d.type === "condition" ? 0.7 : 1);
+  labels.attr("opacity", 1);
+  link.attr("stroke-opacity", 0.5).attr("stroke-width", d => d.type === "condition" ? 1 : 2);
+  tooltip.style("display", "none");
+}
+
+svg.on("click", () => { selectedNode = null; resetHighlight(); });
+
+simulation.on("tick", () => {
+  link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+  node.attr("cx", d => d.x).attr("cy", d => d.y);
+  labels.attr("x", d => d.x).attr("y", d => d.y);
+});
+</script>
+</body>
+</html>'''
+
+
 # ---- Goal Functions ----
 
 def create_goal(description: str, target_date: Optional[str] = None,
@@ -1143,6 +1470,30 @@ def add_problem_dependency(problem_id: str, depends_on_id: str) -> Dict[str, Any
             "error": str(e)
         }
 
+def delete_matter(matter_id: str) -> Dict[str, Any]:
+    """Delete a matter and all its relationships."""
+    try:
+        matter = graph_manager.get_matter_by_id(matter_id)
+        if not matter:
+            return {"success": False, "error": f"Matter with ID {matter_id} not found."}
+
+        description = matter.description
+        labels = matter.labels
+
+        deleted = graph_manager.delete_matter(matter_id)
+        if deleted:
+            return {
+                "success": True,
+                "deleted_id": matter_id,
+                "deleted_description": description,
+                "deleted_labels": labels,
+                "message": f"Deleted matter: {description}"
+            }
+        return {"success": False, "error": "Delete operation failed."}
+    except Exception as e:
+        logger.error(f"Error deleting matter: {str(e)}")
+        return {"success": False, "error": str(e)}
+
 # Function dispatcher to map function names to implementations
 
 FUNCTION_DISPATCH = {
@@ -1151,6 +1502,9 @@ FUNCTION_DISPATCH = {
     "get_matter_details": get_matter_details,
     "find_similar_matters": find_similar_matters,
     "add_relationship": add_relationship,
+    "remove_relationship": remove_relationship,
+    "visualize_graph": visualize_graph,
+    "delete_matter": delete_matter,
 
     # Goal Functions
     "create_goal": create_goal,

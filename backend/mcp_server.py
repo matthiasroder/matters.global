@@ -72,6 +72,33 @@ def add_relationship(source_id: str, target_id: str, relationship_type: str) -> 
     }), default=str)
 
 
+@mcp.tool()
+def remove_relationship(source_id: str, target_id: str, relationship_type: str) -> str:
+    """Remove a relationship between two matters.
+
+    Relationship types: REQUIRES, BLOCKS, ENABLES, RELATES_TO, PRECEDES,
+    FOLLOWS, PART_OF, CONSISTS_OF, SOLVED_BY, ADDRESSES, FULFILLS,
+    MAPPED_TO, DERIVED_FROM.
+    """
+    return json.dumps(dispatch_function("remove_relationship", {
+        "source_id": source_id,
+        "target_id": target_id,
+        "relationship_type": relationship_type,
+    }), default=str)
+
+
+@mcp.tool()
+def visualize_graph() -> str:
+    """Generate an interactive HTML visualization of the entire matters graph. Returns the file path to open in a browser."""
+    return json.dumps(dispatch_function("visualize_graph", {}), default=str)
+
+
+@mcp.tool()
+def delete_matter(matter_id: str) -> str:
+    """Delete a matter (goal, problem, condition, or solution) and all its relationships."""
+    return json.dumps(dispatch_function("delete_matter", {"matter_id": matter_id}), default=str)
+
+
 # ---- Goal Tools ----
 
 @mcp.tool()

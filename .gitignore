@@ -1,6 +1,9 @@
 # Data directory
 data/
 
+# Log files
+logs/
+
 # Python cache files
 __pycache__/
 *.py[cod]
@@ -16,6 +19,8 @@ build/
 
 # Environment
 .env
+.env.local
+.env.*.local
 .venv
 env/
 venv/

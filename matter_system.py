@@ -29,14 +29,19 @@
 #   Given a matter r, the farthest unresolved descendants reachable from r.
 #
 # Persistent state:
-#   JSON stores only the primitives: matters, condition truth values, and
-#   dependencies. Everything else is computed after loading.
+#   JSON stores only the primitives: matters, condition labels and truth
+#   values, and dependencies. Everything else is computed after loading.
 
 
 import json
+from pathlib import Path
 
 
-def load_state(path):
+STATE_PATH = Path(__file__).with_name("matters.json")
+
+
+def load_state(path=STATE_PATH):
+    path = Path(path)
     try:
         with open(path) as f:
             data = json.load(f)
@@ -45,16 +50,22 @@ def load_state(path):
 
     return (
         set(data["matters"]),
-        data["conditions"],
+        normalize_conditions(data["conditions"]),
         {tuple(d) for d in data["dependencies"]},
     )
 
 
-def save_state(path, matters, conditions, dependencies):
+def save_state(*args, path=STATE_PATH):
+    matters, conditions, dependencies, path = resolve_save_args(args, path)
+    path = Path(path)
     data = {
+        "schema_version": 2,
         "matters": sorted(matters),
         "conditions": {
-            m: [truth(c) for c in cs]
+            m: [
+                serialize_condition(c, index)
+                for index, c in enumerate(as_condition_list(cs), start=1)
+            ]
             for m, cs in conditions.items()
         },
         "dependencies": sorted([list(d) for d in dependencies]),
@@ -64,7 +75,75 @@ def save_state(path, matters, conditions, dependencies):
         json.dump(data, f, indent=2)
 
 
+def resolve_save_args(args, path):
+    if len(args) == 3:
+        matters, conditions, dependencies = args
+        return matters, conditions, dependencies, path
+
+    if len(args) == 4:
+        first, second, third, fourth = args
+        if isinstance(first, (str, Path)):
+            return second, third, fourth, first
+        return first, second, third, fourth
+
+    raise TypeError(
+        "save_state expects (matters, conditions, dependencies[, path]) "
+        "or legacy (path, matters, conditions, dependencies)"
+    )
+
+
+def create_condition(label, truth_value=False):
+    return {"label": str(label), "truth": truth(truth_value)}
+
+
+def as_condition_list(cs):
+    if cs is None:
+        return []
+    if isinstance(cs, dict) and ("label" in cs or "truth" in cs or "value" in cs):
+        return [cs]
+    if isinstance(cs, dict):
+        return [
+            {"label": label, "truth": value}
+            for label, value in cs.items()
+        ]
+    return list(cs)
+
+
+def normalize_conditions(conditions):
+    return {
+        matter: [
+            serialize_condition(c, index)
+            for index, c in enumerate(as_condition_list(cs), start=1)
+        ]
+        for matter, cs in conditions.items()
+    }
+
+
+def condition_label(c, index=None):
+    if isinstance(c, dict):
+        label = c.get("label") or c.get("name")
+        if label and str(label).strip():
+            return str(label).strip()
+
+    if index is None:
+        return "Unlabeled legacy condition"
+    return f"Unlabeled legacy condition {index}"
+
+
+def serialize_condition(c, index=None):
+    return {
+        "label": condition_label(c, index),
+        "truth": truth(c),
+    }
+
+
 def truth(c):
+    if isinstance(c, dict):
+        if "truth" in c:
+            return truth(c["truth"])
+        if "value" in c:
+            return truth(c["value"])
+        return False
     return c() if callable(c) else bool(c)
 
 

@@ -39,6 +39,42 @@ Help turn vague importance into a working map:
 5. Compute or explain the universe, frontier, and horizon to decide what takes attention next.
 6. Promote a condition into a matter when it needs its own decomposition, ownership, or sequence.
 
+## Unlock Workflow
+
+Use this workflow when the user asks to unlock, advance, resolve, or work toward goals in a matters tree.
+
+1. Load the relevant state file.
+2. Scan all unresolved matters, their conditions, and their dependencies.
+3. Compute the universe: unresolved matters whose prerequisites are resolved.
+4. Prefer actionable matters with larger downstream impact.
+5. For each prioritized matter, propose concrete actions aimed at making false conditions true.
+6. Separate work the agent can start autonomously from work that requires human confirmation, external access, payment, sending, publishing, or a decision.
+7. Return a short proposal or progress report.
+8. Do not change persisted state unless the user explicitly asked you to update it, or unless you can verify that a condition has become true through completed work in the current task.
+
+## Extraction Workflow
+
+Use this workflow when the user asks to extract matters from a PDF, AI conversation, blog post, notes, pasted text, or another source.
+
+1. Convert the source to readable text first. For PDFs or documents, use an available parser or export path before extraction.
+2. Extract candidate matters with stable ids, clear names, short descriptions, and observable false resolution conditions.
+3. Compare candidates against existing matters in the selected state file.
+4. Propose possible dependencies where names, topics, or conditions overlap, but do not silently add them.
+5. Show the proposed candidates, conditions, and dependency candidates to the user for confirmation.
+6. Persist only after explicit confirmation, unless the user has already asked for an update and every change is directly verifiable.
+
+## Public Sharing Workflow
+
+Use this workflow when the user asks to publish, share, or separate public matters from private matters.
+
+1. Keep private state as the source of truth.
+2. Use a visibility map where each matter is `private`, `shared`, or `public`.
+3. Treat conditions as inheriting their matter's visibility.
+4. Export dependency edges only when both endpoint matters are public.
+5. Review the generated public state for accidental private matter ids before committing or publishing it.
+6. Use `matters export-public --state <private-state> --visibility <visibility.json>` when the CLI is installed.
+7. Use `matters merge-public --state <private-state> --public-state <public-state> --visibility <visibility.json>` to merge reviewed public edits back into private state.
+
 ## Persistence Behavior
 
 When the user asks about or mentions a matter in a matter-management context:
@@ -85,5 +121,9 @@ Do not persist exploratory conversation by default. Persist when the user is man
 - Use JSON persistence through the resolved state path unless the user gives a different path.
 - Persist each condition as an object with `label` and `truth`; do not save new conditions as bare booleans.
 - Treat legacy boolean conditions as unlabeled data that must be normalized before saving; callable condition predicates are runtime-only.
+- For unlock-style reports, prefer `matters unlock --state <path>` when the CLI is installed, or the `unlock_report` API from the `matters` package when working from source.
+- For extraction, prefer `matters extract <source-text-file> --source-type <kind> --state <path>` when the CLI is installed, or the `extraction_proposal` API from the `matters` package when working from source.
+- For public sharing, prefer `matters export-public --state <private-state> --visibility <visibility.json>`, or the `public_state` API from the `matters` package when working from source.
+- For public edit intake, prefer `matters merge-public --state <private-state> --public-state <public-state> --visibility <visibility.json>`, or the `merge_public_state` API from the `matters` package when working from source.
 - If `matters` is not installed, ask the user to install the `matters.global` package before performing persisted operations:
   `python -m pip install -e /Users/matthias/code/matters.global`.

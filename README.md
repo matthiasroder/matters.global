@@ -2,6 +2,38 @@
 
 `matters.global` contains the reusable matters engine and the first-party agent skill that uses it.
 
+## Core Concepts
+
+A matter is any concern, goal, decision, responsibility, risk, or question worth tracking. Each matter has observable conditions that define what must be true for it to count as resolved.
+
+Dependencies connect matters when one must be resolved before another can be resolved. A dependency `(a, b)` means `a` has to resolve before `b` can resolve.
+
+The engine derives three working views from those primitives:
+
+- `universe`: unresolved matters whose prerequisites are already resolved, so they are actionable now.
+- `frontier(root)`: immediately actionable downstream matters unlocked by a resolved root.
+- `horizon(root)`: the farthest unresolved descendants visible downstream from a root.
+
+## Example
+
+```json
+{
+  "schema_version": 2,
+  "matters": ["define_offer", "send_proposal"],
+  "conditions": {
+    "define_offer": [
+      { "label": "Scope and price are written down", "truth": true }
+    ],
+    "send_proposal": [
+      { "label": "Proposal has been sent to the client", "truth": false }
+    ]
+  },
+  "dependencies": [["define_offer", "send_proposal"]]
+}
+```
+
+In this example `send_proposal` is in the universe because its prerequisite is resolved and its own condition is still false.
+
 ## Layout
 
 ```text
@@ -25,6 +57,12 @@ The package installs a `matters` CLI:
 
 ```sh
 matters universe --state examples/matters.example.json
+matters frontier root --state examples/matters.example.json
+matters horizon root --state examples/matters.example.json
+matters unlock --state examples/matters.example.json
+matters extract notes.txt --source-type notes --state examples/matters.example.json
+matters export-public --state private.matters.json --visibility visibility.json
+matters merge-public --state private.matters.json --public-state public.matters.json --visibility visibility.json
 ```
 
 ## State Files
@@ -35,6 +73,60 @@ Runtime state should live outside installed skill directories. Use one of:
 - the `MATTERS_STATE` environment variable
 - project-local `.matters/matters.json`
 - `~/.local/share/matters/matters.json`
+
+## Unlock Reports
+
+`matters unlock` scans the unresolved tree, finds currently actionable matters, and proposes concrete next actions for each false condition. Actions are marked as either `agent_can_start` or `needs_human_input`.
+
+The text format is meant for a quick agent planning pass:
+
+```sh
+matters unlock --state ~/.local/share/matters/matters.json
+```
+
+Use JSON output when another tool should consume the report:
+
+```sh
+matters unlock --json --state ~/.local/share/matters/matters.json
+```
+
+## Extraction Proposals
+
+`matters extract` turns source text into candidate matters and dependency candidates. It always prints a proposal and does not save anything to the state file.
+
+```sh
+matters extract notes.txt --source-type notes --state ~/.local/share/matters/matters.json
+```
+
+Use `-` to read from stdin:
+
+```sh
+pbpaste | matters extract - --source-type conversation
+```
+
+For PDFs, blog posts, documents, and AI conversations, extract or paste the readable text first, then pass the source type as context. The output includes candidate matter ids, descriptions, initial false resolution conditions, dependency candidates against existing matters, and `requires_confirmation: true`.
+
+## Public Sharing
+
+The first multi-user sharing layer is documented in [docs/multi-user.md](docs/multi-user.md). A private state can be exported into a world-readable public state with a visibility map:
+
+```json
+{
+  "publish_matters_global_system": "public",
+  "resolve_car_insurance_issue": "private"
+}
+```
+
+```sh
+matters export-public --state ~/.local/share/matters/matters.json --visibility visibility.json
+matters merge-public --state ~/.local/share/matters/matters.json --public-state public.matters.json --visibility visibility.json
+```
+
+The export includes only matters marked `public`, their conditions, and dependency edges where both endpoints are public. The merge path accepts edits to public matters and rejects incoming matter ids that are not marked public.
+
+## Walkthrough
+
+See [docs/walkthrough.md](docs/walkthrough.md) for a small end-to-end example covering `universe`, `unlock`, `extract`, `export-public`, and `merge-public`.
 
 ## Publishing the Skill
 

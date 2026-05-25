@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>matters.global</title>
+    <meta
+      name="description"
+      content="A Sonophilia Foundation project mapping matters and dependencies so people can use creativity to solve problems and see what can be unblocked next."
+    >
+    <link rel="stylesheet" href="assets/styles.css">
+  </head>
+  <body>
+    <header class="site-header" aria-label="Site header">
+      <a class="brand" href="#top" aria-label="matters.global home">matters.global</a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#why">Why</a>
+        <a href="#how">How it works</a>
+        <a href="#public">Public matters</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <canvas id="matter-map" aria-hidden="true"></canvas>
+        <div class="hero-content">
+          <p class="kicker">A map for unsolved matters</p>
+          <h1 id="hero-title">matters.global</h1>
+          <p class="hero-copy">
+            Mapping matters and their dependencies, so we can use creativity to solve problems
+            and see what can be unblocked next.
+          </p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button primary" href="#why">Understand the idea</a>
+            <a class="button secondary" href="https://github.com/matthiasroder/matters.global#local-development">Install</a>
+          </div>
+        </div>
+        <div class="hero-status" aria-label="Example matter status">
+          <span>Public demo</span>
+          <strong>next visible step</strong>
+        </div>
+      </section>
+
+      <section id="why" class="section intro" aria-labelledby="why-title">
+        <div class="section-label">Why</div>
+        <div class="section-body">
+          <h2 id="why-title">Creativity helps us solve problems. First, we need to see the problem clearly.</h2>
+          <p>
+            Sonophilia works to make creativity accessible beyond the arts: as a human capacity
+            for solving problems in business, science, society, and everyday life. But problems
+            are rarely isolated. One matter blocks another. A missing decision holds back a
+            project. An unnamed risk prevents people from moving.
+          </p>
+          <p>
+            matters.global turns that complexity into a map. Each matter has clear conditions for
+            when it counts as resolved, so people can see where creative problem-solving can
+            unlock progress.
+          </p>
+        </div>
+      </section>
+
+      <section id="how" class="section process" aria-labelledby="how-title">
+        <div class="section-label">How</div>
+        <div class="section-body">
+          <h2 id="how-title">From a messy situation to a useful map.</h2>
+          <div class="steps">
+            <article>
+              <span>01</span>
+              <h3>Name the matter</h3>
+              <p>Capture the thing that matters enough to revisit: a goal, concern, risk, decision, or question.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>Define resolution</h3>
+              <p>Write down the observable conditions that would make it count as resolved.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>Connect dependencies</h3>
+              <p>Show which matters must resolve before other matters can resolve.</p>
+            </article>
+            <article>
+              <span>04</span>
+              <h3>Find the next move</h3>
+              <p>See the actionable matters whose blockers are already cleared.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="public" class="section public-view" aria-labelledby="public-title">
+        <div class="section-label">Public</div>
+        <div class="section-body split">
+          <div>
+            <h2 id="public-title">Some matters are private. Some should be shared.</h2>
+            <p>
+              The project starts with a careful distinction: private state remains private, while
+              selected public matters can be exported into a shared view. That makes it possible to
+              coordinate around public problems without exposing personal or sensitive context.
+            </p>
+          </div>
+          <div class="example-panel" aria-label="Example public matter">
+            <div class="panel-row">
+              <span class="dot active"></span>
+              <p>Publish first public walkthrough</p>
+            </div>
+            <div class="panel-row muted">
+              <span class="dot"></span>
+              <p>Invite outside collaborators to try it</p>
+            </div>
+            <div class="panel-row resolved">
+              <span class="dot"></span>
+              <p>Explain the core concepts with examples</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>
+        matters.global is a project of
+        <a href="https://SonophiliaFoundation.org">the Sonophilia Foundation</a>.
+      </p>
+      <a href="https://github.com/matthiasroder/matters.global">GitHub</a>
+    </footer>
+
+    <script src="assets/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "matters-global"
+version = "0.1.0"
+description = "Engine and agent skill support for working with matters, conditions, dependencies, universe, frontier, and horizon."
+requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+  { name = "Matthias Roeder" }
+]
+
+[project.scripts]
+matters = "matters.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

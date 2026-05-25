@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "matters": [
+    "define_project_goal",
+    "ship_first_version"
+  ],
+  "conditions": {
+    "define_project_goal": [
+      {
+        "label": "Goal is written in one sentence",
+        "truth": true
+      }
+    ],
+    "ship_first_version": [
+      {
+        "label": "First version is usable by one real user",
+        "truth": false
+      }
+    ]
+  },
+  "dependencies": [
+    [
+      "define_project_goal",
+      "ship_first_version"
+    ]
+  ]
+}

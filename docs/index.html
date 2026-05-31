@@ -92,48 +92,55 @@
       <section id="quick-start" class="section quick-start" aria-labelledby="quick-start-title">
         <div class="section-label">Quick Start</div>
         <div class="section-body">
-          <h2 id="quick-start-title">Start with one matter, one condition, and one next move.</h2>
+          <h2 id="quick-start-title">Install the system, start your agent, and describe what matters.</h2>
           <p>
-            The tool is a command line map for goals, risks, decisions, and responsibilities.
-            Create a local state file, add a matter, then ask what is actionable now.
+            matters.global is most useful through an AI agent. The command line stores and computes
+            the graph; Codex or Claude helps you name matters, define conditions, discover
+            dependencies, and decide what to work on next.
           </p>
 
-          <div class="quick-grid" aria-label="Quick start commands">
+          <div class="quick-grid" aria-label="Quick start workflow">
             <article class="quick-step">
               <span>01</span>
-              <h3>Install the CLI</h3>
+              <h3>Install matters.global</h3>
               <pre><code>python3 -m pip install git+https://github.com/matthiasroder/matters.global.git</code></pre>
             </article>
 
             <article class="quick-step">
               <span>02</span>
-              <h3>Create your first state and chain</h3>
-              <pre><code>matters state-path
-matters create 'publish first walkthrough (walkthrough is live and shareable) &gt; write walkthrough draft'</code></pre>
+              <h3>Start your agent</h3>
+              <pre><code>cd your-workspace
+codex
+
+# or open Claude Code in the same workspace</code></pre>
             </article>
 
             <article class="quick-step">
               <span>03</span>
-              <h3>See what is actionable</h3>
-              <pre><code>matters universe
-matters unlock</code></pre>
+              <h3>Use the system</h3>
+              <pre><code>Help me turn this into matters:
+publish the first walkthrough,
+invite outside collaborators,
+and keep private context private.</code></pre>
             </article>
           </div>
 
-          <div class="quick-reference" aria-label="Useful next commands">
+          <div class="quick-reference" aria-label="Useful agent prompts">
             <div>
-              <h3>Use a specific state file</h3>
-              <pre><code>matters universe --state ~/.local/share/matters/matters.json</code></pre>
+              <h3>Ask for the next move</h3>
+              <pre><code>Look at my matters graph and tell me what is actionable now.</code></pre>
             </div>
             <div>
-              <h3>Extract candidates from notes</h3>
-              <pre><code>pbpaste | matters extract - --source-type notes</code></pre>
+              <h3>Extract from notes</h3>
+              <pre><code>Extract candidate matters, conditions, and dependencies from these notes. Ask before saving.</code></pre>
             </div>
           </div>
 
           <p class="quick-note">
-            A matter is resolved only when its conditions are true and its prerequisites are
-            resolved. Use dependencies when one matter must happen before another can count as done.
+            The local state defaults to <code>~/.local/share/matters/matters.json</code>.
+            Agents use the same state file through the installed <code>matters</code> CLI,
+            so you can always inspect it directly with <code>matters universe</code> or
+            <code>matters unlock</code>.
           </p>
         </div>
       </section>

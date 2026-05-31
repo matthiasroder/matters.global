@@ -160,30 +160,6 @@ h1 {
   background: rgba(255, 255, 255, 0.72);
 }
 
-.hero-status {
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(23, 23, 23, 0.12);
-  border-radius: 8px;
-  bottom: 36px;
-  box-shadow: var(--shadow);
-  display: grid;
-  gap: 2px;
-  padding: 16px 18px;
-  position: absolute;
-  right: clamp(20px, 5vw, 64px);
-  z-index: 2;
-}
-
-.hero-status span {
-  color: var(--soft-ink);
-  font-size: 13px;
-  font-weight: 660;
-}
-
-.hero-status strong {
-  font-size: 20px;
-}
-
 .section {
   border-top: 1px solid var(--line);
   display: grid;
@@ -413,12 +389,6 @@ code {
     padding-top: 132px;
   }
 
-  .hero-status {
-    bottom: 18px;
-    left: 20px;
-    right: auto;
-  }
-
   .section {
     grid-template-columns: 1fr;
   }
@@ -466,14 +436,6 @@ code {
 
   .button {
     width: 100%;
-  }
-
-  .hero-status {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    margin-top: 34px;
-    width: min(100%, 320px);
   }
 
   .site-footer {

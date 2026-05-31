@@ -37,6 +37,67 @@ def test_cli_unlock_can_emit_json(tmp_path, capsys):
     assert json.loads(capsys.readouterr().out)["universe"] == ["a"]
 
 
+def test_cli_create_writes_shorthand_dependency_chain(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    state_path.write_text(
+        json.dumps({"matters": [], "conditions": {}, "dependencies": []})
+    )
+
+    assert (
+        main(
+            [
+                "create",
+                (
+                    "go to Mars "
+                    "(human lands and stays on Mars for at least one year) > "
+                    "build spaceship that can fly to Mars > "
+                    "assemble spaceship in earth orbit"
+                ),
+                "--state",
+                str(state_path),
+            ]
+        )
+        == 0
+    )
+
+    assert "Created matters" in capsys.readouterr().out
+    assert json.loads(state_path.read_text()) == {
+        "schema_version": 2,
+        "matters": [
+            "assemble_spaceship_in_earth_orbit",
+            "build_spaceship_that_can_fly_to_mars",
+            "go_to_mars",
+        ],
+        "conditions": {
+            "assemble_spaceship_in_earth_orbit": [
+                {
+                    "label": "Resolved: assemble spaceship in earth orbit",
+                    "truth": False,
+                }
+            ],
+            "build_spaceship_that_can_fly_to_mars": [
+                {
+                    "label": "Resolved: build spaceship that can fly to Mars",
+                    "truth": False,
+                }
+            ],
+            "go_to_mars": [
+                {
+                    "label": "human lands and stays on Mars for at least one year",
+                    "truth": False,
+                }
+            ],
+        },
+        "dependencies": [
+            [
+                "assemble_spaceship_in_earth_orbit",
+                "build_spaceship_that_can_fly_to_mars",
+            ],
+            ["build_spaceship_that_can_fly_to_mars", "go_to_mars"],
+        ],
+    }
+
+
 def test_cli_extract_reads_text_file_without_saving(tmp_path, capsys):
     state_path = tmp_path / "matters.json"
     source_path = tmp_path / "notes.txt"

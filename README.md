@@ -56,6 +56,7 @@ python -m pytest
 The package installs a `matters` CLI:
 
 ```sh
+matters create 'go to Mars (human lands and stays on Mars for at least one year) > build spaceship that can fly to Mars > assemble spaceship in earth orbit'
 matters universe --state examples/matters.example.json
 matters frontier root --state examples/matters.example.json
 matters horizon root --state examples/matters.example.json
@@ -73,6 +74,36 @@ Runtime state should live outside installed skill directories. Use one of:
 - the `MATTERS_STATE` environment variable
 - project-local `.matters/matters.json`
 - `~/.local/share/matters/matters.json`
+
+## Creating Matters
+
+`matters create` writes new matters to the selected state file. The compact
+form is:
+
+```sh
+matters create 'goal matter (observable resolution condition) > prerequisite matter > earlier prerequisite'
+```
+
+The chain reads left-to-right as "depends on", while saved dependency edges use
+the engine direction `prerequisite -> dependent`. For example:
+
+```sh
+matters create 'go to Mars (human lands and stays on Mars for at least one year) > build spaceship that can fly to Mars > assemble spaceship in earth orbit'
+```
+
+creates:
+
+```text
+assemble_spaceship_in_earth_orbit -> build_spaceship_that_can_fly_to_mars -> go_to_mars
+```
+
+Parentheses at the end of a segment define that matter's first false condition.
+Segments without parentheses get a default condition of `Resolved: <matter>`.
+Because `>` is shell redirection when unquoted, quote the expression or pipe it:
+
+```sh
+printf '%s\n' 'go to Mars (human lands and stays on Mars for at least one year) > build spaceship that can fly to Mars' | matters create
+```
 
 ## Unlock Reports
 

@@ -5,10 +5,10 @@ import json
 import sys
 
 from .engine import frontier, horizon, universe
-from .extraction import extraction_proposal
+from .extraction import extraction_proposal, slugify
 from .reports import format_unlock_report, unlock_report
 from .sharing import merge_public_state, public_state
-from .storage import load_state, resolve_state_path
+from .storage import load_state, resolve_state_path, save_state
 
 
 def main(argv=None):
@@ -24,6 +24,19 @@ def main(argv=None):
     )
     subparsers.add_parser(
         "universe", parents=[state_parent], help="Print globally actionable matters."
+    )
+    create_parser = subparsers.add_parser(
+        "create",
+        parents=[state_parent],
+        help="Create matters from a compact expression.",
+    )
+    create_parser.add_argument(
+        "expression",
+        nargs="*",
+        help=(
+            "Matter expression. Quote dependency chains that contain '>', "
+            "for example: 'goal (condition) > prerequisite'."
+        ),
     )
     unlock_parser = subparsers.add_parser(
         "unlock",
@@ -95,6 +108,21 @@ def main(argv=None):
         return 0
 
     matters, conditions, dependencies = load_state(args.state)
+
+    if args.command == "create":
+        try:
+            created = create_matters_from_expression(
+                read_create_expression(args.expression),
+                matters,
+                conditions,
+                dependencies,
+            )
+        except ValueError as error:
+            parser.error(str(error))
+
+        save_state(matters, conditions, dependencies, path=args.state)
+        print_create_summary(created)
+        return 0
 
     if args.command == "extract":
         source_text = read_source_text(args.source)
@@ -169,6 +197,79 @@ def read_source_text(source):
         return sys.stdin.read()
     with open(source) as f:
         return f.read()
+
+
+def read_create_expression(parts):
+    if parts:
+        return " ".join(parts)
+    if sys.stdin.isatty():
+        raise ValueError("provide a matter expression or pipe one on stdin")
+    return sys.stdin.read()
+
+
+def create_matters_from_expression(expression, matters, conditions, dependencies):
+    parsed_matters = parse_create_expression(expression)
+    ids = [matter["id"] for matter in parsed_matters]
+    duplicate_ids = sorted({matter_id for matter_id in ids if ids.count(matter_id) > 1})
+    if duplicate_ids:
+        raise ValueError("duplicate matter ids in expression: " + ", ".join(duplicate_ids))
+
+    existing_ids = sorted(set(ids) & matters)
+    if existing_ids:
+        raise ValueError("matter already exists: " + ", ".join(existing_ids))
+
+    for parsed_matter in parsed_matters:
+        matter_id = parsed_matter["id"]
+        matters.add(matter_id)
+        conditions[matter_id] = [
+            {"label": parsed_matter["condition"], "truth": False}
+        ]
+
+    for prerequisite, dependent in zip(parsed_matters[1:], parsed_matters):
+        dependencies.add((prerequisite["id"], dependent["id"]))
+
+    return parsed_matters
+
+
+def parse_create_expression(expression):
+    segments = [segment.strip() for segment in expression.split(">")]
+    segments = [segment for segment in segments if segment]
+    if not segments:
+        raise ValueError("matter expression is empty")
+
+    return [parse_create_segment(segment) for segment in segments]
+
+
+def parse_create_segment(segment):
+    name = segment
+    condition = None
+
+    if segment.endswith(")"):
+        start = segment.rfind("(")
+        if start > 0:
+            name = segment[:start].strip()
+            condition = segment[start + 1 : -1].strip()
+
+    if not name:
+        raise ValueError("matter name cannot be empty")
+
+    if not condition:
+        condition = f"Resolved: {name}"
+
+    return {"id": slugify(name), "name": name, "condition": condition}
+
+
+def print_create_summary(created):
+    print("Created matters")
+    for matter in created:
+        print(f"- {matter['id']}: {matter['name']}")
+        print(f"  - condition: {matter['condition']}")
+
+    if len(created) > 1:
+        print("")
+        print("Dependencies")
+        for prerequisite, dependent in zip(created[1:], created):
+            print(f"- {prerequisite['id']} -> {dependent['id']}")
 
 
 if __name__ == "__main__":

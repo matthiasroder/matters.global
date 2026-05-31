@@ -251,6 +251,82 @@ h1 {
   font-size: 16px;
 }
 
+.quick-start .section-body > p {
+  max-width: 760px;
+}
+
+.quick-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 34px;
+}
+
+.quick-step,
+.quick-reference > div {
+  background: var(--white);
+  border: 1px solid rgba(23, 23, 23, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(23, 23, 23, 0.07);
+}
+
+.quick-step {
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto auto 1fr;
+  min-height: 260px;
+  padding: 22px;
+}
+
+.quick-step span {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.quick-step h3,
+.quick-reference h3 {
+  font-size: 22px;
+  line-height: 1.12;
+  margin: 0;
+}
+
+pre {
+  background: #171717;
+  border-radius: 8px;
+  color: var(--white);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+  overflow-x: auto;
+  padding: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.quick-reference {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.quick-reference > div {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.quick-note {
+  border-left: 4px solid var(--gold);
+  margin-top: 24px;
+  padding-left: 18px;
+}
+
 .split {
   align-items: start;
   display: grid;
@@ -348,6 +424,8 @@ h1 {
   }
 
   .steps,
+  .quick-grid,
+  .quick-reference,
   .split {
     grid-template-columns: 1fr;
   }
@@ -358,6 +436,10 @@ h1 {
 
   .steps span {
     margin-bottom: 18px;
+  }
+
+  .quick-step {
+    min-height: auto;
   }
 }
 

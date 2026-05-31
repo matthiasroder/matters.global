@@ -16,6 +16,7 @@
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="#why">Why</a>
         <a href="#how">How it works</a>
+        <a href="#quick-start">Quick Start</a>
         <a href="#public">Public matters</a>
       </nav>
     </header>
@@ -31,8 +32,8 @@
             and see what can be unblocked next.
           </p>
           <div class="hero-actions" aria-label="Primary actions">
-            <a class="button primary" href="#why">Understand the idea</a>
-            <a class="button secondary" href="https://github.com/matthiasroder/matters.global#local-development">Install</a>
+            <a class="button primary" href="#quick-start">Quick Start</a>
+            <a class="button secondary" href="#why">Understand the idea</a>
           </div>
         </div>
         <div class="hero-status" aria-label="Example matter status">
@@ -85,6 +86,55 @@
               <p>See the actionable matters whose blockers are already cleared.</p>
             </article>
           </div>
+        </div>
+      </section>
+
+      <section id="quick-start" class="section quick-start" aria-labelledby="quick-start-title">
+        <div class="section-label">Quick Start</div>
+        <div class="section-body">
+          <h2 id="quick-start-title">Start with one matter, one condition, and one next move.</h2>
+          <p>
+            The tool is a command line map for goals, risks, decisions, and responsibilities.
+            Create a local state file, add a matter, then ask what is actionable now.
+          </p>
+
+          <div class="quick-grid" aria-label="Quick start commands">
+            <article class="quick-step">
+              <span>01</span>
+              <h3>Install the CLI</h3>
+              <pre><code>python3 -m pip install git+https://github.com/matthiasroder/matters.global.git</code></pre>
+            </article>
+
+            <article class="quick-step">
+              <span>02</span>
+              <h3>Create your first state and chain</h3>
+              <pre><code>matters state-path
+matters create 'publish first walkthrough (walkthrough is live and shareable) &gt; write walkthrough draft'</code></pre>
+            </article>
+
+            <article class="quick-step">
+              <span>03</span>
+              <h3>See what is actionable</h3>
+              <pre><code>matters universe
+matters unlock</code></pre>
+            </article>
+          </div>
+
+          <div class="quick-reference" aria-label="Useful next commands">
+            <div>
+              <h3>Use a specific state file</h3>
+              <pre><code>matters universe --state ~/.local/share/matters/matters.json</code></pre>
+            </div>
+            <div>
+              <h3>Extract candidates from notes</h3>
+              <pre><code>pbpaste | matters extract - --source-type notes</code></pre>
+            </div>
+          </div>
+
+          <p class="quick-note">
+            A matter is resolved only when its conditions are true and its prerequisites are
+            resolved. Use dependencies when one matter must happen before another can count as done.
+          </p>
         </div>
       </section>
 

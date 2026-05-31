@@ -1,0 +1,5 @@
+Problem: Organizations treat creativity as a personality trait rather than a trainable capacity
+Goal: Identify creativity practices with repeatable evidence across education, business, and public institutions
+Risk: Evidence from artistic domains is overgeneralized without checking transfer conditions
+Decision: Track each creativity claim with source context, evidence type, and intended application domain
+Matter: Build a review workflow for creativity research claims

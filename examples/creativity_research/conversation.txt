@@ -1,0 +1,8 @@
+Matthias: I want a graph that shows what creativity research can unlock.
+Agent: Goal: Map creativity interventions to measurable human or institutional outcomes
+Matthias: We should not just collect papers. We need decisions and dependencies.
+Agent: Problem: Research claims lack dependency links to the evidence and contexts that make them credible
+Matthias: The output should feed the slide system eventually.
+Agent: Goal: Connect accepted creativity findings to reusable slide atoms
+Matthias: Keep humans in the loop before adding anything to the graph.
+Agent: Responsibility: Confirm extracted creativity matters with a human reviewer before saving them

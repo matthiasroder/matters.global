@@ -137,6 +137,8 @@ pbpaste | matters extract - --source-type conversation
 
 For PDFs, blog posts, documents, and AI conversations, extract or paste the readable text first, then pass the source type as context. The output includes candidate matter ids, descriptions, initial false resolution conditions, dependency candidates against existing matters, and `requires_confirmation: true`.
 
+The extractor recognizes explicit markers like `Goal:`, `Problem:`, `Decision:`, `Risk:`, `Responsibility:`, and `Matter:`. In conversation exports, speaker-prefixed lines such as `Agent: Goal: Map creativity interventions` are also recognized. See `examples/creativity_research/` for a small corpus and expected extraction-quality notes.
+
 ## Public Sharing
 
 The first multi-user sharing layer is documented in [docs/multi-user.md](docs/multi-user.md). A private state can be exported into a world-readable public state with a visibility map:

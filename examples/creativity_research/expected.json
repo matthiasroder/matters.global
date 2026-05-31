@@ -1,0 +1,84 @@
+{
+  "purpose": "Define the minimum useful output for creativity research extraction tests.",
+  "source_files": [
+    {
+      "path": "examples/creativity_research/research_notes.txt",
+      "source_type": "notes"
+    },
+    {
+      "path": "examples/creativity_research/conversation.txt",
+      "source_type": "conversation"
+    },
+    {
+      "path": "examples/creativity_research/paper_excerpt.txt",
+      "source_type": "paper"
+    }
+  ],
+  "expected_high_level_matters": [
+    {
+      "id_hint": "build_a_creativity_research_matters_graph",
+      "name": "Build a creativity research matters graph",
+      "source": "research_notes.txt"
+    },
+    {
+      "id_hint": "make_creativity_findings_reusable_as_slide_atoms",
+      "name": "Make creativity findings reusable as slide atoms",
+      "source": "research_notes.txt"
+    },
+    {
+      "id_hint": "map_creativity_interventions_to_measurable_human_or_institutional_outcomes",
+      "name": "Map creativity interventions to measurable human or institutional outcomes",
+      "source": "conversation.txt"
+    },
+    {
+      "id_hint": "connect_accepted_creativity_findings_to_reusable_slide_atoms",
+      "name": "Connect accepted creativity findings to reusable slide atoms",
+      "source": "conversation.txt"
+    },
+    {
+      "id_hint": "identify_creativity_practices_with_repeatable_evidence_across_education_business_and_public_institutions",
+      "name": "Identify creativity practices with repeatable evidence across education, business, and public institutions",
+      "source": "paper_excerpt.txt"
+    },
+    {
+      "id_hint": "build_a_review_workflow_for_creativity_research_claims",
+      "name": "Build a review workflow for creativity research claims",
+      "source": "paper_excerpt.txt"
+    }
+  ],
+  "condition_quality_expectations": [
+    "Conditions should be observable and domain-specific, not only generic placeholders.",
+    "A research graph matter should require a reviewed set of accepted candidate matters and dependencies.",
+    "A claim or finding matter should require source context, evidence type, and application domain.",
+    "A slide atom matter should require at least one accepted finding transformed into a reusable slide atom.",
+    "A review workflow matter should require human acceptance before persistence."
+  ],
+  "dependency_review_expectations": [
+    {
+      "prerequisite_hint": "build_general_purpose_web_research_agent",
+      "dependent_hint": "build_creativity_research_matters_graph",
+      "reason": "The graph-building workflow needs source discovery and synthesis."
+    },
+    {
+      "prerequisite_hint": "build_creativity_research_matters_graph",
+      "dependent_hint": "make_creativity_findings_reusable_as_slide_atoms",
+      "reason": "Slide atoms should be based on accepted findings from the graph."
+    },
+    {
+      "prerequisite_hint": "build_a_review_workflow_for_creativity_research_claims",
+      "dependent_hint": "build_creativity_research_matters_graph",
+      "reason": "The graph should persist reviewed matters, not raw extraction output."
+    },
+    {
+      "prerequisite_hint": "identify_creativity_practices_with_repeatable_evidence_across_education_business_and_public_institutions",
+      "dependent_hint": "map_creativity_interventions_to_measurable_human_or_institutional_outcomes",
+      "reason": "Intervention mapping depends on credible repeatable evidence."
+    }
+  ],
+  "known_baseline_gaps": [
+    "The current extractor only recognizes explicit markers such as Goal, Problem, Decision, Risk, Responsibility, and Matter.",
+    "Speaker-prefixed conversation lines with embedded markers are not extracted today.",
+    "Conditions are currently generic placeholders rather than research-specific truth criteria.",
+    "Dependency proposals are currently based on name overlap only."
+  ]
+}

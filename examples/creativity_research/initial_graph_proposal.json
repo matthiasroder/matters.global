@@ -1,0 +1,132 @@
+{
+  "type": "matters_graph_proposal",
+  "source_corpus": "examples/creativity_research",
+  "target_state_hint": "/Users/matthias/.local/share/matters/matters.json",
+  "requires_confirmation": true,
+  "persisted": false,
+  "matters": [
+    "build_a_creativity_research_matters_graph",
+    "build_a_review_workflow_for_creativity_research_claims",
+    "identify_creativity_practices_with_repeatable_evidence_across_education_business_and_public_institutions",
+    "map_creativity_interventions_to_measurable_human_or_institutional_outcomes",
+    "make_creativity_findings_reusable_as_slide_atoms",
+    "connect_accepted_creativity_findings_to_reusable_slide_atoms"
+  ],
+  "conditions": {
+    "build_a_creativity_research_matters_graph": [
+      {
+        "label": "Source corpus for the initial creativity research graph is selected",
+        "truth": true
+      },
+      {
+        "label": "Candidate creativity research matters are extracted from the corpus",
+        "truth": true
+      },
+      {
+        "label": "Human reviewer accepts the proposed matters and dependencies for persistence",
+        "truth": false
+      }
+    ],
+    "build_a_review_workflow_for_creativity_research_claims": [
+      {
+        "label": "Source context required for each creativity research claim is defined",
+        "truth": false
+      },
+      {
+        "label": "Evidence quality and transfer limits required for each claim are defined",
+        "truth": false
+      },
+      {
+        "label": "Human acceptance step before persistence is documented",
+        "truth": false
+      }
+    ],
+    "identify_creativity_practices_with_repeatable_evidence_across_education_business_and_public_institutions": [
+      {
+        "label": "Relevant sources across education, business, and public institutions are collected",
+        "truth": false
+      },
+      {
+        "label": "Evidence type and repeatability threshold are defined",
+        "truth": false
+      },
+      {
+        "label": "Accepted practices are listed with source context and limits",
+        "truth": false
+      }
+    ],
+    "map_creativity_interventions_to_measurable_human_or_institutional_outcomes": [
+      {
+        "label": "Candidate interventions are linked to source-backed findings",
+        "truth": false
+      },
+      {
+        "label": "Outcome measures are defined for each intervention",
+        "truth": false
+      },
+      {
+        "label": "Human reviewer accepts the intervention-to-outcome map",
+        "truth": false
+      }
+    ],
+    "make_creativity_findings_reusable_as_slide_atoms": [
+      {
+        "label": "Accepted creativity findings are selected for slide reuse",
+        "truth": false
+      },
+      {
+        "label": "Each selected finding has source context and evidence limits",
+        "truth": false
+      },
+      {
+        "label": "At least one reusable slide atom is drafted from an accepted finding",
+        "truth": false
+      }
+    ],
+    "connect_accepted_creativity_findings_to_reusable_slide_atoms": [
+      {
+        "label": "Accepted findings have stable matter ids",
+        "truth": false
+      },
+      {
+        "label": "Reusable slide atom ids or file paths are recorded",
+        "truth": false
+      },
+      {
+        "label": "Dependencies between findings and slide atoms are reviewed",
+        "truth": false
+      }
+    ]
+  },
+  "dependencies": [
+    [
+      "build_general_purpose_web_research_agent",
+      "build_a_creativity_research_matters_graph"
+    ],
+    [
+      "build_a_review_workflow_for_creativity_research_claims",
+      "build_a_creativity_research_matters_graph"
+    ],
+    [
+      "identify_creativity_practices_with_repeatable_evidence_across_education_business_and_public_institutions",
+      "map_creativity_interventions_to_measurable_human_or_institutional_outcomes"
+    ],
+    [
+      "build_a_creativity_research_matters_graph",
+      "make_creativity_findings_reusable_as_slide_atoms"
+    ],
+    [
+      "setup_creativity_findings_slide_pipeline",
+      "connect_accepted_creativity_findings_to_reusable_slide_atoms"
+    ],
+    [
+      "make_creativity_findings_reusable_as_slide_atoms",
+      "connect_accepted_creativity_findings_to_reusable_slide_atoms"
+    ]
+  ],
+  "review_notes": [
+    "This is an exported proposal only; it has not been written to the live matters state.",
+    "Two dependencies reference existing matters in the live state: build_general_purpose_web_research_agent and setup_creativity_findings_slide_pipeline.",
+    "The next human decision is whether to persist this proposal, edit it, or use it as a starting point for a richer extraction pass."
+  ]
+}

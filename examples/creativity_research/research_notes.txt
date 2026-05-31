@@ -1,0 +1,6 @@
+Goal: Build a creativity research matters graph
+Problem: Creativity findings are scattered across papers, talks, workshops, and field notes
+Decision: Represent research claims, interventions, evidence, and applications as matters with dependencies
+Risk: Extracted matters become generic tasks instead of research questions with observable resolution conditions
+Responsibility: Review extracted creativity research matters before persistence
+Matter: Make creativity findings reusable as slide atoms

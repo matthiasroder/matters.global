@@ -101,10 +101,32 @@ def main(argv=None):
     )
     horizon_parser.add_argument("matter")
 
+    web_parser = subparsers.add_parser(
+        "web", parents=[state_parent], help="Start the local browser graph UI."
+    )
+    web_parser.add_argument("--host", default="127.0.0.1", help="Host to bind.")
+    web_parser.add_argument("--port", type=int, default=8765, help="Port to bind.")
+    web_parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="Do not open the browser automatically.",
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "state-path":
         print(resolve_state_path(args.state))
+        return 0
+
+    if args.command == "web":
+        from .web import serve
+
+        serve(
+            state_path=args.state,
+            host=args.host,
+            port=args.port,
+            open_browser=not args.no_open,
+        )
         return 0
 
     matters, conditions, dependencies = load_state(args.state)

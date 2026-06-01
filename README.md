@@ -64,6 +64,7 @@ matters unlock --state examples/matters.example.json
 matters extract notes.txt --source-type notes --state examples/matters.example.json
 matters export-public --state private.matters.json --visibility visibility.json
 matters merge-public --state private.matters.json --public-state public.matters.json --visibility visibility.json
+matters web --state examples/matters.example.json
 ```
 
 ## State Files
@@ -120,6 +121,36 @@ Use JSON output when another tool should consume the report:
 ```sh
 matters unlock --json --state ~/.local/share/matters/matters.json
 ```
+
+## Browser Graph UI
+
+Run a local web UI to inspect and edit the real matters graph in a browser:
+
+```sh
+matters web --state examples/matters.example.json
+```
+
+The UI shows matters as nodes and dependency edges as arrows. It supports pan,
+zoom, text search, status filtering, node inspection, condition toggles, matter
+creation, and dependency creation/removal. Selecting a node keeps directly
+connected matters prominent while unrelated nodes and edges fade into the visual
+background.
+
+The top toolbar and the chat-style command panel both expose common graph
+operations:
+
+```text
+universe
+unlock
+frontier <matter_id>
+horizon <matter_id>
+create goal matter (observable condition) > prerequisite matter
+extract source text to inspect
+```
+
+The command panel is local and engine-backed in this first version. It does not
+launch or control Codex, Claude, or other agents directly yet; those integrations
+can be added through a future adapter layer.
 
 ## Extraction Proposals
 

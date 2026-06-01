@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>matters graph</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
@@ -29,6 +30,7 @@
           <button id="zoom-in" type="button" title="Zoom in">+</button>
           <button id="zoom-out" type="button" title="Zoom out">-</button>
           <button id="reset-view" type="button">Reset</button>
+          <button id="toggle-terminal" type="button">Terminal</button>
         </div>
       </header>
 
@@ -49,6 +51,7 @@
           <section class="panel-section">
             <h2>Inspector</h2>
             <div id="inspector" class="inspector muted">Select a node to inspect it.</div>
+            <div id="operation-output" class="operation-output" aria-live="polite" hidden></div>
           </section>
 
           <details class="panel-section disclosure">
@@ -76,21 +79,18 @@
               </form>
             </div>
           </details>
-
-          <section class="panel-section chat-panel">
-            <h2>Chat / Commands</h2>
-            <div id="messages" class="messages" aria-live="polite"></div>
-            <form id="command-form" class="command-form">
-              <select id="chat-mode" name="mode" aria-label="Chat mode">
-                <option value="matters">Matters</option>
-                <option value="codex">Codex</option>
-              </select>
-              <input name="command" autocomplete="off" placeholder="unlock, universe, frontier <id>">
-              <button type="submit">Run</button>
-            </form>
-          </section>
         </aside>
       </main>
+
+      <section id="terminal-drawer" class="terminal-drawer" aria-label="Workspace terminal" hidden>
+        <div class="terminal-bar">
+          <strong>zsh</strong>
+          <span id="terminal-status">/Users/matthias/.openclaw/workspace</span>
+          <button id="restart-terminal" type="button">Restart</button>
+          <button id="hide-terminal" type="button">Hide</button>
+        </div>
+        <div id="terminal"></div>
+      </section>
     </div>
 
     <script type="module" src="app.js"></script>

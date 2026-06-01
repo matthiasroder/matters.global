@@ -1,4 +1,6 @@
 import ForceGraph3D from "https://cdn.jsdelivr.net/npm/3d-force-graph@1.78.0/+esm";
+import { FitAddon } from "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/+esm";
+import { Terminal } from "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm";
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.178.0/+esm";
 
 const STATUS_COLORS = {
@@ -16,20 +18,27 @@ const state = {
   selectedId: null,
   visibleIds: new Set(),
   nodeObjects: new Map(),
-  webgl: false
+  webgl: false,
+  terminal: null,
+  fitAddon: null,
+  terminalSessionId: null,
+  terminalSeq: 0,
+  terminalPollTimer: null,
+  terminalPolling: false
 };
 
 const graphElement = document.querySelector("#graph");
 const inspector = document.querySelector("#inspector");
-const messages = document.querySelector("#messages");
+const operationOutput = document.querySelector("#operation-output");
 const statePath = document.querySelector("#state-path");
 const emptyState = document.querySelector("#empty-state");
 const webglFallback = document.querySelector("#webgl-fallback");
 const searchInput = document.querySelector("#search");
 const statusFilter = document.querySelector("#status-filter");
 const dependencyForm = document.querySelector("#dependency-form");
-const commandForm = document.querySelector("#command-form");
-const chatMode = document.querySelector("#chat-mode");
+const terminalDrawer = document.querySelector("#terminal-drawer");
+const terminalElement = document.querySelector("#terminal");
+const terminalStatus = document.querySelector("#terminal-status");
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -487,13 +496,12 @@ async function updateCondition(matterId, index, label, conditionTruth) {
 }
 
 async function runCommand(text) {
-  appendMessage("you", text);
   try {
     const result = await api("/api/command", {
       method: "POST",
       body: JSON.stringify({ text })
     });
-    appendMessage("matters", formatCommandResult(result));
+    setOperationOutput(result.type || "matters", formatCommandResult(result));
     if (result.state) {
       state.graph = result.state;
       render();
@@ -501,32 +509,8 @@ async function runCommand(text) {
       await loadGraph();
     }
   } catch (error) {
-    appendMessage("error", error.message);
+    setOperationOutput("error", error.message);
   }
-}
-
-async function runCodex(text) {
-  appendMessage("you", text);
-  setChatRunning(true);
-  const pending = appendMessage("codex", "Codex is running...");
-  try {
-    const result = await api("/api/codex", {
-      method: "POST",
-      body: JSON.stringify({ message: text })
-    });
-    pending.textContent = result.response || "Codex completed without a final message.";
-  } catch (error) {
-    pending.textContent = "Codex stopped with an error.";
-    appendMessage("error", error.message);
-  } finally {
-    setChatRunning(false);
-  }
-}
-
-function setChatRunning(isRunning) {
-  commandForm.querySelector("button").disabled = isRunning;
-  commandForm.elements.command.disabled = isRunning;
-  chatMode.disabled = isRunning;
 }
 
 function formatCommandResult(result) {
@@ -542,17 +526,146 @@ function formatCommandResult(result) {
   return JSON.stringify(result, null, 2);
 }
 
-function appendMessage(role, text) {
-  const message = document.createElement("div");
-  message.className = "message";
+function setOperationOutput(role, text) {
+  operationOutput.hidden = false;
+  operationOutput.replaceChildren();
   const heading = document.createElement("strong");
   heading.textContent = role;
   const body = document.createElement("pre");
   body.textContent = text;
-  message.append(heading, body);
-  messages.append(message);
-  messages.scrollTop = messages.scrollHeight;
+  operationOutput.append(heading, body);
   return body;
+}
+
+function ensureTerminal() {
+  if (state.terminal) return;
+  state.terminal = new Terminal({
+    cursorBlink: true,
+    fontFamily: "Menlo, Monaco, Consolas, monospace",
+    fontSize: 13,
+    convertEol: true,
+    theme: {
+      background: "#111318",
+      foreground: "#e8edf2",
+      cursor: "#e8edf2"
+    }
+  });
+  state.fitAddon = new FitAddon();
+  state.terminal.loadAddon(state.fitAddon);
+  state.terminal.open(terminalElement);
+  state.terminal.onData((data) => {
+    sendTerminalInput(data);
+  });
+  state.terminal.onResize(({ cols, rows }) => {
+    resizeTerminal(rows, cols);
+  });
+}
+
+async function openTerminal() {
+  terminalDrawer.hidden = false;
+  ensureTerminal();
+  refreshLayout();
+  document.querySelector("#toggle-terminal").textContent = "Hide Terminal";
+  if (!state.terminalSessionId) {
+    await createTerminalSession();
+  }
+  startTerminalPolling();
+  state.terminal.focus();
+}
+
+function hideTerminal() {
+  terminalDrawer.hidden = true;
+  document.querySelector("#toggle-terminal").textContent = "Terminal";
+  refreshLayout();
+}
+
+function fitTerminal() {
+  if (!state.fitAddon || terminalDrawer.hidden) return;
+  state.fitAddon.fit();
+}
+
+function refreshLayout() {
+  window.requestAnimationFrame(() => {
+    resizeGraph();
+    fitTerminal();
+  });
+}
+
+async function createTerminalSession() {
+  terminalStatus.textContent = "starting zsh...";
+  const rows = state.terminal?.rows || 24;
+  const cols = state.terminal?.cols || 100;
+  const session = await api("/api/terminal/sessions", {
+    method: "POST",
+    body: JSON.stringify({ rows, cols })
+  });
+  state.terminalSessionId = session.id;
+  state.terminalSeq = 0;
+  terminalStatus.textContent = session.workspace;
+}
+
+async function restartTerminal() {
+  const previousSessionId = state.terminalSessionId;
+  state.terminalSessionId = null;
+  state.terminalSeq = 0;
+  if (state.terminal) state.terminal.clear();
+  if (previousSessionId) {
+    await api(`/api/terminal/sessions/${encodeURIComponent(previousSessionId)}`, {
+      method: "DELETE"
+    }).catch(() => {});
+  }
+  await createTerminalSession();
+}
+
+function startTerminalPolling() {
+  if (state.terminalPollTimer) return;
+  state.terminalPollTimer = window.setInterval(pollTerminal, 120);
+  pollTerminal();
+}
+
+async function pollTerminal() {
+  if (!state.terminalSessionId || state.terminalPolling) return;
+  state.terminalPolling = true;
+  try {
+    const payload = await api(
+      `/api/terminal/sessions/${encodeURIComponent(state.terminalSessionId)}/output?seq=${state.terminalSeq}`
+    );
+    payload.chunks.forEach((chunk) => {
+      state.terminal.write(chunk.data);
+      state.terminalSeq = chunk.seq;
+    });
+    if (payload.closed) {
+      terminalStatus.textContent = "terminal exited";
+      window.clearInterval(state.terminalPollTimer);
+      state.terminalPollTimer = null;
+    }
+  } catch (error) {
+    terminalStatus.textContent = error.message;
+    window.clearInterval(state.terminalPollTimer);
+    state.terminalPollTimer = null;
+  } finally {
+    state.terminalPolling = false;
+  }
+}
+
+async function sendTerminalInput(data) {
+  if (!state.terminalSessionId) return;
+  try {
+    await api(`/api/terminal/sessions/${encodeURIComponent(state.terminalSessionId)}/input`, {
+      method: "POST",
+      body: JSON.stringify({ data })
+    });
+  } catch (error) {
+    terminalStatus.textContent = error.message;
+  }
+}
+
+async function resizeTerminal(rows, cols) {
+  if (!state.terminalSessionId) return;
+  await api(`/api/terminal/sessions/${encodeURIComponent(state.terminalSessionId)}/resize`, {
+    method: "POST",
+    body: JSON.stringify({ rows, cols })
+  }).catch(() => {});
 }
 
 function resetCamera() {
@@ -583,9 +696,26 @@ statusFilter.addEventListener("change", () => {
   state.visibleIds = new Set(filteredNodes().map((node) => node.id));
   refreshGraphStyles();
 });
+window.addEventListener("resize", fitTerminal);
 document.querySelector("#zoom-in").addEventListener("click", () => zoomCamera(0.72));
 document.querySelector("#zoom-out").addEventListener("click", () => zoomCamera(1.38));
 document.querySelector("#reset-view").addEventListener("click", resetCamera);
+document.querySelector("#toggle-terminal").addEventListener("click", () => {
+  if (terminalDrawer.hidden) {
+    openTerminal().catch((error) => {
+      terminalStatus.textContent = error.message;
+      terminalDrawer.hidden = false;
+    });
+  } else {
+    hideTerminal();
+  }
+});
+document.querySelector("#hide-terminal").addEventListener("click", hideTerminal);
+document.querySelector("#restart-terminal").addEventListener("click", () => {
+  restartTerminal().catch((error) => {
+    terminalStatus.textContent = error.message;
+  });
+});
 document.querySelector("#show-universe").addEventListener("click", () => runCommand("universe"));
 document.querySelector("#show-unlock").addEventListener("click", () => runCommand("unlock"));
 document.querySelector("#show-frontier").addEventListener("click", () => {
@@ -617,9 +747,9 @@ document.querySelector("#create-matter-form").addEventListener("submit", async (
     state.selectedId = state.graph.nodes.find((node) => node.id === createdId)?.id || state.graph.nodes.at(-1)?.id;
     form.reset();
     render();
-    appendMessage("matters", "Matter created.");
+    setOperationOutput("matters", "Matter created.");
   } catch (error) {
-    appendMessage("error", error.message);
+    setOperationOutput("error", error.message);
   }
 });
 
@@ -635,9 +765,9 @@ dependencyForm.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload)
     });
     render();
-    appendMessage("matters", `Added ${payload.source} -> ${payload.target}`);
+    setOperationOutput("matters", `Added ${payload.source} -> ${payload.target}`);
   } catch (error) {
-    appendMessage("error", error.message);
+    setOperationOutput("error", error.message);
   }
 });
 
@@ -652,36 +782,22 @@ document.querySelector("#remove-dependency").addEventListener("click", async () 
       body: JSON.stringify(payload)
     });
     render();
-    appendMessage("matters", `Removed ${payload.source} -> ${payload.target}`);
+    setOperationOutput("matters", `Removed ${payload.source} -> ${payload.target}`);
   } catch (error) {
-    appendMessage("error", error.message);
-  }
-});
-
-chatMode.addEventListener("change", () => {
-  commandForm.elements.command.placeholder =
-    chatMode.value === "codex"
-      ? "Ask Codex about the workspace..."
-      : "unlock, universe, frontier <id>";
-});
-
-commandForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const input = event.currentTarget.elements.command;
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
-  if (chatMode.value === "codex") {
-    runCodex(text);
-  } else {
-    runCommand(text);
+    setOperationOutput("error", error.message);
   }
 });
 
 initGraph();
 loadGraph().catch((error) => {
-  appendMessage("error", error.message);
+  setOperationOutput("error", error.message);
 });
+if (new URLSearchParams(window.location.search).has("terminal")) {
+  openTerminal().catch((error) => {
+    terminalStatus.textContent = error.message;
+    terminalDrawer.hidden = false;
+  });
+}
 
 function slugify(value) {
   return value

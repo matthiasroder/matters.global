@@ -1,16 +1,26 @@
 """Local web UI server for matters graphs."""
 
+import fcntl
 import json
 import mimetypes
+import os
+import pty
 import re
+import select
+import signal
 import subprocess
+import struct
+import termios
+import threading
+import time
+import uuid
 import webbrowser
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from .cli import create_matters_from_expression
 from .engine import dependents, frontier, horizon, prerequisites, resolved, truth, universe
@@ -21,9 +31,9 @@ from .storage import load_state, resolve_state_path, save_state
 
 DEFAULT_WEB_HOST = "127.0.0.1"
 DEFAULT_WEB_PORT = 8765
-CODEX_WORKSPACE = Path("/Users/matthias/.openclaw/workspace")
-DEFAULT_CODEX_COMMAND = ("codex",)
-CODEX_TIMEOUT_SECONDS = 300
+TERMINAL_WORKSPACE = Path("/Users/matthias/.openclaw/workspace")
+DEFAULT_SHELL = "/bin/zsh"
+MAX_TERMINAL_CHUNKS = 1000
 
 
 class ApiError(ValueError):
@@ -187,104 +197,175 @@ def run_command(state_path, payload):
     raise ApiError(f"unknown command: {command}")
 
 
-def run_codex_message(
-    message,
-    command=DEFAULT_CODEX_COMMAND,
-    workspace=CODEX_WORKSPACE,
-    timeout=CODEX_TIMEOUT_SECONDS,
-    runner=subprocess.run,
-):
-    message = str(message or "").strip()
-    if not message:
-        raise ApiError("Codex message is required")
+class TerminalManager:
+    def __init__(self):
+        self.sessions = {}
+        self.lock = threading.Lock()
 
-    args = [
-        *command,
-        "exec",
-        "--cd",
-        str(workspace),
-        "--json",
-        "-",
-    ]
+    def create(self, workspace=TERMINAL_WORKSPACE, shell=DEFAULT_SHELL, rows=24, cols=100):
+        session = TerminalSession(workspace=workspace, shell=shell, rows=rows, cols=cols)
+        with self.lock:
+            self.sessions[session.id] = session
+        return session
 
-    try:
-        completed = runner(
-            args,
-            input=message,
-            text=True,
-            capture_output=True,
-            timeout=timeout,
-            cwd=str(workspace),
-        )
-    except FileNotFoundError as error:
-        raise ApiError("Codex CLI was not found", HTTPStatus.BAD_GATEWAY) from error
-    except subprocess.TimeoutExpired as error:
-        raise ApiError("Codex timed out", HTTPStatus.GATEWAY_TIMEOUT) from error
+    def get(self, session_id):
+        with self.lock:
+            session = self.sessions.get(session_id)
+        if not session:
+            raise ApiError("terminal session not found", HTTPStatus.NOT_FOUND)
+        return session
 
-    events = parse_codex_events(completed.stdout)
-    final_response = codex_final_response(events) or completed.stdout.strip()
-    if completed.returncode != 0:
-        detail = completed.stderr.strip() or final_response or "Codex exited with an error"
-        raise ApiError(detail, HTTPStatus.BAD_GATEWAY)
+    def close(self, session_id):
+        session = self.get(session_id)
+        session.close()
+        with self.lock:
+            self.sessions.pop(session_id, None)
+        return {"closed": True}
 
-    return {
-        "type": "codex",
-        "workspace": str(workspace),
-        "response": final_response,
-        "events": summarize_codex_events(events),
-        "stderr": completed.stderr.strip(),
-    }
+    def close_all(self):
+        with self.lock:
+            sessions = list(self.sessions.values())
+            self.sessions.clear()
+        for session in sessions:
+            session.close()
 
 
-def parse_codex_events(output):
-    events = []
-    for line in output.splitlines():
-        if not line.strip():
-            continue
+class TerminalSession:
+    def __init__(self, workspace=TERMINAL_WORKSPACE, shell=DEFAULT_SHELL, rows=24, cols=100):
+        self.id = uuid.uuid4().hex
+        self.workspace = Path(workspace)
+        self.shell = shell
+        self.master_fd = None
+        self.process = None
+        self.lock = threading.Lock()
+        self.chunks = []
+        self.next_seq = 1
+        self.closed = False
+        self.started_at = time.time()
+
+        if not self.workspace.exists():
+            raise ApiError(f"terminal workspace does not exist: {self.workspace}", HTTPStatus.NOT_FOUND)
+
+        master_fd, slave_fd = pty.openpty()
+        self.master_fd = master_fd
+        os.set_blocking(master_fd, False)
+        set_terminal_size(master_fd, rows, cols)
+
+        env = os.environ.copy()
+        env["TERM"] = "xterm-256color"
+        env["COLORTERM"] = "truecolor"
+
         try:
-            events.append(json.loads(line))
-        except json.JSONDecodeError:
-            events.append({"type": "text", "text": line})
-    return events
+            self.process = subprocess.Popen(
+                [shell],
+                cwd=str(self.workspace),
+                stdin=slave_fd,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                close_fds=True,
+                env=env,
+                preexec_fn=os.setsid,
+            )
+        except FileNotFoundError as error:
+            os.close(master_fd)
+            os.close(slave_fd)
+            raise ApiError(f"terminal shell was not found: {shell}", HTTPStatus.BAD_GATEWAY) from error
+        finally:
+            os.close(slave_fd)
+
+        self.reader = threading.Thread(target=self.read_loop, daemon=True)
+        self.reader.start()
+
+    def to_payload(self):
+        return {
+            "id": self.id,
+            "workspace": str(self.workspace),
+            "shell": self.shell,
+            "started_at": self.started_at,
+        }
+
+    def write(self, data):
+        if self.closed:
+            raise ApiError("terminal session is closed", HTTPStatus.GONE)
+        if not isinstance(data, str):
+            raise ApiError("terminal input must be text")
+        os.write(self.master_fd, data.encode(errors="replace"))
+        return {"written": len(data)}
+
+    def resize(self, rows, cols):
+        rows = max(3, safe_int(rows, 24))
+        cols = max(20, safe_int(cols, 100))
+        if self.closed:
+            return {"resized": False}
+        set_terminal_size(self.master_fd, rows, cols)
+        return {"resized": True, "rows": rows, "cols": cols}
+
+    def output_since(self, seq):
+        seq = safe_int(seq, 0)
+        with self.lock:
+            chunks = [chunk for chunk in self.chunks if chunk["seq"] > seq]
+            closed = self.closed
+        return {"chunks": chunks, "closed": closed}
+
+    def read_loop(self):
+        while not self.closed:
+            if self.process.poll() is not None:
+                self.append_output("\r\n[terminal exited]\r\n")
+                self.closed = True
+                break
+            try:
+                readable, _, _ = select.select([self.master_fd], [], [], 0.1)
+            except (OSError, ValueError):
+                self.closed = True
+                break
+            if not readable:
+                continue
+            try:
+                data = os.read(self.master_fd, 4096)
+            except BlockingIOError:
+                continue
+            except OSError:
+                self.closed = True
+                break
+            if not data:
+                self.closed = True
+                break
+            self.append_output(data.decode(errors="replace"))
+
+    def append_output(self, data):
+        with self.lock:
+            self.chunks.append({"seq": self.next_seq, "data": data})
+            self.next_seq += 1
+            if len(self.chunks) > MAX_TERMINAL_CHUNKS:
+                self.chunks = self.chunks[-MAX_TERMINAL_CHUNKS:]
+
+    def close(self):
+        self.closed = True
+        if self.process and self.process.poll() is None:
+            try:
+                os.killpg(self.process.pid, signal.SIGHUP)
+            except ProcessLookupError:
+                pass
+        if self.master_fd is not None:
+            try:
+                os.close(self.master_fd)
+            except OSError:
+                pass
 
 
-def codex_final_response(events):
-    for event in reversed(events):
-        value = codex_event_text(event)
-        if value:
-            return value
-    return ""
+def set_terminal_size(fd, rows, cols):
+    packed = struct.pack("HHHH", int(rows), int(cols), 0, 0)
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, packed)
 
 
-def summarize_codex_events(events):
-    summary = []
-    for event in events[-20:]:
-        item = {"type": event.get("type", "unknown")}
-        value = codex_event_text(event)
-        if value:
-            item["text"] = value[:500]
-        summary.append(item)
-    return summary
+def safe_int(value, default):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
-def codex_event_text(event):
-    for key in ("message", "text", "content", "last_message"):
-        value = event.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-
-    payload = event.get("payload")
-    if isinstance(payload, str) and payload.strip():
-        return payload.strip()
-
-    item = event.get("item")
-    if isinstance(item, dict):
-        for key in ("message", "text", "content"):
-            value = item.get(key)
-            if isinstance(value, str) and value.strip():
-                return value.strip()
-
-    return ""
+terminal_manager = TerminalManager()
 
 
 def serve(state_path=None, host=DEFAULT_WEB_HOST, port=DEFAULT_WEB_PORT, open_browser=True):
@@ -301,6 +382,7 @@ def serve(state_path=None, host=DEFAULT_WEB_HOST, port=DEFAULT_WEB_PORT, open_br
     except KeyboardInterrupt:
         print("\nStopping matters web UI")
     finally:
+        terminal_manager.close_all()
         server.server_close()
 
 
@@ -316,6 +398,16 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/api/state":
             self.write_json(graph_payload(self.state_path))
+            return
+        match = re.fullmatch(r"/api/terminal/sessions/([^/]+)/output", parsed.path)
+        if match:
+            query = parse_qs(parsed.query)
+            seq = query.get("seq", ["0"])[0]
+            try:
+                session = terminal_manager.get(unquote(match.group(1)))
+                self.write_json(session.output_since(seq))
+            except ApiError as error:
+                self.write_error(error)
             return
         if parsed.path == "/":
             self.path = "/index.html"
@@ -333,9 +425,22 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             if parsed.path == "/api/command":
                 self.write_json(run_command(self.state_path, self.read_json()))
                 return
-            if parsed.path == "/api/codex":
+            if parsed.path == "/api/terminal/sessions":
                 payload = self.read_json()
-                self.write_json(run_codex_message(payload.get("message") or payload.get("text")))
+                session = terminal_manager.create(
+                    rows=payload.get("rows", 24),
+                    cols=payload.get("cols", 100),
+                )
+                self.write_json(session.to_payload(), HTTPStatus.CREATED)
+                return
+            match = re.fullmatch(r"/api/terminal/sessions/([^/]+)/(input|resize)", parsed.path)
+            if match:
+                session = terminal_manager.get(unquote(match.group(1)))
+                payload = self.read_json()
+                if match.group(2) == "input":
+                    self.write_json(session.write(payload.get("data", "")))
+                else:
+                    self.write_json(session.resize(payload.get("rows"), payload.get("cols")))
                 return
             self.send_error(HTTPStatus.NOT_FOUND)
         except ApiError as error:
@@ -355,6 +460,13 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
 
     def do_DELETE(self):
         parsed = urlparse(self.path)
+        match = re.fullmatch(r"/api/terminal/sessions/([^/]+)", parsed.path)
+        if match:
+            try:
+                self.write_json(terminal_manager.close(unquote(match.group(1))))
+            except ApiError as error:
+                self.write_error(error)
+            return
         if parsed.path != "/api/dependencies":
             self.send_error(HTTPStatus.NOT_FOUND)
             return

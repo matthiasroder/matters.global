@@ -76,7 +76,7 @@ textarea {
 
 .app-shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
 }
 
@@ -111,7 +111,7 @@ textarea {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(190px, 280px) 140px repeat(7, auto);
+  grid-template-columns: minmax(190px, 280px) 140px repeat(8, auto);
 }
 
 .workspace {
@@ -171,7 +171,8 @@ textarea {
   background: var(--panel);
   border-left: 1px solid var(--line);
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  align-content: start;
+  grid-template-rows: auto auto auto;
   min-height: 0;
   overflow: auto;
 }
@@ -302,50 +303,70 @@ textarea {
   word-break: break-word;
 }
 
-.chat-panel {
-  border-bottom: 0;
-  display: grid;
-  grid-template-rows: auto minmax(180px, 1fr) auto;
-  min-height: 0;
-}
-
-.messages {
-  background: #f4f6f1;
+.operation-output {
   border: 1px solid var(--line);
   border-radius: 7px;
-  display: grid;
-  gap: 8px;
-  margin-bottom: 10px;
-  min-height: 180px;
+  margin-top: 12px;
   overflow: auto;
-  padding: 10px;
-}
-
-.message {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 7px;
   padding: 8px 10px;
 }
 
-.message strong {
+.operation-output strong {
   display: block;
   font-size: 12px;
   margin-bottom: 4px;
   text-transform: uppercase;
 }
 
-.message pre {
+.operation-output pre {
   font-size: 12px;
   margin: 0;
   overflow: auto;
   white-space: pre-wrap;
 }
 
-.command-form {
+.terminal-drawer {
+  background: #111318;
+  border-top: 1px solid #2c313a;
   display: grid;
-  gap: 8px;
-  grid-template-columns: 104px minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 34vh;
+  min-height: 240px;
+}
+
+.terminal-bar {
+  align-items: center;
+  background: #1a1d24;
+  color: #eef2f6;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  min-height: 40px;
+  padding: 6px 10px;
+}
+
+.terminal-bar strong {
+  font-size: 13px;
+}
+
+.terminal-bar span {
+  color: #aeb7c2;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-bar button {
+  background: #2b313b;
+  border-color: #3b4350;
+  min-height: 28px;
+}
+
+#terminal {
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px;
 }
 
 @media (max-width: 1020px) {
@@ -376,7 +397,16 @@ textarea {
     border-top: 1px solid var(--line);
   }
 
-  .command-form {
-    grid-template-columns: 1fr;
+  .terminal-drawer {
+    height: 42vh;
+    min-height: 260px;
+  }
+
+  .terminal-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .terminal-bar button {
+    width: 100%;
   }
 }

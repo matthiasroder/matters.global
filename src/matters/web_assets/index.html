@@ -32,17 +32,11 @@
 
       <main class="workspace">
         <section class="graph-pane" aria-label="Matters dependency graph">
-          <svg id="graph" role="img" aria-label="Matters dependency graph">
-            <defs>
-              <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z"></path>
-              </marker>
-            </defs>
-            <g id="viewport">
-              <g id="edges"></g>
-              <g id="nodes"></g>
-            </g>
-          </svg>
+          <canvas id="graph" role="img" aria-label="3D matters dependency graph"></canvas>
+          <div id="webgl-fallback" class="webgl-fallback" hidden>
+            <h2>3D graph unavailable</h2>
+            <p>This browser or environment does not expose WebGL. The graph data and side-panel controls are still available.</p>
+          </div>
           <div id="empty-state" class="empty-state" hidden>
             <h2>No matters yet</h2>
             <p>Create the first matter to start building the graph.</p>
@@ -89,6 +83,6 @@
       </main>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

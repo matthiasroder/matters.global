@@ -127,14 +127,11 @@ textarea {
 }
 
 #graph {
-  background:
-    linear-gradient(rgba(29, 32, 37, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(29, 32, 37, 0.05) 1px, transparent 1px),
-    var(--background);
-  background-size: 36px 36px;
+  background: var(--background);
   cursor: grab;
   display: block;
   height: 100%;
+  min-height: 100%;
   width: 100%;
 }
 
@@ -142,71 +139,8 @@ textarea {
   cursor: grabbing;
 }
 
-marker path {
-  fill: var(--edge);
-}
-
-.edge {
-  marker-end: url(#arrow);
-  opacity: 0.72;
-  stroke: var(--edge);
-  stroke-width: 2;
-  transition: opacity 140ms ease, stroke 140ms ease;
-}
-
-.edge.connected {
-  opacity: 0.95;
-  stroke: var(--selected);
-  stroke-width: 2.6;
-}
-
-.edge.dimmed,
-.node.dimmed {
-  opacity: 0.12;
-}
-
-.edge.hidden,
-.node.hidden {
-  display: none;
-}
-
-.node {
-  cursor: pointer;
-  opacity: 1;
-  transition: opacity 140ms ease, transform 140ms ease;
-}
-
-.node circle {
-  fill: #fff;
-  stroke: var(--blocked);
-  stroke-width: 3;
-}
-
-.node.actionable circle {
-  stroke: var(--actionable);
-}
-
-.node.resolved circle {
-  stroke: var(--resolved);
-}
-
-.node.selected circle {
-  fill: #eef4ff;
-  stroke: var(--selected);
-  stroke-width: 4;
-}
-
-.node text {
-  fill: var(--ink);
-  font-size: 13px;
-  font-weight: 650;
-  paint-order: stroke;
-  pointer-events: none;
-  stroke: rgba(247, 248, 245, 0.9);
-  stroke-width: 5px;
-}
-
-.empty-state {
+.empty-state,
+.webgl-fallback {
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -220,12 +154,14 @@ marker path {
   transform: translate(-50%, -50%);
 }
 
-.empty-state h2 {
+.empty-state h2,
+.webgl-fallback h2 {
   font-size: 24px;
   margin: 0 0 8px;
 }
 
-.empty-state p {
+.empty-state p,
+.webgl-fallback p {
   color: var(--muted);
   margin: 0;
 }

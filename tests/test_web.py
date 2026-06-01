@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +13,9 @@ from matters.web import (
     run_command,
     update_conditions,
 )
+
+
+ASSETS = Path(__file__).parents[1] / "src" / "matters" / "web_assets"
 
 
 def write_state(path, data=None):
@@ -157,3 +161,15 @@ def test_cli_registers_web_command(monkeypatch):
         "port": 0,
         "open_browser": False,
     }
+
+
+def test_web_assets_use_three_dimensional_canvas():
+    html = (ASSETS / "index.html").read_text()
+    app = (ASSETS / "app.js").read_text()
+
+    assert '<canvas id="graph"' in html
+    assert '<script type="module" src="app.js"></script>' in html
+    assert "three.module.js" in app
+    assert "new THREE.WebGLRenderer" in app
+    assert "mode: nodeId ? \"node-rotate\" : \"orbit\"" in app
+    assert "webgl-fallback" in html

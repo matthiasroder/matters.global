@@ -81,6 +81,10 @@
             <h2>Chat / Commands</h2>
             <div id="messages" class="messages" aria-live="polite"></div>
             <form id="command-form" class="command-form">
+              <select id="chat-mode" name="mode" aria-label="Chat mode">
+                <option value="matters">Matters</option>
+                <option value="codex">Codex</option>
+              </select>
               <input name="command" autocomplete="off" placeholder="unlock, universe, frontier <id>">
               <button type="submit">Run</button>
             </form>

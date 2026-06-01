@@ -3,11 +3,13 @@
 import json
 import mimetypes
 import re
+import subprocess
 import webbrowser
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
+from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from .cli import create_matters_from_expression
@@ -19,6 +21,9 @@ from .storage import load_state, resolve_state_path, save_state
 
 DEFAULT_WEB_HOST = "127.0.0.1"
 DEFAULT_WEB_PORT = 8765
+CODEX_WORKSPACE = Path("/Users/matthias/.openclaw/workspace")
+DEFAULT_CODEX_COMMAND = ("codex",)
+CODEX_TIMEOUT_SECONDS = 300
 
 
 class ApiError(ValueError):
@@ -182,6 +187,106 @@ def run_command(state_path, payload):
     raise ApiError(f"unknown command: {command}")
 
 
+def run_codex_message(
+    message,
+    command=DEFAULT_CODEX_COMMAND,
+    workspace=CODEX_WORKSPACE,
+    timeout=CODEX_TIMEOUT_SECONDS,
+    runner=subprocess.run,
+):
+    message = str(message or "").strip()
+    if not message:
+        raise ApiError("Codex message is required")
+
+    args = [
+        *command,
+        "exec",
+        "--cd",
+        str(workspace),
+        "--json",
+        "-",
+    ]
+
+    try:
+        completed = runner(
+            args,
+            input=message,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            cwd=str(workspace),
+        )
+    except FileNotFoundError as error:
+        raise ApiError("Codex CLI was not found", HTTPStatus.BAD_GATEWAY) from error
+    except subprocess.TimeoutExpired as error:
+        raise ApiError("Codex timed out", HTTPStatus.GATEWAY_TIMEOUT) from error
+
+    events = parse_codex_events(completed.stdout)
+    final_response = codex_final_response(events) or completed.stdout.strip()
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or final_response or "Codex exited with an error"
+        raise ApiError(detail, HTTPStatus.BAD_GATEWAY)
+
+    return {
+        "type": "codex",
+        "workspace": str(workspace),
+        "response": final_response,
+        "events": summarize_codex_events(events),
+        "stderr": completed.stderr.strip(),
+    }
+
+
+def parse_codex_events(output):
+    events = []
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        try:
+            events.append(json.loads(line))
+        except json.JSONDecodeError:
+            events.append({"type": "text", "text": line})
+    return events
+
+
+def codex_final_response(events):
+    for event in reversed(events):
+        value = codex_event_text(event)
+        if value:
+            return value
+    return ""
+
+
+def summarize_codex_events(events):
+    summary = []
+    for event in events[-20:]:
+        item = {"type": event.get("type", "unknown")}
+        value = codex_event_text(event)
+        if value:
+            item["text"] = value[:500]
+        summary.append(item)
+    return summary
+
+
+def codex_event_text(event):
+    for key in ("message", "text", "content", "last_message"):
+        value = event.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    payload = event.get("payload")
+    if isinstance(payload, str) and payload.strip():
+        return payload.strip()
+
+    item = event.get("item")
+    if isinstance(item, dict):
+        for key in ("message", "text", "content"):
+            value = item.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+    return ""
+
+
 def serve(state_path=None, host=DEFAULT_WEB_HOST, port=DEFAULT_WEB_PORT, open_browser=True):
     resolved_state_path = resolve_state_path(state_path)
     handler = partial(MattersWebHandler, state_path=resolved_state_path)
@@ -227,6 +332,10 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
                 return
             if parsed.path == "/api/command":
                 self.write_json(run_command(self.state_path, self.read_json()))
+                return
+            if parsed.path == "/api/codex":
+                payload = self.read_json()
+                self.write_json(run_codex_message(payload.get("message") or payload.get("text")))
                 return
             self.send_error(HTTPStatus.NOT_FOUND)
         except ApiError as error:

@@ -345,7 +345,7 @@ textarea {
 .command-form {
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
 }
 
 @media (max-width: 1020px) {
@@ -374,5 +374,9 @@ textarea {
   .side-panel {
     border-left: 0;
     border-top: 1px solid var(--line);
+  }
+
+  .command-form {
+    grid-template-columns: 1fr;
   }
 }

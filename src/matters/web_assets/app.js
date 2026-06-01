@@ -28,6 +28,8 @@ const webglFallback = document.querySelector("#webgl-fallback");
 const searchInput = document.querySelector("#search");
 const statusFilter = document.querySelector("#status-filter");
 const dependencyForm = document.querySelector("#dependency-form");
+const commandForm = document.querySelector("#command-form");
+const chatMode = document.querySelector("#chat-mode");
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -503,6 +505,30 @@ async function runCommand(text) {
   }
 }
 
+async function runCodex(text) {
+  appendMessage("you", text);
+  setChatRunning(true);
+  const pending = appendMessage("codex", "Codex is running...");
+  try {
+    const result = await api("/api/codex", {
+      method: "POST",
+      body: JSON.stringify({ message: text })
+    });
+    pending.textContent = result.response || "Codex completed without a final message.";
+  } catch (error) {
+    pending.textContent = "Codex stopped with an error.";
+    appendMessage("error", error.message);
+  } finally {
+    setChatRunning(false);
+  }
+}
+
+function setChatRunning(isRunning) {
+  commandForm.querySelector("button").disabled = isRunning;
+  commandForm.elements.command.disabled = isRunning;
+  chatMode.disabled = isRunning;
+}
+
 function formatCommandResult(result) {
   if (result.type === "universe" || result.type === "frontier" || result.type === "horizon") {
     return result.items.length ? result.items.join("\n") : "none";
@@ -526,6 +552,7 @@ function appendMessage(role, text) {
   message.append(heading, body);
   messages.append(message);
   messages.scrollTop = messages.scrollHeight;
+  return body;
 }
 
 function resetCamera() {
@@ -631,13 +658,24 @@ document.querySelector("#remove-dependency").addEventListener("click", async () 
   }
 });
 
-document.querySelector("#command-form").addEventListener("submit", (event) => {
+chatMode.addEventListener("change", () => {
+  commandForm.elements.command.placeholder =
+    chatMode.value === "codex"
+      ? "Ask Codex about the workspace..."
+      : "unlock, universe, frontier <id>";
+});
+
+commandForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const input = event.currentTarget.elements.command;
   const text = input.value.trim();
   if (!text) return;
   input.value = "";
-  runCommand(text);
+  if (chatMode.value === "codex") {
+    runCodex(text);
+  } else {
+    runCommand(text);
+  }
 });
 
 initGraph();

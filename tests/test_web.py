@@ -1,5 +1,7 @@
 import json
+import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,6 +12,7 @@ from matters.web import (
     create_matter,
     graph_payload,
     remove_dependency,
+    run_codex_message,
     run_command,
     update_conditions,
 )
@@ -163,6 +166,68 @@ def test_cli_registers_web_command(monkeypatch):
     }
 
 
+def test_run_codex_message_invokes_codex_exec_with_workspace(tmp_path):
+    calls = []
+
+    def fake_runner(args, **kwargs):
+        calls.append((args, kwargs))
+        return SimpleNamespace(
+            returncode=0,
+            stdout='{"type":"item.completed","item":{"type":"agent_message","text":"OK"}}\n',
+            stderr="",
+        )
+
+    result = run_codex_message(
+        "Reply OK",
+        command=("fake-codex",),
+        workspace=tmp_path,
+        timeout=12,
+        runner=fake_runner,
+    )
+
+    assert result["response"] == "OK"
+    assert calls[0][0] == [
+        "fake-codex",
+        "exec",
+        "--cd",
+        str(tmp_path),
+        "--json",
+        "-",
+    ]
+    assert calls[0][1]["input"] == "Reply OK"
+    assert calls[0][1]["cwd"] == str(tmp_path)
+    assert calls[0][1]["timeout"] == 12
+
+
+def test_run_codex_message_rejects_empty_message(tmp_path):
+    with pytest.raises(ApiError, match="Codex message is required"):
+        run_codex_message(" ", workspace=tmp_path)
+
+
+def test_run_codex_message_reports_nonzero_exit(tmp_path):
+    def fake_runner(args, **kwargs):
+        return SimpleNamespace(returncode=1, stdout="", stderr="not allowed")
+
+    with pytest.raises(ApiError, match="not allowed"):
+        run_codex_message("hello", workspace=tmp_path, runner=fake_runner)
+
+
+def test_run_codex_message_reports_timeout(tmp_path):
+    def fake_runner(args, **kwargs):
+        raise subprocess.TimeoutExpired(args, timeout=1)
+
+    with pytest.raises(ApiError, match="timed out"):
+        run_codex_message("hello", workspace=tmp_path, runner=fake_runner)
+
+
+def test_run_codex_message_reports_missing_cli(tmp_path):
+    def fake_runner(args, **kwargs):
+        raise FileNotFoundError
+
+    with pytest.raises(ApiError, match="Codex CLI was not found"):
+        run_codex_message("hello", workspace=tmp_path, runner=fake_runner)
+
+
 def test_web_assets_use_three_dimensional_canvas():
     html = (ASSETS / "index.html").read_text()
     app = (ASSETS / "app.js").read_text()
@@ -172,6 +237,9 @@ def test_web_assets_use_three_dimensional_canvas():
     assert '<details class="panel-section disclosure">' in html
     assert "<summary>Create Matter</summary>" in html
     assert "<summary>Dependencies</summary>" in html
+    assert '<option value="codex">Codex</option>' in html
+    assert 'api("/api/codex"' in app
+    assert "Codex is running..." in app
     assert "3d-force-graph@1.78.0" in app
     assert "ForceGraph3D()(graphElement)" in app
     assert ".enableNodeDrag(false)" in app

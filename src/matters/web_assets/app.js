@@ -78,16 +78,17 @@ function initGraph() {
       renderInspector();
       updateOperationButtons();
       refreshGraphStyles();
-    });
+  });
 
   const chargeForce = state.forceGraph.d3Force("charge");
-  if (chargeForce) chargeForce.strength(-44);
+  if (chargeForce) chargeForce.strength(-8);
   const linkForce = state.forceGraph.d3Force("link");
   if (linkForce) {
-    linkForce.distance((link) => (sameStatus(link) ? 10 : 14));
-    linkForce.strength(1.05);
+    linkForce.distance((link) => (sameStatus(link) ? 7 : 10));
+    linkForce.strength(1.2);
   }
-  state.forceGraph.d3VelocityDecay(0.36);
+  state.forceGraph.d3Force("compact", compactForce(0.18));
+  state.forceGraph.d3VelocityDecay(0.42);
 
   resizeGraph();
   window.addEventListener("resize", resizeGraph);
@@ -103,6 +104,24 @@ function hasWebGL() {
   } catch {
     return false;
   }
+}
+
+function compactForce(strength) {
+  let nodes = [];
+
+  function force(alpha) {
+    for (const node of nodes) {
+      node.vx += -node.x * strength * alpha;
+      node.vy += -node.y * strength * alpha;
+      node.vz += -node.z * strength * alpha;
+    }
+  }
+
+  force.initialize = (nextNodes) => {
+    nodes = nextNodes;
+  };
+
+  return force;
 }
 
 function resizeGraph() {

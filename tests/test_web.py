@@ -178,6 +178,7 @@ def test_web_assets_use_three_dimensional_canvas():
     assert "TorusGeometry" not in app
     assert "linkDirectionalArrowLength(1.7)" in app
     assert "d3Force(\"charge\")" in app
-    assert "chargeForce.strength(-44)" in app
-    assert "cameraPosition({ x: 0, y: 0, z: distance }" in app
+    assert "chargeForce.strength(-8)" in app
+    assert 'd3Force("compact", compactForce(0.18))' in app
+    assert "function compactForce(strength)" in app
     assert "webgl-fallback" in html

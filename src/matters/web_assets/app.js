@@ -63,7 +63,7 @@ function initGraph() {
     .nodeVisibility((node) => nodeVisible(node.id))
     .linkVisibility((link) => linkVisible(link))
     .linkMaterial(createLinkMaterial)
-    .linkDirectionalArrowLength(4.2)
+    .linkDirectionalArrowLength(1.7)
     .linkDirectionalArrowRelPos(0.92)
     .linkDirectionalArrowColor((link) => linkColor(link))
     .linkDirectionalParticles(0)
@@ -81,13 +81,13 @@ function initGraph() {
     });
 
   const chargeForce = state.forceGraph.d3Force("charge");
-  if (chargeForce) chargeForce.strength(-115);
+  if (chargeForce) chargeForce.strength(-44);
   const linkForce = state.forceGraph.d3Force("link");
   if (linkForce) {
-    linkForce.distance((link) => (sameStatus(link) ? 38 : 48));
-    linkForce.strength(0.82);
+    linkForce.distance((link) => (sameStatus(link) ? 10 : 14));
+    linkForce.strength(1.05);
   }
-  state.forceGraph.d3VelocityDecay(0.28);
+  state.forceGraph.d3VelocityDecay(0.36);
 
   resizeGraph();
   window.addEventListener("resize", resizeGraph);
@@ -127,15 +127,15 @@ function renderGraph() {
   state.forceGraph.graphData(toForceGraphData());
   refreshGraphStyles();
   window.setTimeout(() => {
-    state.forceGraph?.zoomToFit(600, 70);
-  }, 650);
+    resetCamera();
+  }, 350);
 }
 
 function toForceGraphData() {
   const nodes = state.graph.nodes.map((node) => ({
     ...node,
     name: node.label,
-    val: node.id === state.selectedId ? 7 : node.actionable ? 5.8 : 5
+    val: node.id === state.selectedId ? 3.3 : node.actionable ? 2.7 : 2.4
   }));
   const links = state.graph.edges.map((edge) => ({
     source: edge.source,
@@ -147,7 +147,7 @@ function toForceGraphData() {
 function createNodeObject(node) {
   const group = new THREE.Group();
   const selected = node.id === state.selectedId;
-  const radius = selected ? 4.2 : node.actionable ? 3.6 : 3.2;
+  const radius = selected ? 1.85 : node.actionable ? 1.55 : 1.38;
   const color = selected ? STATUS_COLORS.selected : statusColor(node);
 
   const sphere = new THREE.Mesh(
@@ -161,19 +161,8 @@ function createNodeObject(node) {
   );
   group.add(sphere);
 
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(radius * 1.28, 0.22, 10, 36),
-    new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: selected ? 0.92 : 0.48
-    })
-  );
-  ring.rotation.x = Math.PI / 2;
-  group.add(ring);
-
   const label = makeLabelSprite(displayLabel(node), selected);
-  label.position.set(radius + 3.2, radius + 1.8, 0);
+  label.position.set(radius + 1.4, radius + 0.7, 0);
   group.add(label);
 
   group.userData = { id: node.id };
@@ -227,7 +216,7 @@ function makeLabelSprite(text, selected) {
   texture.minFilter = THREE.LinearFilter;
   const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(22, 5.5, 1);
+  sprite.scale.set(14, 3.5, 1);
   return sprite;
 }
 
@@ -522,8 +511,8 @@ function appendMessage(role, text) {
 
 function resetCamera() {
   if (!state.forceGraph) return;
-  state.forceGraph.cameraPosition({ x: 0, y: 0, z: 230 }, { x: 0, y: 0, z: 0 }, 700);
-  window.setTimeout(() => state.forceGraph.zoomToFit(650, 70), 100);
+  const distance = graphElement.clientWidth < 600 ? 82 : 92;
+  state.forceGraph.cameraPosition({ x: 0, y: 0, z: distance }, { x: 0, y: 0, z: 0 }, 700);
 }
 
 searchInput.addEventListener("input", () => {

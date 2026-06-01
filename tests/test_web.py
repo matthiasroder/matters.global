@@ -172,6 +172,9 @@ def test_web_assets_use_three_dimensional_canvas():
     assert "3d-force-graph@1.78.0" in app
     assert "ForceGraph3D()(graphElement)" in app
     assert ".enableNodeDrag(false)" in app
-    assert "linkDirectionalArrowLength" in app
+    assert "TorusGeometry" not in app
+    assert "linkDirectionalArrowLength(1.7)" in app
     assert "d3Force(\"charge\")" in app
+    assert "chargeForce.strength(-44)" in app
+    assert "cameraPosition({ x: 0, y: 0, z: distance }" in app
     assert "webgl-fallback" in html

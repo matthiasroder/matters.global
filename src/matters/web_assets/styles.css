@@ -111,7 +111,7 @@ textarea {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(190px, 280px) 140px repeat(5, auto);
+  grid-template-columns: minmax(190px, 280px) 140px repeat(7, auto);
 }
 
 .workspace {

@@ -515,6 +515,20 @@ function resetCamera() {
   state.forceGraph.cameraPosition({ x: 0, y: 0, z: distance }, { x: 0, y: 0, z: 0 }, 700);
 }
 
+function zoomCamera(factor) {
+  if (!state.forceGraph) return;
+  const camera = state.forceGraph.camera();
+  const { x, y, z } = camera.position;
+  const currentDistance = Math.hypot(x, y, z) || 1;
+  const nextDistance = Math.min(600, Math.max(12, currentDistance * factor));
+  const scale = nextDistance / currentDistance;
+  state.forceGraph.cameraPosition(
+    { x: x * scale, y: y * scale, z: z * scale },
+    { x: 0, y: 0, z: 0 },
+    260
+  );
+}
+
 searchInput.addEventListener("input", () => {
   state.visibleIds = new Set(filteredNodes().map((node) => node.id));
   refreshGraphStyles();
@@ -523,6 +537,8 @@ statusFilter.addEventListener("change", () => {
   state.visibleIds = new Set(filteredNodes().map((node) => node.id));
   refreshGraphStyles();
 });
+document.querySelector("#zoom-in").addEventListener("click", () => zoomCamera(0.72));
+document.querySelector("#zoom-out").addEventListener("click", () => zoomCamera(1.38));
 document.querySelector("#reset-view").addEventListener("click", resetCamera);
 document.querySelector("#show-universe").addEventListener("click", () => runCommand("universe"));
 document.querySelector("#show-unlock").addEventListener("click", () => runCommand("unlock"));

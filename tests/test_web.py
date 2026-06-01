@@ -172,6 +172,9 @@ def test_web_assets_use_three_dimensional_canvas():
     assert "3d-force-graph@1.78.0" in app
     assert "ForceGraph3D()(graphElement)" in app
     assert ".enableNodeDrag(false)" in app
+    assert 'id="zoom-in"' in html
+    assert 'id="zoom-out"' in html
+    assert "function zoomCamera(factor)" in app
     assert "TorusGeometry" not in app
     assert "linkDirectionalArrowLength(1.7)" in app
     assert "d3Force(\"charge\")" in app

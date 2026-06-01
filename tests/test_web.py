@@ -169,6 +169,9 @@ def test_web_assets_use_three_dimensional_canvas():
 
     assert '<div id="graph"' in html
     assert '<script type="module" src="app.js"></script>' in html
+    assert '<details class="panel-section disclosure">' in html
+    assert "<summary>Create Matter</summary>" in html
+    assert "<summary>Dependencies</summary>" in html
     assert "3d-force-graph@1.78.0" in app
     assert "ForceGraph3D()(graphElement)" in app
     assert ".enableNodeDrag(false)" in app

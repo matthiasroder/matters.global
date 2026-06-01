@@ -51,27 +51,31 @@
             <div id="inspector" class="inspector muted">Select a node to inspect it.</div>
           </section>
 
-          <section class="panel-section">
-            <h2>Create Matter</h2>
-            <form id="create-matter-form" class="stack">
-              <input name="title" required placeholder="Matter title">
-              <input name="id" placeholder="Optional id">
-              <textarea name="conditions" rows="4" placeholder="One condition per line"></textarea>
-              <button type="submit">Create matter</button>
-            </form>
-          </section>
+          <details class="panel-section disclosure">
+            <summary>Create Matter</summary>
+            <div class="disclosure-body">
+              <form id="create-matter-form" class="stack">
+                <input name="title" required placeholder="Matter title">
+                <input name="id" placeholder="Optional id">
+                <textarea name="conditions" rows="4" placeholder="One condition per line"></textarea>
+                <button type="submit">Create matter</button>
+              </form>
+            </div>
+          </details>
 
-          <section class="panel-section">
-            <h2>Dependencies</h2>
-            <form id="dependency-form" class="stack">
-              <select name="source" required aria-label="Prerequisite matter"></select>
-              <select name="target" required aria-label="Dependent matter"></select>
-              <div class="button-row">
-                <button type="submit">Add edge</button>
-                <button id="remove-dependency" type="button">Remove edge</button>
-              </div>
-            </form>
-          </section>
+          <details class="panel-section disclosure">
+            <summary>Dependencies</summary>
+            <div class="disclosure-body">
+              <form id="dependency-form" class="stack">
+                <select name="source" required aria-label="Prerequisite matter"></select>
+                <select name="target" required aria-label="Dependent matter"></select>
+                <div class="button-row">
+                  <button type="submit">Add edge</button>
+                  <button id="remove-dependency" type="button">Remove edge</button>
+                </div>
+              </form>
+            </div>
+          </details>
 
           <section class="panel-section chat-panel">
             <h2>Chat / Commands</h2>

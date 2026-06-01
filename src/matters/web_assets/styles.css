@@ -188,6 +188,36 @@ textarea {
   text-transform: uppercase;
 }
 
+.disclosure summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 760;
+  justify-content: space-between;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure summary::after {
+  color: var(--muted);
+  content: "+";
+  font-size: 18px;
+  line-height: 1;
+}
+
+.disclosure[open] summary::after {
+  content: "-";
+}
+
+.disclosure-body {
+  margin-top: 12px;
+}
+
 .stack {
   display: grid;
   gap: 9px;

@@ -132,11 +132,12 @@ textarea {
   display: block;
   height: 100%;
   min-height: 100%;
+  overflow: hidden;
   width: 100%;
 }
 
-#graph.dragging {
-  cursor: grabbing;
+#graph canvas {
+  display: block;
 }
 
 .empty-state,

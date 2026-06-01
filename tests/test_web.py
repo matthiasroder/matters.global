@@ -167,9 +167,11 @@ def test_web_assets_use_three_dimensional_canvas():
     html = (ASSETS / "index.html").read_text()
     app = (ASSETS / "app.js").read_text()
 
-    assert '<canvas id="graph"' in html
+    assert '<div id="graph"' in html
     assert '<script type="module" src="app.js"></script>' in html
-    assert "three.module.js" in app
-    assert "new THREE.WebGLRenderer" in app
-    assert "mode: nodeId ? \"node-rotate\" : \"orbit\"" in app
+    assert "3d-force-graph@1.78.0" in app
+    assert "ForceGraph3D()(graphElement)" in app
+    assert ".enableNodeDrag(false)" in app
+    assert "linkDirectionalArrowLength" in app
+    assert "d3Force(\"charge\")" in app
     assert "webgl-fallback" in html

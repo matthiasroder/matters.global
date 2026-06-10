@@ -187,7 +187,7 @@ def test_web_assets_use_three_dimensional_canvas():
     assert 'api("/api/terminal/sessions"' in app
     assert "new Terminal" in app
     assert "3d-force-graph@1.78.0" in app
-    assert 'href="styles.css?v=organic-layout"' in html
+    assert 'href="styles.css?v=lighter-layout"' in html
     assert "[hidden]" in (ASSETS / "styles.css").read_text()
     assert "ForceGraph3D()(graphElement)" in app
     assert ".enableNodeDrag(false)" in app

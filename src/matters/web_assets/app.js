@@ -4,12 +4,12 @@ import { Terminal } from "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm";
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.178.0/+esm";
 
 const STATUS_COLORS = {
-  actionable: "#2f7d55",
-  blocked: "#b8542f",
-  resolved: "#5b6d7a",
-  selected: "#274f9f",
-  edge: "#8f9aa3",
-  faded: "#c6ccc2"
+  actionable: "#27835b",
+  blocked: "#cc654c",
+  resolved: "#687985",
+  selected: "#2f68c5",
+  edge: "#9aa4aa",
+  faded: "#d8d5ca"
 };
 
 const ORGANIC_LAYOUT = {
@@ -79,7 +79,7 @@ function initGraph() {
 
   state.webgl = true;
   state.forceGraph = ForceGraph3D()(graphElement)
-    .backgroundColor("#f7f8f5")
+    .backgroundColor("#fbfaf4")
     .showNavInfo(false)
     .enableNodeDrag(false)
     .warmupTicks(ORGANIC_LAYOUT.warmupTicks)
@@ -387,10 +387,10 @@ function makeLabelSprite(text, selected) {
   canvas.height = 128;
   context.font = "700 34px Inter, system-ui, sans-serif";
   context.textBaseline = "middle";
-  context.fillStyle = selected ? "rgba(238, 244, 255, 0.96)" : "rgba(255, 255, 255, 0.86)";
+  context.fillStyle = selected ? "rgba(238, 246, 255, 0.96)" : "rgba(255, 253, 248, 0.88)";
   roundRect(context, 8, 22, 496, 82, 18);
   context.fill();
-  context.fillStyle = selected ? STATUS_COLORS.selected : "#1d2025";
+  context.fillStyle = selected ? STATUS_COLORS.selected : "#24292f";
   context.fillText(text, 28, 64, 456);
 
   const texture = new THREE.CanvasTexture(canvas);

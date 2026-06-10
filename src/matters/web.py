@@ -368,9 +368,48 @@ def safe_int(value, default):
 terminal_manager = TerminalManager()
 
 
+class StatePathStore:
+    def __init__(self, state_path=None):
+        self._path = resolve_state_path(state_path)
+        self._lock = threading.Lock()
+
+    def current(self):
+        with self._lock:
+            return self._path
+
+    def switch(self, state_path):
+        next_path = validate_switch_state_path(state_path)
+        with self._lock:
+            self._path = next_path
+        return next_path
+
+
+def validate_switch_state_path(state_path):
+    raw_path = str(state_path or "").strip()
+    if not raw_path:
+        raise ApiError("state path is required")
+
+    next_path = resolve_state_path(raw_path)
+    if not next_path.exists():
+        raise ApiError(f"state file does not exist: {next_path}", HTTPStatus.NOT_FOUND)
+
+    try:
+        load_state(next_path)
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise ApiError(f"state file is not a valid matters graph: {next_path}") from error
+
+    return next_path
+
+
+def switch_state_path(state_paths, payload):
+    next_path = state_paths.switch(payload.get("state_path") or payload.get("path"))
+    return graph_payload(next_path)
+
+
 def serve(state_path=None, host=DEFAULT_WEB_HOST, port=DEFAULT_WEB_PORT, open_browser=True):
     resolved_state_path = resolve_state_path(state_path)
-    handler = partial(MattersWebHandler, state_path=resolved_state_path)
+    state_paths = StatePathStore(resolved_state_path)
+    handler = partial(MattersWebHandler, state_paths=state_paths)
     server = ThreadingHTTPServer((host, port), handler)
     url = f"http://{host}:{server.server_port}/"
     print(f"Serving matters web UI at {url}")
@@ -387,8 +426,8 @@ def serve(state_path=None, host=DEFAULT_WEB_HOST, port=DEFAULT_WEB_PORT, open_br
 
 
 class MattersWebHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, state_path=None, **kwargs):
-        self.state_path = state_path
+    def __init__(self, *args, state_paths=None, **kwargs):
+        self.state_paths = state_paths or StatePathStore()
         super().__init__(*args, directory=str(web_assets_path()), **kwargs)
 
     def log_message(self, format, *args):
@@ -397,7 +436,7 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/state":
-            self.write_json(graph_payload(self.state_path))
+            self.write_json(graph_payload(self.current_state_path()))
             return
         match = re.fullmatch(r"/api/terminal/sessions/([^/]+)/output", parsed.path)
         if match:
@@ -417,13 +456,16 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         try:
             if parsed.path == "/api/matters":
-                self.write_json(create_matter(self.state_path, self.read_json()), HTTPStatus.CREATED)
+                self.write_json(create_matter(self.current_state_path(), self.read_json()), HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/dependencies":
-                self.write_json(add_dependency(self.state_path, self.read_json()), HTTPStatus.CREATED)
+                self.write_json(add_dependency(self.current_state_path(), self.read_json()), HTTPStatus.CREATED)
+                return
+            if parsed.path == "/api/state":
+                self.write_json(switch_state_path(self.state_paths, self.read_json()))
                 return
             if parsed.path == "/api/command":
-                self.write_json(run_command(self.state_path, self.read_json()))
+                self.write_json(run_command(self.current_state_path(), self.read_json()))
                 return
             if parsed.path == "/api/terminal/sessions":
                 payload = self.read_json()
@@ -454,7 +496,7 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             return
         matter_id = unquote(match.group(1))
         try:
-            self.write_json(update_conditions(self.state_path, matter_id, self.read_json()))
+            self.write_json(update_conditions(self.current_state_path(), matter_id, self.read_json()))
         except ApiError as error:
             self.write_error(error)
 
@@ -471,9 +513,12 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
         try:
-            self.write_json(remove_dependency(self.state_path, self.read_json()))
+            self.write_json(remove_dependency(self.current_state_path(), self.read_json()))
         except ApiError as error:
             self.write_error(error)
+
+    def current_state_path(self):
+        return self.state_paths.current()
 
     def guess_type(self, path):
         if path.endswith(".js"):

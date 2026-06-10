@@ -47,6 +47,7 @@ const emptyState = document.querySelector("#empty-state");
 const webglFallback = document.querySelector("#webgl-fallback");
 const searchInput = document.querySelector("#search");
 const statusFilter = document.querySelector("#status-filter");
+const stateForm = document.querySelector("#state-form");
 const dependencyForm = document.querySelector("#dependency-form");
 const terminalDrawer = document.querySelector("#terminal-drawer");
 const terminalElement = document.querySelector("#terminal");
@@ -66,7 +67,6 @@ async function api(path, options = {}) {
 
 async function loadGraph() {
   state.graph = await api("/api/state");
-  statePath.textContent = state.graph.state_path;
   render();
 }
 
@@ -244,12 +244,21 @@ function graphViewportRect() {
 }
 
 function render() {
+  syncStatePathControl();
   state.visibleIds = new Set(filteredNodes().map((node) => node.id));
   renderFiltersAndSelectors();
   renderGraph();
   renderInspector();
   updateOperationButtons();
   emptyState.hidden = state.graph.nodes.length > 0;
+}
+
+function syncStatePathControl() {
+  statePath.textContent = state.graph.state_path;
+  const pathInput = stateForm.elements.state_path;
+  if (document.activeElement !== pathInput) {
+    pathInput.value = state.graph.state_path;
+  }
 }
 
 function renderGraph() {
@@ -677,6 +686,24 @@ async function runCommand(text) {
   }
 }
 
+async function switchGraphState(statePathValue) {
+  const nextStatePath = statePathValue.trim();
+  if (!nextStatePath) return;
+  try {
+    state.graph = await api("/api/state", {
+      method: "POST",
+      body: JSON.stringify({ state_path: nextStatePath })
+    });
+    state.selectedId = null;
+    searchInput.value = "";
+    statusFilter.value = "all";
+    render();
+    setOperationOutput("graph", `Switched to:\n${state.graph.state_path}`);
+  } catch (error) {
+    setOperationOutput("error", error.message);
+  }
+}
+
 function formatCommandResult(result) {
   if (result.type === "universe" || result.type === "frontier" || result.type === "horizon") {
     return result.items.length ? result.items.join("\n") : "none";
@@ -887,6 +914,11 @@ document.querySelector("#show-frontier").addEventListener("click", () => {
 });
 document.querySelector("#show-horizon").addEventListener("click", () => {
   if (state.selectedId) runCommand(`horizon ${state.selectedId}`);
+});
+
+stateForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  switchGraphState(stateForm.elements.state_path.value);
 });
 
 document.querySelector("#create-matter-form").addEventListener("submit", async (event) => {

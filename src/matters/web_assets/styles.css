@@ -250,6 +250,7 @@ textarea {
   border-left: 1px solid var(--line);
   display: grid;
   align-content: start;
+  grid-auto-rows: max-content;
   grid-template-rows: auto auto auto;
   min-height: 0;
   overflow: auto;
@@ -302,6 +303,11 @@ textarea {
 
 .disclosure-body {
   margin-top: 12px;
+}
+
+#state-form input {
+  font-family: Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
 }
 
 .stack {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>matters graph</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
-    <link rel="stylesheet" href="styles.css?v=lighter-layout">
+    <link rel="stylesheet" href="styles.css?v=switch-graph">
   </head>
   <body>
     <div class="app-shell">
@@ -48,6 +48,16 @@
         </section>
 
         <aside class="side-panel" aria-label="Graph tools and inspector">
+          <details class="panel-section disclosure" open>
+            <summary>Graph</summary>
+            <div class="disclosure-body">
+              <form id="state-form" class="stack">
+                <input name="state_path" required aria-label="Graph state path" placeholder="Path to matters JSON">
+                <button type="submit">Switch graph</button>
+              </form>
+            </div>
+          </details>
+
           <section class="panel-section">
             <h2>Inspector</h2>
             <div id="inspector" class="inspector muted">Select a node to inspect it.</div>

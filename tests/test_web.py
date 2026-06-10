@@ -11,6 +11,8 @@ from matters.web import (
     graph_payload,
     remove_dependency,
     run_command,
+    StatePathStore,
+    switch_state_path,
     TerminalManager,
     update_conditions,
 )
@@ -147,6 +149,27 @@ def test_command_endpoint_can_create_from_expression(tmp_path):
     assert json.loads(state_path.read_text())["dependencies"] == [["prerequisite", "goal"]]
 
 
+def test_switch_state_path_changes_active_graph(tmp_path):
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    write_state(first, {"matters": ["first"], "conditions": {"first": []}, "dependencies": []})
+    write_state(second, {"matters": ["second"], "conditions": {"second": []}, "dependencies": []})
+    state_paths = StatePathStore(first)
+
+    payload = switch_state_path(state_paths, {"state_path": str(second)})
+
+    assert state_paths.current() == second
+    assert payload["state_path"] == str(second)
+    assert [node["id"] for node in payload["nodes"]] == ["second"]
+
+
+def test_switch_state_path_rejects_missing_file(tmp_path):
+    state_paths = StatePathStore(tmp_path / "first.json")
+
+    with pytest.raises(ApiError, match="state file does not exist"):
+        switch_state_path(state_paths, {"state_path": str(tmp_path / "missing.json")})
+
+
 def test_cli_registers_web_command(monkeypatch):
     called = {}
 
@@ -183,11 +206,13 @@ def test_web_assets_use_three_dimensional_canvas():
     assert "Chat / Commands" not in html
     assert 'id="terminal-drawer"' in html
     assert 'id="toggle-terminal"' in html
+    assert 'id="state-form"' in html
+    assert 'api("/api/state"' in app
     assert "@xterm/xterm@5.5.0" in html
     assert 'api("/api/terminal/sessions"' in app
     assert "new Terminal" in app
     assert "3d-force-graph@1.78.0" in app
-    assert 'href="styles.css?v=lighter-layout"' in html
+    assert 'href="styles.css?v=switch-graph"' in html
     assert "[hidden]" in (ASSETS / "styles.css").read_text()
     assert "ForceGraph3D()(graphElement)" in app
     assert ".enableNodeDrag(false)" in app

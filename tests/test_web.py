@@ -187,6 +187,8 @@ def test_web_assets_use_three_dimensional_canvas():
     assert 'api("/api/terminal/sessions"' in app
     assert "new Terminal" in app
     assert "3d-force-graph@1.78.0" in app
+    assert 'href="styles.css?v=organic-layout"' in html
+    assert "[hidden]" in (ASSETS / "styles.css").read_text()
     assert "ForceGraph3D()(graphElement)" in app
     assert ".enableNodeDrag(false)" in app
     assert 'id="zoom-in"' in html
@@ -195,7 +197,13 @@ def test_web_assets_use_three_dimensional_canvas():
     assert "TorusGeometry" not in app
     assert "linkDirectionalArrowLength(1.7)" in app
     assert "d3Force(\"charge\")" in app
-    assert "chargeForce.strength(-8)" in app
-    assert 'd3Force("compact", compactForce(0.18))' in app
-    assert "function compactForce(strength)" in app
+    assert "ORGANIC_LAYOUT" in app
+    assert "function configureOrganicLayout()" in app
+    assert "function graphViewportRect()" in app
+    assert "chargeForce" in app
+    assert ".strength(ORGANIC_LAYOUT.chargeStrength)" in app
+    assert 'd3Force("organicGravity", organicGravityForce(ORGANIC_LAYOUT.gravityStrength))' in app
+    assert 'd3Force("statusDrift", statusDriftForce(ORGANIC_LAYOUT.statusDriftStrength))' in app
+    assert 'd3Force("nodeCollision", nodeCollisionForce(ORGANIC_LAYOUT.collisionPadding))' in app
+    assert "function organicSeedPosition" in app
     assert "webgl-fallback" in html

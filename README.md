@@ -130,13 +130,15 @@ Run a local web UI to inspect and edit the real matters graph in a browser:
 matters web --state examples/matters.example.json
 ```
 
-The UI shows matters as clustered force-directed 3D nodes and dependency edges
-as directional arrows. It supports rotate, pan, zoom, text search, status
-filtering, node inspection, condition toggles, matter creation, and dependency
-creation/removal. Selecting a node keeps directly connected matters prominent
-while unrelated nodes and edges fade into the visual background. Node dragging
-is disabled as graph editing state, so grabbing a node rotates/orbits the graph
-instead of moving only that matter. Use the reset button to restore the camera.
+The UI shows matters in an organic force-directed 3D layout with dependency
+edges as directional arrows. Link distance, charge, collision, and gentle
+status drift keep related matters readable without forcing them into a rigid
+grid. It supports rotate, pan, zoom, text search, status filtering, node
+inspection, condition toggles, matter creation, and dependency creation/removal.
+Selecting a node keeps directly connected matters prominent while unrelated
+nodes and edges fade into the visual background. Node dragging is disabled as
+graph editing state, so grabbing a node rotates/orbits the graph instead of
+moving only that matter. Use the reset button to restore the camera.
 
 The top toolbar and the chat-style command panel both expose common graph
 operations:

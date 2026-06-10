@@ -58,11 +58,35 @@ async function api(path, options = {}) {
     headers: { "Content-Type": "application/json" },
     ...options
   });
-  const payload = await response.json();
+  const payload = await responsePayload(response);
   if (!response.ok) {
-    throw new Error(payload.error || `Request failed: ${response.status}`);
+    const error = new Error(apiErrorMessage(response, payload));
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
   return payload;
+}
+
+async function responsePayload(response) {
+  const contentType = response.headers.get("Content-Type") || "";
+  if (contentType.includes("application/json")) {
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+  return response.text();
+}
+
+function apiErrorMessage(response, payload) {
+  if (payload && typeof payload === "object" && payload.error) {
+    return payload.error;
+  }
+
+  const status = [response.status, response.statusText].filter(Boolean).join(" ");
+  return `Request failed: ${status || "unknown error"}`;
 }
 
 async function loadGraph() {
@@ -700,8 +724,18 @@ async function switchGraphState(statePathValue) {
     render();
     setOperationOutput("graph", `Switched to:\n${state.graph.state_path}`);
   } catch (error) {
-    setOperationOutput("error", error.message);
+    setOperationOutput("error", switchGraphStateErrorMessage(error));
   }
+}
+
+function switchGraphStateErrorMessage(error) {
+  if (error.status === 404) {
+    return [
+      "This matters web server was started before graph switching was available.",
+      "Restart the matters web server, reload this window, and switch again."
+    ].join("\n");
+  }
+  return error.message;
 }
 
 function formatCommandResult(result) {

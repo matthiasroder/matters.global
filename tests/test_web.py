@@ -199,7 +199,7 @@ def test_web_assets_use_three_dimensional_canvas():
     app = (ASSETS / "app.js").read_text()
 
     assert '<div id="graph"' in html
-    assert '<script type="module" src="app.js"></script>' in html
+    assert '<script type="module" src="app.js?v=switch-graph-errors"></script>' in html
     assert '<details class="panel-section disclosure">' in html
     assert "<summary>Create Matter</summary>" in html
     assert "<summary>Dependencies</summary>" in html
@@ -225,6 +225,9 @@ def test_web_assets_use_three_dimensional_canvas():
     assert "ORGANIC_LAYOUT" in app
     assert "function configureOrganicLayout()" in app
     assert "function graphViewportRect()" in app
+    assert "async function responsePayload(response)" in app
+    assert "function switchGraphStateErrorMessage(error)" in app
+    assert "Restart the matters web server" in app
     assert "chargeForce" in app
     assert ".strength(ORGANIC_LAYOUT.chargeStrength)" in app
     assert 'd3Force("organicGravity", organicGravityForce(ORGANIC_LAYOUT.gravityStrength))' in app

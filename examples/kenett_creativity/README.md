@@ -13,18 +13,22 @@ dedicated matters graph.
 | File | What it is |
 |---|---|
 | `pipeline.py` | The end-to-end script: fetch corpus → extract matters → assemble graph. Paths are user-specific (`~/.local/share/matters/...`); treat it as a worked example, not a turnkey tool. |
+| `enrich_dependencies.py` | Second pass: shows the model the full matter inventory and asks for additional prerequisite edges the per-paper extraction couldn't see, validating ids, duplicates, and cycles before adding them. |
 | `corpus.json` | 166 fetched papers (title, abstract, year, citation count, venue, DOI); 102 have abstracts. |
-| `creativity_graph.json` | The assembled matters state (`schema_version: 2`). |
+| `creativity_graph.json` | The assembled matters state (`schema_version: 2`), after dependency enrichment. |
 | `matter_sources.json` | Provenance sidecar: each matter id → its source paper, year, DOI, and the model's name/description. |
+| `added_dependencies.json` | The 542 edges added by the enrichment pass, each with the model's one-line reason. |
 
 ## The graph
 
 Built from the **102 abstracts** (extracted with `claude-sonnet-4-6`):
 
-- **750 matters**, **2,681 conditions**, **980 dependencies**
-- Acyclic; 201 matters actionable now (no unresolved prerequisites)
-- **380 / 980 dependencies link matters from different papers** — cross-corpus
+- **750 matters**, **2,681 conditions**, **1,522 dependencies** (980 from
+  extraction + 542 from the enrichment pass)
+- Acyclic; 76 matters actionable now (no unresolved prerequisites)
+- **502 / 1,522 dependencies link matters from different papers** — cross-corpus
   synthesis, not just within-paper structure
+- Average degree 4.1; no isolated matters
 - Hubs reflect Kenett's core program: semantic-memory structure ↔ verbal
   creativity, the association-correlation network method, associative thinking
   as the core mechanism, and extensions of Mednick's (1962) associative theory

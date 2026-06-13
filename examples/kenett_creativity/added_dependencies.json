@@ -1,0 +1,2712 @@
+[
+  {
+    "prerequisite": "large_corpus_of_transcribed_improvisations_as_empirical_basis_for_melodic_network",
+    "dependent": "5_pitch_sequence_as_the_unit_of_network_node_for_melodic_representation",
+    "reason": "The corpus of transcribed improvisations provides the empirical material from which 5-pitch sequences are extracted as network nodes."
+  },
+  {
+    "prerequisite": "extension_of_network_science_methodology_to_melodic_pattern_modeling",
+    "dependent": "5_pitch_sequence_as_the_unit_of_network_node_for_melodic_representation",
+    "reason": "Choosing 5-pitch sequences as nodes presupposes the extension of network science methods to melodic representation."
+  },
+  {
+    "prerequisite": "recalled_activity_paradigm_as_experimental_design_for_studying_aesthetic_emotions",
+    "dependent": "75_candidate_aesthetic_emotion_rating_instrument_as_empirical_basis",
+    "reason": "The recalled activity paradigm provides the experimental context in which the 75-emotion rating instrument is administered."
+  },
+  {
+    "prerequisite": "embodied_grounded_cognition_framework_for_creativity",
+    "dependent": "abstract_action_space_navigation_as_mechanism_for_higher_creative_embodied_cognition",
+    "reason": "The embodied/grounded cognition framework is the theoretical foundation that the abstract action space navigation mechanism builds upon."
+  },
+  {
+    "prerequisite": "individual_differences_in_creativity_modulate_embodied_strategy_use_over_time",
+    "dependent": "abstract_action_space_navigation_as_mechanism_for_higher_creative_embodied_cognition",
+    "reason": "Observing that creativity level modulates embodied strategy use supports proposing differential abstract action space navigation as the mechanism."
+  },
+  {
+    "prerequisite": "two_network_approach_verbal_description_network_vs_gip_network_for_abstract_art",
+    "dependent": "abstract_art_paintings_should_not_be_treated_as_a_single_homogeneous_category",
+    "reason": "Comparing networks across sub-groups of abstract art is the methodological basis for the conclusion that abstract art is not homogeneous."
+  },
+  {
+    "prerequisite": "semantic_memory_restructuring_facilitates_analogical_transfer",
+    "dependent": "abstract_problem_representation_as_mechanism_for_analogical_transfer_in_problem_solving",
+    "reason": "The empirical finding that restructuring facilitates analogical transfer underlies the proposed abstract-representation mechanism."
+  },
+  {
+    "prerequisite": "semantic_relatedness_judgment_paradigm_for_mixed_concreteness_network_construction",
+    "dependent": "abstract_and_semantically_diverse_words_as_understudied_in_semantic_memory_aging_research",
+    "reason": "The paradigm enabling inclusion of abstract/diverse words motivates and frames the understudied gap it addresses."
+  },
+  {
+    "prerequisite": "abstract_words_alter_semantic_network_structure_in_aging",
+    "dependent": "abstract_words_are_more_resilient_under_simulated_network_attacks",
+    "reason": "Establishing that abstract words alter aging network structure is prerequisite to the more specific resilience-under-attack finding about abstract words."
+  },
+  {
+    "prerequisite": "online_text_analysis_for_real_time_conceptual_space_extraction_as_acs_method",
+    "dependent": "acs_as_an_approach_to_studying_semantic_memory_network_navigation_during_creative_impasse",
+    "reason": "The real-time conceptual space extraction method is what enables the ACS to serve as a paradigm for studying semantic navigation."
+  },
+  {
+    "prerequisite": "direction_and_distance_as_two_orthogonal_dimensions_of_semantic_word_recommendations",
+    "dependent": "acs_as_an_approach_to_studying_semantic_memory_network_navigation_during_creative_impasse",
+    "reason": "The direction/distance manipulation framework allows the ACS to experimentally manipulate semantic search, supporting its use as a navigation paradigm."
+  },
+  {
+    "prerequisite": "entropy_modulation_theory_of_creative_exploration",
+    "dependent": "activation_magnitude_and_variance_as_independent_contributors_to_retrieval_entropy",
+    "reason": "The entropy modulation theory provides the framework within which activation magnitude and variance contribute to retrieval entropy."
+  },
+  {
+    "prerequisite": "feedback_with_constant_difficulty_produces_largest_creativity_gains",
+    "dependent": "adaptive_difficulty_combined_with_feedback_yields_comparatively_smaller_creativity_improvements",
+    "reason": "The comparative claim about adaptive difficulty depends on establishing the contrasting best-performing condition (feedback with constant difficulty)."
+  },
+  {
+    "prerequisite": "four_condition_experimental_design_varying_feedback_and_difficulty_in_creativity_training",
+    "dependent": "adaptive_difficulty_combined_with_feedback_yields_comparatively_smaller_creativity_improvements",
+    "reason": "The four-condition design is the methodological basis for isolating the smaller improvement in the feedback-plus-adaptive-difficulty condition."
+  },
+  {
+    "prerequisite": "psychometric_network_analysis_as_method_for_mapping_aesthetic_emotional_space",
+    "dependent": "aesthetic_activities_evoke_a_distinct_multidimensional_emotional_space",
+    "reason": "The psychometric network mapping method is the methodological prerequisite for concluding that aesthetic activities evoke a distinct emotional space."
+  },
+  {
+    "prerequisite": "75_candidate_aesthetic_emotion_rating_instrument_as_empirical_basis",
+    "dependent": "aesthetic_activities_evoke_a_distinct_multidimensional_emotional_space",
+    "reason": "The 75-emotion rating instrument provides the empirical basis for characterizing the multidimensional aesthetic emotional space."
+  },
+  {
+    "prerequisite": "three_psychological_dimensions_of_aesthetic_response_to_architectural_interiors",
+    "dependent": "aesthetic_responses_to_architectural_interiors_reduce_to_a_small_number_of_key_psychological_dimensions",
+    "reason": "Identifying the three specific dimensions is the concrete instantiation of the broader hypothesis that responses reduce to few key dimensions."
+  },
+  {
+    "prerequisite": "psychometric_network_analysis_as_a_tool_for_identifying_aesthetic_response_dimensions",
+    "dependent": "aesthetic_responses_to_architectural_interiors_reduce_to_a_small_number_of_key_psychological_dimensions",
+    "reason": "The PNA/PCA dimension-identification tool is the method by which aesthetic responses are shown to reduce to few dimensions."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "age_cohort_differences_in_beauty_and_wellness_semantic_network_structure",
+    "reason": "The semantic network analysis of beauty and wellness is the methodological prerequisite for detecting cohort differences in those networks."
+  },
+  {
+    "prerequisite": "group_based_semantic_network_estimation_from_free_association_responses_as_method_for_probing_lay_concepts",
+    "dependent": "age_cohort_differences_in_beauty_and_wellness_semantic_network_structure",
+    "reason": "Group-based network estimation across cohorts provides the basis for comparing beauty and wellness networks by generation."
+  },
+  {
+    "prerequisite": "diminished_temporal_contiguity_effect_in_older_adults_during_free_recall",
+    "dependent": "age_differences_in_semantic_network_structure_via_free_recall",
+    "reason": "The diminished temporal contiguity finding is part of the free-recall-derived evidence for age differences in network structure."
+  },
+  {
+    "prerequisite": "percolation_analysis_as_a_method_for_quantifying_semantic_network_flexibility",
+    "dependent": "age_related_decrease_in_creative_performance_linked_to_semantic_network_rigidity",
+    "reason": "Percolation-based flexibility quantification provides the network rigidity measure linked to age-related creative decline."
+  },
+  {
+    "prerequisite": "verbal_production_tasks_as_method_for_estimating_semantic_memory_networks_across_age_groups",
+    "dependent": "age_related_differences_in_individual_based_semantic_network_structure",
+    "reason": "Verbal production tasks are the method for estimating the individual networks whose age-related differences are reported."
+  },
+  {
+    "prerequisite": "computational_network_science_applied_to_facial_attractiveness_judgments",
+    "dependent": "aging_reduces_facial_attractiveness",
+    "reason": "Applying network science to attractiveness judgments provides the analytic framework within which the aging-reduces-attractiveness finding is established."
+  },
+  {
+    "prerequisite": "exploratory_data_driven_analysis_of_akinator_question_corpus",
+    "dependent": "akinator_game_as_a_mirror_of_human_question_asking_strategies",
+    "reason": "Empirical analysis of the Akinator question corpus is prerequisite to claiming the game mirrors human question-asking strategies."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "alignment_of_ai_creative_systems_to_human_values",
+    "reason": "The cyber-creativity construct frames human-AI creative collaboration, within which the ambition of value alignment is articulated."
+  },
+  {
+    "prerequisite": "method_distinguishing_genuine_alpha_oscillations_from_transient_events_applied_to_semantic_association_research",
+    "dependent": "alpha_oscillations_link_to_semantic_memory_and_creative_thinking",
+    "reason": "The alpha-isolation method supports characterizing alpha's role in semantic memory and creative thinking."
+  },
+  {
+    "prerequisite": "cue_set_size_as_index_of_semantic_richness",
+    "dependent": "alternate_uses_task_as_creativity_measure_across_cue_types",
+    "reason": "Operationalizing cue richness via set size is what enables using the AUT across varying cue types."
+  },
+  {
+    "prerequisite": "distinction_between_clustering_and_switching_as_semantic_search_components",
+    "dependent": "alternations_between_exploratory_search_and_focused_attention_support_creativity",
+    "reason": "Distinguishing clustering and switching components is prerequisite to the integrative claim that alternation between them supports creativity."
+  },
+  {
+    "prerequisite": "creativeable_ai_powered_creativity_training_program",
+    "dependent": "alternative_uses_task_as_pre_post_creativity_assessment_in_ai_training_study",
+    "reason": "The Creativeable training program is the intervention context that defines the pre-post AUT assessment design."
+  },
+  {
+    "prerequisite": "differential_effect_of_lpfc_stimulation_on_novelty_versus_appropriateness",
+    "dependent": "anodal_lpfc_stimulation_increases_appropriateness_and_decreases_novelty",
+    "reason": "The general dissociation of stimulation effects on novelty vs appropriateness frames the specific anodal-stimulation finding."
+  },
+  {
+    "prerequisite": "independent_rater_scoring_of_novelty_and_appropriateness_for_creative_responses",
+    "dependent": "anodal_lpfc_stimulation_increases_appropriateness_and_decreases_novelty",
+    "reason": "Rater scoring of novelty and appropriateness provides the outcome measures used to detect the anodal stimulation effect."
+  },
+  {
+    "prerequisite": "question_type_as_a_measurable_dimension_of_question_cognitive_potential",
+    "dependent": "answer_content_as_a_measurable_dimension_of_question_cognitive_potential",
+    "reason": "Answer content is introduced as a third dimension alongside question type, building on the established type dimension."
+  },
+  {
+    "prerequisite": "creative_analogical_transfer_as_a_key_mechanism_in_knowledge_rich_cps",
+    "dependent": "applicability_of_cps_findings_to_real_world_problem_solving",
+    "reason": "Establishing analogical transfer as a key CPS mechanism underlies the argument that such findings apply to real-world problem solving."
+  },
+  {
+    "prerequisite": "bigram_semantic_distance_as_an_index_of_continuous_semantic_flow",
+    "dependent": "application_of_bigram_semantic_distance_to_classic_short_fiction",
+    "reason": "The bigram semantic distance index is the metric applied to characterize the literary text."
+  },
+  {
+    "prerequisite": "cognitive_network_science_as_tool_for_measuring_student_learning_organization",
+    "dependent": "application_of_cognitive_network_science_to_educational_contexts",
+    "reason": "Demonstrating that network science measures learning organization is prerequisite to applying it more broadly to educational contexts."
+  },
+  {
+    "prerequisite": "network_measures_of_connectivity_distance_and_structure_as_creativity_indices",
+    "dependent": "application_of_computational_network_science_to_semantic_memory_and_creativity",
+    "reason": "The network measures serving as creativity indices are the tools whose application to semantic memory and creativity is reviewed."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "application_of_network_science_to_lay_understanding_of_beauty_and_wellness_as_understudied_domain",
+    "reason": "The semantic network analysis of beauty and wellness is the concrete application contributed to this understudied domain."
+  },
+  {
+    "prerequisite": "limitation_of_univariate_personality_creativity_research",
+    "dependent": "artists_show_higher_openness_to_experience_than_scientists_and_controls",
+    "reason": "The univariate replication of higher openness in artists is positioned relative to the noted limitation of prior univariate work."
+  },
+  {
+    "prerequisite": "small_world_network_features_of_the_hebrew_mental_lexicon",
+    "dependent": "association_correlations_as_a_method_for_probing_global_lexicon_structure",
+    "reason": "Establishing the Hebrew lexicon's global network features motivates using association correlations to probe global structure."
+  },
+  {
+    "prerequisite": "creative_block_as_rooted_in_semantic_memory_network_entrapment",
+    "dependent": "associative_creativity_sparker_acs_as_a_cognitive_network_science_tool_for_breaking_creative_impasse",
+    "reason": "Conceptualizing creative block as network entrapment motivates the ACS tool designed to break that impasse."
+  },
+  {
+    "prerequisite": "associative_thinking_as_a_core_mechanism_of_creativity",
+    "dependent": "associative_theory_of_creativity_as_research_framework",
+    "reason": "The general claim that associative thinking is core to creativity grounds the associative theory used as a research framework."
+  },
+  {
+    "prerequisite": "creativity_predicts_associative_learning_outcomes",
+    "dependent": "associative_thinking_as_shared_cognitive_mechanism_between_creativity_and_learning",
+    "reason": "Showing creativity predicts learning outcomes is prerequisite to proposing associative thinking as the shared mechanism."
+  },
+  {
+    "prerequisite": "associative_thinking_as_shared_cognitive_mechanism_between_creativity_and_learning",
+    "dependent": "associative_thinking_mediates_creativity_learning_link",
+    "reason": "The conceptual proposal of a shared mechanism is prerequisite to the empirical mediation result."
+  },
+  {
+    "prerequisite": "simulated_visual_hallucinations_via_vr_enhance_cognitive_flexibility",
+    "dependent": "attenuated_automatic_processing_following_simulated_psychedelic_exposure",
+    "reason": "The finding that VR hallucinations enhance flexibility is prerequisite to the related finding of reduced automatic processing after exposure."
+  },
+  {
+    "prerequisite": "aging_reduces_facial_attractiveness",
+    "dependent": "attractiveness_as_multidimensional_construct_varying_by_age_sex_and_judgment_type",
+    "reason": "The basic aging-reduces-attractiveness finding contributes evidence to the broader claim that attractiveness varies by age and judgment type."
+  },
+  {
+    "prerequisite": "ideation_fluency_predicts_originality_across_creative_tasks",
+    "dependent": "aut_fluency_as_a_consistent_predictor_of_both_creative_performance_and_originality_judgments",
+    "reason": "The finding that ideation fluency predicts originality across tasks supports the more specific claim about AUT fluency predicting both performance and judgments."
+  },
+  {
+    "prerequisite": "general_vs_action_directed_aut_instruction_as_experimental_manipulation",
+    "dependent": "away_from_body_action_descriptions_increase_aut_originality",
+    "reason": "The instruction manipulation contrasting action directions is prerequisite to the away-from-body originality finding."
+  },
+  {
+    "prerequisite": "dmn_ecn_switching_as_a_neural_predictor_of_creativity",
+    "dependent": "balanced_spontaneous_and_controlled_cognition_as_mechanistic_requirement_for_creativity",
+    "reason": "Establishing DMN-ECN switching as a creativity predictor underlies the mechanistic claim about balanced spontaneous and controlled cognition."
+  },
+  {
+    "prerequisite": "creativity_improvements_evident_across_all_four_creativeable_conditions",
+    "dependent": "balancing_structured_feedback_with_increasing_task_complexity_as_design_principle_for_creativity_training",
+    "reason": "Observing improvements across conditions, with differences, is prerequisite to deriving the design principle about balancing feedback and complexity."
+  },
+  {
+    "prerequisite": "network_science_model_of_improvised_tonal_music_melodic_patterns",
+    "dependent": "behavioral_paradigm_paralleling_language_network_experiments_applied_to_music",
+    "reason": "The melodic network model is what the behavioral paradigm tests for perceptual sensitivity to melodic distance."
+  },
+  {
+    "prerequisite": "psychometric_network_analysis_of_creative_personality_structure",
+    "dependent": "big_c_project_eminent_professionals_as_creativity_sample",
+    "reason": "The use of the Big-C eminent sample is embedded in the psychometric network study design that requires diverse creativity samples."
+  },
+  {
+    "prerequisite": "bigram_semantic_distance_as_an_index_of_continuous_semantic_flow",
+    "dependent": "bigram_distance_norms_on_a_large_text_sample",
+    "reason": "Establishing bigram distance as a meaningful index is prerequisite to generating reference norms for that metric on large text."
+  },
+  {
+    "prerequisite": "semdistflow_r_package_for_bigram_semantic_distance_computation",
+    "dependent": "bigram_distance_norms_on_a_large_text_sample",
+    "reason": "The computational tool is needed to compute distance norms across a large corpus."
+  },
+  {
+    "prerequisite": "context_affects_neural_mechanisms_for_metaphor_comprehension",
+    "dependent": "bilateral_temporal_and_angular_regions_support_creative_language_comprehension_in_context",
+    "reason": "The demonstration that context modulates neural mechanisms underpins identifying which regions support context-based comprehension."
+  },
+  {
+    "prerequisite": "graph_theoretical_analysis_of_resting_state_fmri_for_personality_research",
+    "dependent": "biological_basis_of_openness_to_experience_via_dn_architecture",
+    "reason": "The graph-theoretic DN efficiency measure is the methodological basis for inferring a biological substrate of openness."
+  },
+  {
+    "prerequisite": "embodied_perspective_as_a_framework_for_divergent_thinking_analysis",
+    "dependent": "body_posture_manipulation_as_experimental_tool_for_studying_embodied_creativity",
+    "reason": "The embodied theoretical framework motivates using posture manipulation to study creativity."
+  },
+  {
+    "prerequisite": "gpt_3_5_simulation_of_human_participants_as_methodological_approach_for_mindset_research",
+    "dependent": "both_human_and_gpt_3_5_mindsets_frame_mathematics_in_neutral_or_positive_terms",
+    "reason": "The GPT-3.5 simulation method is needed to compare human and LLM framing of mathematics."
+  },
+  {
+    "prerequisite": "bigram_distance_norms_on_a_large_text_sample",
+    "dependent": "bridging_single_word_semantics_and_macroscale_discourse_analysis_via_bigram_distance",
+    "reason": "Reference norms provide the baseline enabling bigram distance to bridge word-level and discourse-level analysis."
+  },
+  {
+    "prerequisite": "frequency_based_operationalization_of_originality_score",
+    "dependent": "broad_connectivity_and_low_clustering_predict_objective_aut_originality",
+    "reason": "Objective AUT originality must be operationalized before network properties can be shown to predict it."
+  },
+  {
+    "prerequisite": "lesion_study_approach_reveals_regions_essential_for_divergent_thinking",
+    "dependent": "bvftd_as_frontal_executive_control_comparison_group_for_divergent_thinking",
+    "reason": "The lesion-based comparison design establishes bvFTD as the executive-control comparison group."
+  },
+  {
+    "prerequisite": "hub_type_as_cue_word_property_in_aut_as_experimental_method",
+    "dependent": "c_hub_advantage_is_concentrated_in_early_stage_of_creative_thinking",
+    "reason": "Using hub-type cues in the AUT is the methodological prerequisite for detecting the early-stage timing of the C-hub advantage."
+  },
+  {
+    "prerequisite": "connector_hubs_facilitate_more_novel_and_remote_ideas_than_provincial_hubs_in_aut",
+    "dependent": "c_hub_superior_performance_depends_on_interaction_of_spreading_activation_controlled_retrieval_and_attentional_regulation",
+    "reason": "The behavioral C-hub advantage finding underlies the mechanistic claim about its cognitive basis."
+  },
+  {
+    "prerequisite": "creativity_as_process_vs_creativeness_distinction",
+    "dependent": "call_for_process_focused_creativity_assessments",
+    "reason": "Distinguishing process from creativeness is the conceptual basis for calling for process-focused assessments."
+  },
+  {
+    "prerequisite": "aging_reduces_facial_attractiveness",
+    "dependent": "categorical_processing_of_older_faces_in_attractiveness_judgments",
+    "reason": "The finding that older faces are rated less attractive precedes the conclusion that they are processed categorically."
+  },
+  {
+    "prerequisite": "sentence_completion_with_uncommon_endings_as_creative_ideation_task",
+    "dependent": "cathodal_lpfc_stimulation_does_not_increase_novelty_in_sentence_completion_task",
+    "reason": "The sentence-completion paradigm is the task within which the null cathodal effect on novelty is observed."
+  },
+  {
+    "prerequisite": "independent_rater_scoring_of_novelty_and_appropriateness_for_creative_responses",
+    "dependent": "cathodal_lpfc_stimulation_does_not_increase_novelty_in_sentence_completion_task",
+    "reason": "Rater scoring of novelty is needed to determine that cathodal stimulation did not increase novelty."
+  },
+  {
+    "prerequisite": "fragmentation_of_creative_cognition_research_as_a_critical_barrier_to_consensus",
+    "dependent": "challenge_1_definitional_inconsistency_for_core_creative_cognition_constructs",
+    "reason": "Field fragmentation underlies identifying definitional inconsistency as a critical challenge."
+  },
+  {
+    "prerequisite": "fragmentation_of_creative_cognition_research_as_a_critical_barrier_to_consensus",
+    "dependent": "challenge_2_types_and_domains_of_knowledge_influencing_creative_performance",
+    "reason": "The fragmentation problem motivates identifying knowledge-related challenges in the agenda."
+  },
+  {
+    "prerequisite": "fragmentation_of_creative_cognition_research_as_a_critical_barrier_to_consensus",
+    "dependent": "challenge_3_measuring_dynamic_interactions_of_cognitive_affective_and_metacognitive_processes_over_time",
+    "reason": "The consensus barrier underlies framing dynamic-interaction measurement as a key challenge."
+  },
+  {
+    "prerequisite": "fragmentation_of_creative_cognition_research_as_a_critical_barrier_to_consensus",
+    "dependent": "challenge_4_incorporating_environmental_and_interpersonal_contexts_into_creative_cognition_models",
+    "reason": "The fragmentation problem motivates the agenda challenge of incorporating contexts."
+  },
+  {
+    "prerequisite": "network_science_framework_for_cognitive_dynamics",
+    "dependent": "challenge_of_capturing_network_change",
+    "reason": "A framework treating cognition as dynamic networks is prerequisite to identifying the challenge of capturing network change over time."
+  },
+  {
+    "prerequisite": "emotion_network_link_rank_as_stable_population_level_psychological_index",
+    "dependent": "challenge_to_context_based_assumption_of_emotion_co_occurrence",
+    "reason": "Establishing stable population-level link ranks is the basis for challenging the context-dependence assumption."
+  },
+  {
+    "prerequisite": "novel_embodied_coding_scheme_for_divergent_thinking_responses",
+    "dependent": "characterization_of_cognitive_strategies_in_creative_endeavors_via_embodied_coding",
+    "reason": "The embodied coding scheme is the tool through which cognitive strategies in creative tasks can be characterized."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "characterization_of_the_cyber_creative_process",
+    "reason": "Defining cyber-creativity as a construct is prerequisite to characterizing its underlying creative process."
+  },
+  {
+    "prerequisite": "large_multi_field_scientific_abstract_corpus_as_empirical_basis",
+    "dependent": "citation_count_as_a_proxy_for_scientific_impact_of_original_work",
+    "reason": "The scientific corpus with citation data is needed to use citation count as the impact proxy."
+  },
+  {
+    "prerequisite": "distinction_between_clustering_and_switching_as_semantic_search_components",
+    "dependent": "clustering_correlates_with_divergent_thinking",
+    "reason": "Operationalizing clustering as a distinct search component precedes correlating it with divergent thinking."
+  },
+  {
+    "prerequisite": "individual_creative_agent_differences_in_cyber_creative_contexts",
+    "dependent": "co_creative_team_dynamics_in_cyber_creativity",
+    "reason": "Understanding individual agent differences is prerequisite to characterizing co-creative team composition and dynamics."
+  },
+  {
+    "prerequisite": "tdcs_over_lpfc_as_method_for_probing_cognitive_control_in_creativity",
+    "dependent": "cognitive_control_inhibits_novel_idea_generation",
+    "reason": "The tDCS manipulation method provides the causal evidence that control can inhibit novel idea generation."
+  },
+  {
+    "prerequisite": "mental_lexicon_as_complex_multilayer_cognitive_system",
+    "dependent": "cognitive_multilayer_networks_as_framework_for_mental_lexicon",
+    "reason": "Framing the lexicon as multilayer is prerequisite to proposing cognitive multilayer networks as its framework."
+  },
+  {
+    "prerequisite": "standard_assessments_measure_knowledge_content_but_not_knowledge_organization",
+    "dependent": "cognitive_networks_as_framework_for_knowledge_modelling_and_learning",
+    "reason": "Identifying the gap in standard assessments motivates positioning cognitive networks as a knowledge-modelling framework."
+  },
+  {
+    "prerequisite": "majority_of_associative_fluency_responses_align_with_mvt_predictions",
+    "dependent": "cognitive_policy_for_creativity_differs_from_policy_optimizing_fluency",
+    "reason": "Establishing MVT-optimal fluency behavior is needed to argue creativity-relevant search deviates from it."
+  },
+  {
+    "prerequisite": "three_psychological_dimensions_of_aesthetic_response_to_architectural_interiors",
+    "dependent": "coherence_covaries_with_left_inferior_occipital_gyrus_activity_during_beauty_judgments_only",
+    "reason": "The behavioral dimensions (including coherence) must be established before linking coherence to neural activity."
+  },
+  {
+    "prerequisite": "combination_association_task_as_a_measure_of_remote_associate_combining",
+    "dependent": "connectome_predictive_modeling_applied_to_remote_associative_thinking",
+    "reason": "The CAT measure is the behavioral basis for CPM applied to remote associative thinking."
+  },
+  {
+    "prerequisite": "associative_thinking_as_a_core_mechanism_of_creativity",
+    "dependent": "combination_association_task_as_a_measure_of_remote_associate_combining",
+    "reason": "The associative theory of creativity grounds the CAT as a measure of remote associate combining."
+  },
+  {
+    "prerequisite": "cognitive_multiplex_network_as_model_of_the_mental_lexicon_for_fluency_task_analysis",
+    "dependent": "combining_psycholinguistic_measures_with_multiplex_networks_for_creativity_modeling",
+    "reason": "The multiplex network model of the lexicon is a building block for combining psycholinguistic measures with multiplex models."
+  },
+  {
+    "prerequisite": "exploratory_data_driven_analysis_of_akinator_question_corpus",
+    "dependent": "commonalities_between_human_and_akinator_question_asking_strategies",
+    "reason": "Analyzing the Akinator question corpus is prerequisite to identifying commonalities with human strategies."
+  },
+  {
+    "prerequisite": "resting_state_fmri_large_sample_design_for_creativity_and_mesoscale_networks",
+    "dependent": "community_co_assignment_probability_as_method_for_individual_level_mesoscale_analysis",
+    "reason": "The resting-state fMRI dataset is needed to compute per-participant community co-assignment probabilities."
+  },
+  {
+    "prerequisite": "network_science_as_a_multidisciplinary_quantitative_field_for_complex_systems",
+    "dependent": "complex_network_structure_influences_processes_operating_within_a_system",
+    "reason": "The general network-science framing underlies the claim that network structure shapes processes within a system."
+  },
+  {
+    "prerequisite": "comparison_of_free_versus_goal_directed_association_as_experimental_manipulation_for_studying_creative_intention",
+    "dependent": "goal_directed_remote_association_relies_more_on_top_down_control_than_free_association",
+    "reason": "The free-versus-goal-directed manipulation enables isolating top-down control in goal-directed association."
+  },
+  {
+    "prerequisite": "gpt_3_5_produces_sparser_forma_mentis_networks_with_weaker_clustering",
+    "dependent": "comparison_of_stem_mindset_valence_across_studies_and_llm_types",
+    "reason": "Characterizing GPT-3.5's network output supports comparing STEM mindset framing across LLM types."
+  },
+  {
+    "prerequisite": "verbal_fluency_task_as_a_method_for_probing_semantic_network_structure_in_ci_children",
+    "dependent": "computational_network_science_for_studying_child_semantic_memory_across_educational_contexts",
+    "reason": "Using verbal fluency to probe child semantic networks is a methodological building block for cross-educational network studies in children."
+  },
+  {
+    "prerequisite": "two_network_approach_verbal_description_network_vs_gip_network_for_abstract_art",
+    "dependent": "computational_network_science_applied_to_empirical_aesthetics_of_abstract_art",
+    "reason": "The two-network construction approach instantiates the computational network science framework for abstract art aesthetics."
+  },
+  {
+    "prerequisite": "akinator_game_as_a_mirror_of_human_question_asking_strategies",
+    "dependent": "mathematical_and_gamification_strategy_comparison_for_question_selection",
+    "reason": "Treating Akinator as a mirror of human questioning motivates comparing mathematical versus gamification strategies for its question selection."
+  },
+  {
+    "prerequisite": "decision_tree_classification_of_creativity_groups",
+    "dependent": "correspondence_of_network_findings_with_mednick_s_theory",
+    "reason": "Classifying participants into low- and high-creative groups is prerequisite to comparing their networks against Mednick's theory."
+  },
+  {
+    "prerequisite": "free_association_paradigm_as_a_window_into_semantic_memory_structure",
+    "dependent": "decision_tree_classification_of_creativity_groups",
+    "reason": "The free association paradigm provides the data context in which creativity groups are subsequently classified for network comparison."
+  },
+  {
+    "prerequisite": "creativeable_ai_powered_creativity_training_program",
+    "dependent": "creativity_improvements_evident_across_all_four_creativeable_conditions",
+    "reason": "The Creativeable program must exist before its training effects across conditions can be observed."
+  },
+  {
+    "prerequisite": "four_condition_experimental_design_varying_feedback_and_difficulty_in_creativity_training",
+    "dependent": "creativity_improvements_evident_across_all_four_creativeable_conditions",
+    "reason": "The four-condition design is the methodological basis for measuring improvement across all conditions."
+  },
+  {
+    "prerequisite": "connectome_predictive_modeling_applied_to_creativity_and_semantic_memory",
+    "dependent": "connectome_based_modeling_applied_to_semantic_search_dynamics",
+    "reason": "The CPM creativity application establishes the modeling approach later applied to semantic search dynamics."
+  },
+  {
+    "prerequisite": "computational_tools_enable_quantification_of_previously_subjective_creativity_constructs",
+    "dependent": "computational_semantic_distance_applied_to_originality_judgment_research",
+    "reason": "The broad enabling claim about computational quantification underlies the specific use of semantic distance for originality research."
+  },
+  {
+    "prerequisite": "indirect_examination_of_semantic_distance_in_creativity_due_to_measurement_challenges",
+    "dependent": "computational_tools_enable_quantification_of_previously_subjective_creativity_constructs",
+    "reason": "Recognizing prior measurement challenges motivates the claim that new computational tools now enable quantification."
+  },
+  {
+    "prerequisite": "computational_semantic_distance_as_originality_measure_in_fmri_creativity_study",
+    "dependent": "coupling_behavioral_cognitive_and_neural_levels_via_computational_network_science",
+    "reason": "Using computational semantic distance as an objective originality measure in fMRI is one instance of coupling behavioral and neural levels."
+  },
+  {
+    "prerequisite": "application_of_computational_network_science_to_semantic_memory_and_creativity",
+    "dependent": "coupling_behavioral_cognitive_and_neural_levels_via_computational_network_science",
+    "reason": "Applying computational network science to semantic memory and creativity is the framework that enables coupling across analysis levels."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "conceptual_distinctiveness_of_beauty_versus_wellness_in_semantic_memory",
+    "reason": "The semantic network analysis of these concepts provides the evidence establishing their distinctiveness."
+  },
+  {
+    "prerequisite": "individual_based_semantic_memory_network_construction_via_relatedness_judgment_task_for_creativity_and_metacognition_research",
+    "dependent": "cps_task_as_complementary_creativity_paradigm_to_aut_for_studying_semantic_memory_and_metacognition",
+    "reason": "The relatedness-judgment network method underlies linking the CPS task to semantic memory and metacognition research."
+  },
+  {
+    "prerequisite": "creativity_as_protective_factor_for_semantic_memory_flexibility_in_aging",
+    "dependent": "creative_older_adults_resemble_low_creative_young_adults_in_semantic_network_flexibility",
+    "reason": "The protective-factor framing underlies the more specific finding about creative older adults resembling lower-creative young adults."
+  },
+  {
+    "prerequisite": "two_study_replication_design_for_creativity_learning_mechanism",
+    "dependent": "creativity_predicts_associative_learning_outcomes",
+    "reason": "The two-study design provides the empirical basis for establishing that creativity predicts learning outcomes."
+  },
+  {
+    "prerequisite": "creativity_predicts_associative_learning_outcomes",
+    "dependent": "creativity_as_predictor_of_academic_learning_outcomes",
+    "reason": "Demonstrating creativity predicts associative learning grounds the broader framing of creativity as a predictor of academic outcomes."
+  },
+  {
+    "prerequisite": "chained_free_association_as_experimental_paradigm_for_post_perceptual_associative_processing",
+    "dependent": "creativity_correlates_with_semantic_distance_of_scene_based_associations_but_not_with_scene_memory",
+    "reason": "The chained free association paradigm generates the scene-based associations whose semantic distances correlate with creativity."
+  },
+  {
+    "prerequisite": "deepdream_algorithm_as_generator_of_hallucinatory_like_vr_stimuli",
+    "dependent": "simulated_visual_hallucinations_via_vr_enhance_cognitive_flexibility",
+    "reason": "The DeepDream-generated VR stimuli are required to test whether simulated hallucinations enhance cognitive flexibility."
+  },
+  {
+    "prerequisite": "psychedelic_drugs_modulate_cognitive_flexibility",
+    "dependent": "deepdream_algorithm_as_generator_of_hallucinatory_like_vr_stimuli",
+    "reason": "The premise that psychedelics modulate flexibility motivates generating hallucinatory-like stimuli to simulate that effect."
+  },
+  {
+    "prerequisite": "phenomenological_similarity_between_artificially_induced_and_actual_psychedelic_altered_perception",
+    "dependent": "deepdream_algorithm_as_generator_of_hallucinatory_like_vr_stimuli",
+    "reason": "Prior evidence of phenomenological similarity justifies using DeepDream to generate hallucinatory-like VR stimuli."
+  },
+  {
+    "prerequisite": "neural_correlates_of_semantic_relatedness_judgment_increase_with_semantic_distance",
+    "dependent": "default_and_semantic_control_network_co_engagement_during_remote_association_evaluation",
+    "reason": "The finding that neural responses increase with semantic distance underlies the more specific claim of network co-engagement during remote association evaluation."
+  },
+  {
+    "prerequisite": "associative_theory_of_creativity_as_research_framework",
+    "dependent": "creative_block_as_rooted_in_semantic_memory_network_entrapment",
+    "reason": "The associative theory of semantic memory structure underlies framing creative block as entrapment in a region of the network."
+  },
+  {
+    "prerequisite": "semantic_memory_network_structure_as_a_driver_of_creative_block",
+    "dependent": "creative_block_as_rooted_in_semantic_memory_network_entrapment",
+    "reason": "The claim that network structure drives creative block is the basis for describing block as network entrapment."
+  },
+  {
+    "prerequisite": "normative_feature_data_for_emotion_concepts_as_empirical_basis",
+    "dependent": "constructionist_view_of_emotion_as_theoretical_framework_predicting_variability",
+    "reason": "The normative feature data provide the empirical basis against which the constructionist variability prediction is tested."
+  },
+  {
+    "prerequisite": "need_for_a_theoretical_framework_for_cyber_creativity",
+    "dependent": "decalogue_of_research_challenges_as_a_structured_agenda_for_cyber_creativity_science",
+    "reason": "The identified need for a theoretical framework is one of the challenges organized into the structured agenda."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "decalogue_of_research_challenges_as_a_structured_agenda_for_cyber_creativity_science",
+    "reason": "Defining cyber-creativity as a construct is prerequisite to articulating a research agenda about it."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "cyber_creative_education_as_a_pedagogical_challenge",
+    "reason": "The cyber-creativity construct frames the educational challenge of preparing learners for AI collaboration."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "dark_side_of_cyber_creativity_including_misuse_and_creative_displacement_risks",
+    "reason": "The unifying construct provides the framing within which dark-side risks are identified."
+  },
+  {
+    "prerequisite": "multilayer_network_model_of_phonological_and_semantic_lexical_layers",
+    "dependent": "debate_over_phonological_semantic_interaction_in_lexical_access",
+    "reason": "No-op; relationship is reverse."
+  },
+  {
+    "prerequisite": "debate_over_phonological_semantic_interaction_in_lexical_access",
+    "dependent": "cross_layer_information_increases_lexical_network_efficiency",
+    "reason": "The debate over phonological-semantic interaction motivates testing whether cross-layer information increases efficiency."
+  },
+  {
+    "prerequisite": "associative_thinking_as_a_core_mechanism_of_creativity",
+    "dependent": "convergent_and_divergent_remote_thinking_share_neural_substrates",
+    "reason": "The associative-thinking framework supports the claim that convergent and divergent remote thinking share neural substrates."
+  },
+  {
+    "prerequisite": "converging_computational_methods_as_a_strategy_for_studying_high_level_cognition_complexity",
+    "dependent": "combining_psycholinguistic_measures_with_multiplex_networks_for_creativity_modeling",
+    "reason": "No-op; not in batch as dependent."
+  },
+  {
+    "prerequisite": "cognitive_multiplex_network_as_model_of_the_mental_lexicon_for_fluency_task_analysis",
+    "dependent": "converging_computational_methods_as_a_strategy_for_studying_high_level_cognition_complexity",
+    "reason": "The multiplex network modeling is one of the converging computational methods constituting the strategy."
+  },
+  {
+    "prerequisite": "prediction_of_high_level_cognition_from_mental_navigation_measures_via_regression",
+    "dependent": "converging_computational_methods_as_a_strategy_for_studying_high_level_cognition_complexity",
+    "reason": "Regression-based prediction of cognition is part of the converging multi-method strategy demonstrated."
+  },
+  {
+    "prerequisite": "construct_measure_mapping_as_central_challenge_in_creativity_research",
+    "dependent": "creativity_as_process_vs_creativeness_distinction",
+    "reason": "The construct-measure mapping challenge underlies the distinction between creativity-as-process and creativeness."
+  },
+  {
+    "prerequisite": "intelligence_predicts_effective_questioning_strategies_and_game_performance_in_spot_the_spy",
+    "dependent": "creativity_and_curiosity_as_cognitive_correlates_of_question_asking_assessed_in_spot_the_spy",
+    "reason": "Establishing intelligence as a predictor of questioning sets up the open question of whether creativity and curiosity independently predict performance."
+  },
+  {
+    "prerequisite": "overlap_between_question_asking_and_prompt_engineering",
+    "dependent": "creativity_as_dynamic_driver_of_both_question_asking_and_prompt_engineering",
+    "reason": "Establishing the overlap between question-asking and prompt engineering grounds the claim that creativity drives both."
+  },
+  {
+    "prerequisite": "reduced_taxonomic_and_thematic_semantic_distance_in_aphasia_narratives_relative_to_controls",
+    "dependent": "cumulative_compounding_of_controlled_word_retrieval_deficits_over_narrative_production",
+    "reason": "The empirical finding of reduced semantic distance in aphasia narratives supports the claim that retrieval deficits compound across narratives."
+  },
+  {
+    "prerequisite": "semantic_flow_as_a_novel_discourse_level_metric_for_characterizing_lexical_semantic_access_in_aphasia",
+    "dependent": "cumulative_compounding_of_controlled_word_retrieval_deficits_over_narrative_production",
+    "reason": "The semantic flow metric provides the discourse-level measurement enabling the compounding claim."
+  },
+  {
+    "prerequisite": "openness_to_experience_enhances_curious_creative_and_aesthetic_behaviors",
+    "dependent": "curiosity_as_a_driver_of_creative_and_aesthetic_experience",
+    "reason": "The shared Openness linkage across domains supports the claim that curiosity drives creative and aesthetic experience."
+  },
+  {
+    "prerequisite": "default_network_activity_underlies_spontaneous_and_self_generated_cognition",
+    "dependent": "default_and_semantic_control_network_co_engagement_during_remote_association_evaluation",
+    "reason": "The established role of default network in self-generated cognition supports its co-engagement during remote association evaluation."
+  },
+  {
+    "prerequisite": "cue_set_size_as_index_of_semantic_richness",
+    "dependent": "cue_association_size_as_index_of_semantic_richness_for_aut",
+    "reason": "The cue set size operationalization underlies the closely related cue association size index used in the AUT."
+  },
+  {
+    "prerequisite": "dsi_role_in_early_citation_accrual_is_stronger_for_fewer_author_papers",
+    "dependent": "declining_correlation_between_dsi_and_citation_counts_over_time",
+    "reason": "Findings about DSI's role in citation accrual contextualize the temporal decline in DSI-citation correlation."
+  },
+  {
+    "prerequisite": "verbal_fluency_derived_networks_index_metaphor_production_ability",
+    "dependent": "creative_metaphor_production_task_as_creativity_measure",
+    "reason": "No-op; reverse relation."
+  },
+  {
+    "prerequisite": "creative_metaphor_production_task_as_creativity_measure",
+    "dependent": "flexible_semantic_network_supports_creative_metaphor_production",
+    "reason": "No-op; not in batch."
+  },
+  {
+    "prerequisite": "tdcs_over_lpfc_as_method_for_probing_cognitive_control_in_creativity",
+    "dependent": "differential_effect_of_lpfc_stimulation_on_novelty_versus_appropriateness",
+    "reason": "The tDCS manipulation over LPFC is the method that produces the novelty-versus-appropriateness dissociation."
+  },
+  {
+    "prerequisite": "cue_set_size_as_index_of_semantic_richness",
+    "dependent": "differential_impact_of_semantic_richness_on_fluency_vs_originality",
+    "reason": "Operationalizing semantic richness via cue set size is prerequisite to testing its differential impact on fluency versus originality."
+  },
+  {
+    "prerequisite": "semantic_relatedness_judgment_task_as_method_for_studying_metaphor_comprehension_across_creativity_levels",
+    "dependent": "differential_prediction_for_novel_vs_conventional_metaphor_comprehension_by_creativity",
+    "reason": "The relatedness judgment task across metaphor types is the method enabling the differential prediction across creativity levels."
+  },
+  {
+    "prerequisite": "flexible_semantic_memory_facilitates_novel_metaphor_comprehension",
+    "dependent": "differential_prediction_for_novel_vs_conventional_metaphor_comprehension_by_creativity",
+    "reason": "The claim that flexible semantic memory aids novel metaphor comprehension grounds the prediction that creativity differences emerge specifically for novel metaphors."
+  },
+  {
+    "prerequisite": "prior_evidence_for_semantic_network_flexibility_in_metaphor_comprehension",
+    "dependent": "differential_prediction_for_novel_vs_conventional_metaphor_comprehension_by_creativity",
+    "reason": "Prior evidence linking flexibility to novel metaphor comprehension motivates the differential prediction."
+  },
+  {
+    "prerequisite": "associative_abilities_mediate_the_link_between_semantic_network_structure_and_verbal_creativity",
+    "dependent": "differential_role_of_semantic_memory_vs_associative_ability_in_verbal_vs_figural_creativity",
+    "reason": "The mediation of associative abilities in verbal creativity is foundational to claiming differential roles across verbal vs figural modalities."
+  },
+  {
+    "prerequisite": "percolation_analysis_as_a_method_for_quantifying_semantic_network_flexibility",
+    "dependent": "diminished_semantic_network_flexibility_as_a_contributor_to_age_related_language_production_decline",
+    "reason": "Percolation-based flexibility quantification is the method underlying the claim that diminished flexibility contributes to language decline."
+  },
+  {
+    "prerequisite": "free_recall_paradigm_as_method_for_constructing_semantic_memory_networks",
+    "dependent": "diminished_temporal_contiguity_effect_in_older_adults_during_free_recall",
+    "reason": "The free recall paradigm is the method that yields the temporal contiguity effect findings."
+  },
+  {
+    "prerequisite": "associative_creativity_sparker_acs_as_a_cognitive_network_science_tool_for_breaking_creative_impasse",
+    "dependent": "direction_and_distance_as_two_orthogonal_dimensions_of_semantic_word_recommendations",
+    "reason": "The ACS tool is the system within which direction and distance dimensions are operationalized."
+  },
+  {
+    "prerequisite": "episodic_semantic_retrieval_orientation_induction_paradigm",
+    "dependent": "dissociable_episodic_and_semantic_memory_contributions_to_divergent_thinking",
+    "reason": "The induction paradigm orienting toward episodic vs semantic retrieval is prerequisite to dissociating their contributions."
+  },
+  {
+    "prerequisite": "knowledge_structures_relate_to_metacognitive_processes_in_creative_thinking",
+    "dependent": "dissociation_between_objective_originality_and_originality_self_assessment_in_aut",
+    "reason": "The framing that knowledge structure relates to metacognition underpins examining the dissociation between objective originality and self-assessment."
+  },
+  {
+    "prerequisite": "older_adults_semantic_networks_are_less_flexible_than_younger_adults",
+    "dependent": "dissociation_between_semantic_knowledge_stability_and_network_flexibility_across_lifespan",
+    "reason": "Evidence that older networks are less flexible supports the dissociation between stable knowledge and declining flexibility."
+  },
+  {
+    "prerequisite": "vocabulary_knowledge_increases_with_age_as_a_function_of_knowledge_accumulation",
+    "dependent": "dissociation_between_semantic_knowledge_stability_and_network_flexibility_across_lifespan",
+    "reason": "The finding of increasing vocabulary with age provides the knowledge-stability side of the dissociation."
+  },
+  {
+    "prerequisite": "nct_anatomical_fingerprint_model_of_regional_brain_dynamics",
+    "dependent": "distinct_but_overlapping_nct_profiles_for_creativity_facets",
+    "reason": "The NCT regional dynamics model is prerequisite to deriving distinct controllability profiles for creativity facets."
+  },
+  {
+    "prerequisite": "lesion_study_approach_reveals_regions_essential_for_divergent_thinking",
+    "dependent": "distinct_temporal_and_prefrontal_contributions_to_divergent_thinking",
+    "reason": "The lesion-study comparison of SD and bvFTD is the methodological basis for dissociating temporal vs prefrontal contributions."
+  },
+  {
+    "prerequisite": "originality_in_sd_correlates_with_semantic_naming_and_comprehension",
+    "dependent": "distinct_temporal_and_prefrontal_contributions_to_divergent_thinking",
+    "reason": "SD originality correlating with semantic ability provides the temporal-semantic side of the dissociation."
+  },
+  {
+    "prerequisite": "originality_in_bvftd_correlates_with_letter_fluency_and_response_inhibition",
+    "dependent": "distinct_temporal_and_prefrontal_contributions_to_divergent_thinking",
+    "reason": "bvFTD originality correlating with executive measures provides the prefrontal side of the dissociation."
+  },
+  {
+    "prerequisite": "novel_conceptual_combination_reconfigures_semantic_memory_networks",
+    "dependent": "distinction_between_attributive_and_relational_nominal_compound_interpretation",
+    "reason": "The general finding that conceptual combination reconfigures networks sets up the more specific attributive vs relational distinction."
+  },
+  {
+    "prerequisite": "polysemous_word_associative_fluency_task_for_semantic_search",
+    "dependent": "distinction_between_clustering_and_switching_as_semantic_search_components",
+    "reason": "The polysemous word fluency task is the paradigm that allows separating clustering and switching components."
+  },
+  {
+    "prerequisite": "nct_application_to_creativity_and_intelligence_via_dti",
+    "dependent": "divergent_structural_control_mechanisms_for_creativity_vs_intelligence",
+    "reason": "Applying NCT to creativity and intelligence via DTI is the method underlying the claim of divergent control mechanisms."
+  },
+  {
+    "prerequisite": "hub_type_as_cue_word_property_in_aut_as_experimental_method",
+    "dependent": "dmn_and_fpn_core_regions_underlie_c_hub_creative_advantage",
+    "reason": "Using hub-type cues in the AUT with neuroimaging is the method that reveals the DMN/FPN basis of the C-hub advantage."
+  },
+  {
+    "prerequisite": "mind_wandering_and_alternate_uses_tasks_as_proxies_for_spontaneous_and_divergent_thought_in_intracranial_research",
+    "dependent": "dmn_causal_role_in_divergent_thinking_via_direct_cortical_stimulation",
+    "reason": "The task proxies operationalize spontaneous and divergent thought needed to establish DMN's causal role."
+  },
+  {
+    "prerequisite": "task_fmri_validation_of_resting_state_dmn_ecn_switching_findings",
+    "dependent": "dmn_ecn_switching_as_a_neural_predictor_of_creativity",
+    "reason": "Task-fMRI validation strengthens the claim that DMN-ECN switching predicts creativity."
+  },
+  {
+    "prerequisite": "resting_state_fmri_large_sample_design_for_creativity_and_mesoscale_networks",
+    "dependent": "dmn_hub_organization_positively_predicts_creative_ability",
+    "reason": "The large resting-state design is prerequisite to identifying DMN hub organization predicting creativity."
+  },
+  {
+    "prerequisite": "stereo_eeg_as_a_high_resolution_method_for_probing_dmn_dynamics_during_creativity_tasks",
+    "dependent": "dmn_recruitment_during_both_spontaneous_and_divergent_thought",
+    "reason": "The stereo-EEG method enables detection of DMN recruitment across both task types."
+  },
+  {
+    "prerequisite": "mental_imagery_strategy_use_outperforms_semantic_understanding_strategy_use_in_creative_writing",
+    "dependent": "dmn_subnetwork_plays_a_special_role_in_integrating_semantic_information_related_to_objects_and_actions",
+    "reason": "The behavioral imagery advantage motivates examining the DMN subnetwork integrating object/action semantics during creative writing."
+  },
+  {
+    "prerequisite": "high_knowledge_students_have_more_clustered_semantic_memory_networks_than_low_knowledge_students",
+    "dependent": "domain_generality_of_knowledge_related_semantic_network_differences",
+    "reason": "The general knowledge-group network difference finding is prerequisite to claiming domain-generality across categories."
+  },
+  {
+    "prerequisite": "verbal_fluency_tasks_as_method_for_estimating_semantic_memory_networks_in_students",
+    "dependent": "domain_generality_of_knowledge_related_semantic_network_differences",
+    "reason": "Using both domain-specific and domain-general fluency tasks is the method enabling the domain-generality claim."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "domain_specificity_of_cyber_creativity_challenges",
+    "reason": "Defining cyber-creativity as a construct is prerequisite to identifying its domain-specific research challenges."
+  },
+  {
+    "prerequisite": "computational_semantic_distance_applied_to_originality_judgment_research",
+    "dependent": "dsi_as_a_computational_originality_measure_applicable_to_large_scientific_corpora",
+    "reason": "Applying computational semantic distance to originality is foundational to DSI as a corpus-scale originality measure."
+  },
+  {
+    "prerequisite": "dsi_as_a_computational_originality_measure_applicable_to_large_scientific_corpora",
+    "dependent": "dsi_as_direct_textual_measure_of_scientific_originality_in_scientometrics",
+    "reason": "Establishing DSI as a corpus-scale originality measure precedes positioning it as a direct textual scientometric tool."
+  },
+  {
+    "prerequisite": "large_multi_field_scientific_abstract_corpus_as_empirical_basis",
+    "dependent": "dsi_predicts_5_year_citation_counts_in_scientific_abstracts",
+    "reason": "The multi-field abstract corpus is the empirical basis for modeling DSI's prediction of citation counts."
+  },
+  {
+    "prerequisite": "scibert_vs_bert_comparison_for_dsi_computation_on_scientific_texts",
+    "dependent": "dsi_predicts_5_year_citation_counts_in_scientific_abstracts",
+    "reason": "Comparing SciBERT and BERT DSI variants is prerequisite to reporting their respective citation prediction models."
+  },
+  {
+    "prerequisite": "large_multi_field_scientific_abstract_corpus_as_empirical_basis",
+    "dependent": "dsi_varies_significantly_by_scientific_subject_and_field",
+    "reason": "The multi-field corpus is the empirical basis for detecting DSI differences across subjects and fields."
+  },
+  {
+    "prerequisite": "executive_control_default_mode_and_salience_network_interaction_as_marker_of_creative_ability",
+    "dependent": "dynamic_neural_network_interaction_as_key_to_creativity_and_intelligence",
+    "reason": "The established triple-network interaction marker grounds the broader claim about dynamic network interaction in creativity and intelligence."
+  },
+  {
+    "prerequisite": "montessori_education_produces_more_flexible_semantic_network_structure",
+    "dependent": "education_as_an_environmental_driver_of_higher_cognitive_function",
+    "reason": "Evidence that Montessori education produces more flexible networks supports education as an environmental driver of cognition."
+  },
+  {
+    "prerequisite": "computational_network_science_for_studying_child_semantic_memory_across_educational_contexts",
+    "dependent": "educational_experience_shapes_semantic_memory_representation",
+    "reason": "The cross-educational network science approach is the method enabling claims that education shapes semantic representation."
+  },
+  {
+    "prerequisite": "question_asking_ability_positively_predicts_open_ended_project_performance",
+    "dependent": "educational_value_of_fostering_question_asking_skills",
+    "reason": "The positive link between questioning and open-ended performance underlies the educational value argument."
+  },
+  {
+    "prerequisite": "abstract_action_space_navigation_as_mechanism_for_higher_creative_embodied_cognition",
+    "dependent": "embodied_cognition_framework_for_aut_creative_use_generation",
+    "reason": "The abstract action space navigation mechanism informs the embodied framework for generating AUT uses."
+  },
+  {
+    "prerequisite": "fragmentation_of_creative_cognition_research_as_a_critical_barrier_to_consensus",
+    "dependent": "embracing_complexity_rather_than_reducing_it_as_a_methodological_principle_for_creativity_science",
+    "reason": "Identifying fragmentation as a barrier motivates the principle of embracing rather than reducing complexity."
+  },
+  {
+    "prerequisite": "gap_in_conceptual_representation_research_on_emotion_versus_other_abstract_concepts",
+    "dependent": "emotion_concepts_have_distinct_featural_structure_from_concrete_and_other_abstract_concepts",
+    "reason": "The identified gap comparing emotion to other abstract concepts motivates testing emotion concepts' distinct featural structure."
+  },
+  {
+    "prerequisite": "interoceptive_states_as_key_differentiating_dimension_for_emotion_concept_representation",
+    "dependent": "emotion_concepts_have_distinct_featural_structure_from_concrete_and_other_abstract_concepts",
+    "reason": "The interoceptive-states hypothesis provides the dimension by which emotion concepts are shown to differ featurally."
+  },
+  {
+    "prerequisite": "japanese_social_media_corpus_spanning_crises_and_non_crisis_decade_as_empirical_basis",
+    "dependent": "emotion_network_link_rank_as_stable_population_level_psychological_index",
+    "reason": "The decade-spanning corpus is the empirical basis for establishing link rank as a stable population index."
+  },
+  {
+    "prerequisite": "overview_of_quantitative_approaches_to_measuring_semantic_distance_in_creativity_research",
+    "dependent": "english_language_bias_in_semantic_distance_creativity_research",
+    "reason": "Surveying semantic distance approaches reveals the predominantly English-language focus identified as a bias."
+  },
+  {
+    "prerequisite": "racing_to_threshold_retrieval_model_underlying_entropy_modulation",
+    "dependent": "entropy_as_the_mechanism_linking_executive_control_and_semantic_structure_in_creativity",
+    "reason": "The race-to-threshold retrieval model is the formal mechanism by which entropy links control and structure."
+  },
+  {
+    "prerequisite": "entropy_modulation_theory_of_creative_exploration",
+    "dependent": "entropy_as_the_mechanism_linking_executive_control_and_semantic_structure_in_creativity",
+    "reason": "The entropy modulation theory is the framework within which entropy is identified as the linking mechanism."
+  },
+  {
+    "prerequisite": "entropy_modulation_theory_of_creative_exploration",
+    "dependent": "entropy_modulation_as_integration_of_structure_and_process_accounts",
+    "reason": "The entropy modulation theory is the foundation positioned as integrating structure and process accounts."
+  },
+  {
+    "prerequisite": "general_vs_action_directed_aut_instruction_as_experimental_manipulation",
+    "dependent": "environmental_scene_and_body_posture_interaction_on_aut_performance",
+    "reason": "The AUT instructional manipulation framework supports investigating scene-by-posture interactions on performance."
+  },
+  {
+    "prerequisite": "episodic_semantic_retrieval_orientation_induction_paradigm",
+    "dependent": "episodic_induction_rsa_similarity_in_parahippocampal_gyrus_and_right_ipl",
+    "reason": "The episodic/semantic induction paradigm is prerequisite to detecting episodic-induction RSA similarity patterns."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "ethical_dimensions_of_cyber_creativity",
+    "reason": "Defining cyber-creativity as a construct is prerequisite to articulating its ethical dimensions."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "evaluation_of_cyber_creative_products",
+    "reason": "Defining the cyber-creativity construct precedes the challenge of evaluating human-AI creative products."
+  },
+  {
+    "prerequisite": "gap_in_mesoscale_network_understanding_of_creativity",
+    "dependent": "executive_control_default_mode_and_salience_network_interaction_as_marker_of_creative_ability",
+    "reason": "The identified mesoscale gap motivates establishing the triple-network interaction as a marker of creative ability."
+  },
+  {
+    "prerequisite": "connectome_predictive_modeling_applied_to_remote_associative_thinking",
+    "dependent": "executive_control_dorsal_attention_and_somatomotor_networks_linked_to_higher_associative_remoteness_in_cat",
+    "reason": "Applying CPM to remote associative thinking is the method linking specific networks to associative remoteness in the CAT."
+  },
+  {
+    "prerequisite": "creative_analogical_transfer_as_a_key_mechanism_in_knowledge_rich_cps",
+    "dependent": "expansion_of_cps_paradigms_to_knowledge_rich_contexts",
+    "reason": "Identifying analogical transfer as central to knowledge-rich CPS motivates expanding CPS paradigms to such contexts."
+  },
+  {
+    "prerequisite": "forma_mentis_networks_as_tool_for_quantifying_stem_mindsets",
+    "dependent": "expertise_level_modulates_stem_mindset_network_structure",
+    "reason": "The forma mentis network tool is prerequisite to quantifying how expertise modulates STEM mindset structure."
+  },
+  {
+    "prerequisite": "bfmn_clustering_coefficient_as_index_of_cognitive_memory_integration",
+    "dependent": "expertise_level_modulates_stem_mindset_network_structure",
+    "reason": "Using clustering coefficient as an integration index is prerequisite to claiming expertise modulates network structure via clustering."
+  },
+  {
+    "prerequisite": "forward_flow_conceptual_clarification_against_rossiter_critique",
+    "dependent": "forward_flow_robustness_to_rossiter_measurement_concerns",
+    "reason": "The robustness defense rests on first clarifying the conceptual misunderstandings underlying the critique."
+  },
+  {
+    "prerequisite": "embodied_perspective_as_a_framework_for_divergent_thinking_analysis",
+    "dependent": "exploratory_application_of_embodied_coding_to_an_existing_divergent_thinking_dataset",
+    "reason": "Applying embodied coding to a dataset requires the embodied framework for divergent thinking as its theoretical basis."
+  },
+  {
+    "prerequisite": "novel_embodied_coding_scheme_for_divergent_thinking_responses",
+    "dependent": "exploratory_application_of_embodied_coding_to_an_existing_divergent_thinking_dataset",
+    "reason": "The coding scheme must exist before it can be applied to an existing dataset."
+  },
+  {
+    "prerequisite": "verbal_fluency_derived_networks_index_metaphor_production_ability",
+    "dependent": "extension_of_semantic_network_creativity_link_to_metaphor_production",
+    "reason": "Extending the semantic network-creativity link to metaphor production relies on showing fluency-derived networks index metaphor ability."
+  },
+  {
+    "prerequisite": "coherence_covaries_with_left_inferior_occipital_gyrus_activity_during_beauty_judgments_only",
+    "dependent": "fascination_covaries_with_right_lingual_gyrus_activity_regardless_of_task",
+    "reason": "The fascination neural finding is established within the same parametric fMRI reanalysis framework alongside the coherence finding."
+  },
+  {
+    "prerequisite": "limitations_of_structural_accounts_in_explaining_faster_and_further_phenomenology",
+    "dependent": "faster_and_further_phenomenology_in_creativity",
+    "reason": "The phenomenon is defined and motivated against the backdrop of what structural accounts must explain."
+  },
+  {
+    "prerequisite": "missing_analytical_framework_for_modularity_and_vulnerability_as_key_research_gap",
+    "dependent": "feedback_between_structure_and_function_in_modular_real_world_systems",
+    "reason": "Understanding structure-function feedback in modular systems builds on filling the identified analytical framework gap."
+  },
+  {
+    "prerequisite": "four_condition_experimental_design_varying_feedback_and_difficulty_in_creativity_training",
+    "dependent": "feedback_with_constant_difficulty_produces_largest_creativity_gains",
+    "reason": "Identifying which condition yields the largest gains requires the four-condition experimental design."
+  },
+  {
+    "prerequisite": "creativeable_ai_powered_creativity_training_program",
+    "dependent": "feedback_with_constant_difficulty_produces_largest_creativity_gains",
+    "reason": "The condition comparison is conducted within the Creativeable program, which provides the automated feedback and difficulty manipulation."
+  },
+  {
+    "prerequisite": "executive_control_default_mode_and_salience_network_interaction_as_marker_of_creative_ability",
+    "dependent": "first_within_subject_demonstration_of_neural_dynamics_in_creative_generation_vs_evaluation",
+    "reason": "The within-subject neural dynamics study builds on the established network-interaction marker of creative ability."
+  },
+  {
+    "prerequisite": "free_association_paradigm_as_a_window_into_semantic_memory_structure",
+    "dependent": "flat_vs_steep_associational_hierarchies_in_creativity",
+    "reason": "Empirically distinguishing flat versus steep hierarchies relies on free association data as a window into associative structure."
+  },
+  {
+    "prerequisite": "free_association_paradigm_as_a_window_into_semantic_memory_structure",
+    "dependent": "free_recall_paradigm_as_method_for_constructing_semantic_memory_networks",
+    "reason": "Both paradigms construct semantic networks from verbal output; the free recall network method extends the association-based windowing logic to recall sequences."
+  },
+  {
+    "prerequisite": "semantic_dementia_impairs_originality_and_flexibility_of_divergent_thinking",
+    "dependent": "fluency_in_sd_correlates_with_semantic_association_ability",
+    "reason": "The fluency-association correlation in SD builds on demonstrating that SD impairs divergent thinking, establishing the patient model."
+  },
+  {
+    "prerequisite": "sparse_semantic_knowledge_penalizes_originality_when_fluid_intelligence_is_low",
+    "dependent": "fluid_intelligence_moderates_sparse_cue_originality_penalty",
+    "reason": "The moderation finding is the same empirical result framed as an interaction, building on the sparse-knowledge penalty observation."
+  },
+  {
+    "prerequisite": "mental_imagery_strategy_use_outperforms_semantic_understanding_strategy_use_in_creative_writing",
+    "dependent": "fmri_edge_community_analysis_of_functional_brain_networks_during_creative_writing",
+    "reason": "The fMRI edge community analysis contrasts mental imagery versus semantic understanding conditions established by behavioral comparison."
+  },
+  {
+    "prerequisite": "psychometric_network_analysis_as_a_tool_for_identifying_aesthetic_response_dimensions",
+    "dependent": "fmri_reanalysis_linking_behavioral_aesthetic_dimensions_to_neural_activity",
+    "reason": "The fMRI reanalysis uses behaviorally derived dimension scores from psychometric network analysis as regressors."
+  },
+  {
+    "prerequisite": "focus_on_semantic_and_lexical_networks_as_core_case_studies",
+    "dependent": "feasibility_of_network_science_for_studying_high_level_cognition",
+    "reason": "The feasibility argument is illustrated primarily through semantic and lexical network case studies."
+  },
+  {
+    "prerequisite": "multiple_interactive_cognitive_levels_influence_word_acquisition_storage_and_processing",
+    "dependent": "forma_mentis_networks_as_tool_for_quantifying_stem_mindsets",
+    "reason": "Forma mentis networks operationalize conceptual associations across cognitive levels to map mindsets."
+  },
+  {
+    "prerequisite": "forward_flow_predicts_creativity_in_a_representative_american_sample",
+    "dependent": "forward_flow_as_a_broad_predictor_beyond_creativity",
+    "reason": "Claiming forward flow predicts beyond creativity rests on first establishing its creativity prediction across samples."
+  },
+  {
+    "prerequisite": "predictive_validity_of_free_association_for_psychological_phenomena",
+    "dependent": "forward_flow_predicts_creativity_in_college_students",
+    "reason": "Demonstrating forward flow predicts creativity addresses the open question of whether free association streams predict psychological outcomes."
+  },
+  {
+    "prerequisite": "open_ended_question_asking_as_understudied_due_to_naturalistic_study_challenges",
+    "dependent": "gamified_environments_as_tools_for_advancing_understanding_of_cognitive_processes_and_training",
+    "reason": "The argument for gamified study tools responds to the difficulty of studying question-asking naturalistically."
+  },
+  {
+    "prerequisite": "stereo_eeg_as_a_high_resolution_method_for_probing_dmn_dynamics_during_creativity_tasks",
+    "dependent": "gamma_band_power_increase_and_theta_band_power_decrease_characterize_dmn_relative_to_fronto_parietal_network_during_creative_tasks",
+    "reason": "The spectral power findings depend on the high-resolution stereo-EEG recordings of DMN dynamics."
+  },
+  {
+    "prerequisite": "mind_wandering_and_alternate_uses_tasks_as_proxies_for_spontaneous_and_divergent_thought_in_intracranial_research",
+    "dependent": "gamma_band_power_increase_and_theta_band_power_decrease_characterize_dmn_relative_to_fronto_parietal_network_during_creative_tasks",
+    "reason": "The band-power contrasts are computed across the mind wandering and alternate uses task conditions."
+  },
+  {
+    "prerequisite": "gap_in_conceptual_representation_research_on_emotion_versus_other_abstract_concepts",
+    "dependent": "interoceptive_states_as_key_differentiating_dimension_for_emotion_concept_representation",
+    "reason": "Testing interoception as the differentiating dimension addresses the identified gap comparing emotion to other abstract concepts."
+  },
+  {
+    "prerequisite": "resting_state_fmri_large_sample_design_for_creativity_and_mesoscale_networks",
+    "dependent": "gap_in_mesoscale_network_understanding_of_creativity",
+    "reason": "The mesoscale design is motivated by and addresses the identified gap in mesoscale network understanding of creativity."
+  },
+  {
+    "prerequisite": "cognitive_networks_as_framework_for_knowledge_modelling_and_learning",
+    "dependent": "gap_in_tools_and_methods_for_cognitive_network_knowledge_modelling",
+    "reason": "Identifying a tools gap for cognitive network knowledge modelling presupposes the framework that defines this modelling area."
+  },
+  {
+    "prerequisite": "body_posture_manipulation_as_experimental_tool_for_studying_embodied_creativity",
+    "dependent": "general_vs_action_directed_aut_instruction_as_experimental_manipulation",
+    "reason": "The action-directed AUT instruction manipulation builds on the validated body posture (toward/away) manipulation paradigm."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "generational_shift_in_beauty_and_wellness_semantic_representations",
+    "reason": "Claiming a generational shift in beauty/wellness concepts requires the semantic network analysis comparing cohorts."
+  },
+  {
+    "prerequisite": "older_cohorts_have_less_connected_and_more_segregated_beauty_and_wellness_semantic_networks",
+    "dependent": "generational_shift_in_beauty_and_wellness_semantic_representations",
+    "reason": "The generational shift interpretation rests on the finding that older cohorts have less connected, more segregated networks."
+  },
+  {
+    "prerequisite": "process_definition_of_creativity",
+    "dependent": "generative_goal_state_as_third_criterion",
+    "reason": "The third criterion is a component of the proposed process definition of creativity."
+  },
+  {
+    "prerequisite": "process_definition_of_creativity",
+    "dependent": "goal_constrained_attentional_operations_as_second_criterion",
+    "reason": "The second criterion is part of the overarching process definition framework."
+  },
+  {
+    "prerequisite": "semantic_verbal_description_network_predicts_preference_for_abstract_art",
+    "dependent": "gip_based_network_does_not_predict_preference_or_art_style_for_abstract_art",
+    "reason": "The GIP network's predictive failure is established by contrast with the verbal-description network's success."
+  },
+  {
+    "prerequisite": "method_distinguishing_genuine_alpha_oscillations_from_transient_events_applied_to_semantic_association_research",
+    "dependent": "goal_directed_creative_instruction_increases_alpha_phase_synchronisation_from_left_to_right_temporal_areas",
+    "reason": "Characterizing genuine alpha synchronisation effects requires the method separating sustained alpha from transient bursts."
+  },
+  {
+    "prerequisite": "forma_mentis_networks_as_tool_for_quantifying_stem_mindsets",
+    "dependent": "gpt_3_5_produces_sparser_forma_mentis_networks_with_weaker_clustering",
+    "reason": "Evaluating GPT-3.5's forma mentis networks requires the forma mentis network methodology."
+  },
+  {
+    "prerequisite": "forma_mentis_networks_as_tool_for_quantifying_stem_mindsets",
+    "dependent": "gpt_3_5_simulation_of_human_participants_as_methodological_approach_for_mindset_research",
+    "reason": "Simulating participants for comparison requires the forma mentis network tool as the comparison framework."
+  },
+  {
+    "prerequisite": "underexplored_role_of_personality_in_normal_dn_variation",
+    "dependent": "graph_theoretical_analysis_of_resting_state_fmri_for_personality_research",
+    "reason": "The graph-theoretical personality analysis is motivated by and addresses the underexplored role of personality in normal DN variation."
+  },
+  {
+    "prerequisite": "verbal_production_tasks_as_method_for_estimating_semantic_memory_networks_across_age_groups",
+    "dependent": "group_based_analyses_show_prominent_age_differences_consistent_with_prior_literature",
+    "reason": "Detecting group-based age differences in semantic networks relies on the verbal production tasks used to estimate those networks."
+  },
+  {
+    "prerequisite": "abstract_words_alter_semantic_network_structure_in_aging",
+    "dependent": "group_based_analyses_show_prominent_age_differences_consistent_with_prior_literature",
+    "reason": "The group-based age difference finding incorporates abstract words, building on the demonstration that abstract words alter network structure."
+  },
+  {
+    "prerequisite": "racing_to_threshold_retrieval_model_underlying_entropy_modulation",
+    "dependent": "exploration_exploitation_trade_off_as_a_core_feature_of_creative_search",
+    "reason": "The exploration-exploitation trade-off framing rests on the race-to-threshold retrieval model assumed by entropy modulation theory."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "group_based_semantic_network_estimation_from_free_association_responses_as_method_for_probing_lay_concepts",
+    "reason": "The beauty/wellness network analysis provides the application context within which the group-based free-association estimation method is operationalized."
+  },
+  {
+    "prerequisite": "verbal_fluency_task_as_a_method_for_probing_semantic_network_structure_in_ci_children",
+    "dependent": "hearing_experience_shapes_semantic_network_organization_in_childhood",
+    "reason": "The conclusion that hearing experience shapes semantic networks rests on verbal fluency network data collected from CI children."
+  },
+  {
+    "prerequisite": "larger_aspl_and_diameter_in_nh_versus_ci_semantic_networks",
+    "dependent": "hearing_experience_shapes_semantic_network_organization_in_childhood",
+    "reason": "The structural difference between NH and CI networks is the evidence supporting the claim about hearing experience shaping organization."
+  },
+  {
+    "prerequisite": "originality_scores_and_originality_judgments_are_produced_by_separate_processes",
+    "dependent": "heuristic_cues_shape_originality_self_assessment_independently_of_objective_performance",
+    "reason": "The dissociation between objective scores and judgments is a foundational premise for claiming heuristic cues drive self-assessment independently of performance."
+  },
+  {
+    "prerequisite": "known_heuristic_cues_for_originality_judgment_biases_are_understudied",
+    "dependent": "heuristic_cues_shape_originality_self_assessment_independently_of_objective_performance",
+    "reason": "Identifying the gap about understudied heuristic cues motivates the finding that such cues shape self-assessment."
+  },
+  {
+    "prerequisite": "modular_complex_network_resilience_under_targeted_attacks",
+    "dependent": "high_betweenness_interconnected_nodes_as_primary_vulnerability_sites_in_modular_networks",
+    "reason": "Establishing modular network resilience under targeted attacks underlies the identification of high-betweenness nodes as vulnerability sites."
+  },
+  {
+    "prerequisite": "analytical_framework_for_modularity_and_network_vulnerability",
+    "dependent": "high_betweenness_interconnected_nodes_as_primary_vulnerability_sites_in_modular_networks",
+    "reason": "The analytical framework for modularity and vulnerability is needed to derive that interconnected high-betweenness nodes are primary vulnerability sites."
+  },
+  {
+    "prerequisite": "free_association_paradigm_as_a_window_into_semantic_memory_structure",
+    "dependent": "high_creative_semantic_networks_are_more_cohesive_and_flexible",
+    "reason": "Comparing creative groups' network cohesion depends on constructing semantic networks via the free association paradigm."
+  },
+  {
+    "prerequisite": "semantic_fluency_task_as_window_into_multiplex_lexical_navigation",
+    "dependent": "lower_entropy_of_viable_cluster_access_in_high_creatives",
+    "reason": "The fluency-based multiplex navigation modeling is the method that yields the entropy-of-access measure."
+  },
+  {
+    "prerequisite": "multiplex_network_distance_as_creativity_index",
+    "dependent": "high_creatives_access_viable_cluster_less_frequently_during_fluency",
+    "reason": "Quantifying multiplex distance as a creativity index underpins the finding that high creatives reach more peripheral words less often via the viable cluster."
+  },
+  {
+    "prerequisite": "body_posture_manipulation_as_experimental_tool_for_studying_embodied_creativity",
+    "dependent": "high_fixedness_environmental_context_as_boundary_condition_for_posture_effects",
+    "reason": "The posture manipulation tool is required to detect that posture effects depend on high-fixedness contexts."
+  },
+  {
+    "prerequisite": "longitudinal_semantic_network_analysis_of_undergraduate_learning",
+    "dependent": "high_knowledge_students_semantic_memory_networks_become_more_interconnected_over_time",
+    "reason": "The longitudinal network analysis design is the method enabling the over-time interconnectivity finding."
+  },
+  {
+    "prerequisite": "verbal_fluency_tasks_as_operational_proxies_for_mental_navigation",
+    "dependent": "high_level_cognitive_prediction_online_tool",
+    "reason": "The fluency-based mental navigation operationalization underlies the predictive tool built on those measures."
+  },
+  {
+    "prerequisite": "semantic_relatedness_judgment_task_as_an_fmri_paradigm_for_probing_creativity_relevant_semantic_memory",
+    "dependent": "higher_creative_individuals_show_lower_neural_activity_during_remote_relatedness_judgments",
+    "reason": "The fMRI relatedness judgment paradigm is the method generating the lower-neural-activity finding in higher creatives."
+  },
+  {
+    "prerequisite": "psychometric_network_analysis_as_a_tool_for_identifying_aesthetic_response_dimensions",
+    "dependent": "hominess_as_a_novel_aesthetic_dimension_unique_to_architectural_interiors",
+    "reason": "The PNA/PCA method for identifying aesthetic dimensions is needed to discover hominess as a distinct dimension."
+  },
+  {
+    "prerequisite": "three_psychological_dimensions_of_aesthetic_response_to_architectural_interiors",
+    "dependent": "hominess_covaries_with_left_cuneus_activity_during_approach_avoidance_decisions_only",
+    "reason": "The three behaviorally derived dimensions, including hominess, are prerequisites for using hominess scores as a neural regressor."
+  },
+  {
+    "prerequisite": "large_scale_semantic_network_analysis_as_empirical_basis_for_hub_identification",
+    "dependent": "hub_type_as_cue_word_property_in_aut_as_experimental_method",
+    "reason": "Identifying hubs from a large-scale semantic network is required before using hub type as an experimental cue-word property."
+  },
+  {
+    "prerequisite": "overlap_between_question_asking_and_prompt_engineering",
+    "dependent": "human_machine_interaction_as_a_context_for_question_asking_and_prompt_engineering_convergence",
+    "reason": "Establishing the overlap between the two skills supports framing human-machine interaction as a context for their convergence."
+  },
+  {
+    "prerequisite": "network_science_model_of_improvised_tonal_music_melodic_patterns",
+    "dependent": "human_sensitivity_to_melodic_network_distance_property",
+    "reason": "The melodic network model defines the distance property humans are then shown to be sensitive to."
+  },
+  {
+    "prerequisite": "behavioral_paradigm_paralleling_language_network_experiments_applied_to_music",
+    "dependent": "human_sensitivity_to_melodic_network_distance_property",
+    "reason": "The behavioral paradigm is the method used to demonstrate human sensitivity to melodic network distance."
+  },
+  {
+    "prerequisite": "gpt_3_5_produces_sparser_forma_mentis_networks_with_weaker_clustering",
+    "dependent": "human_stem_mindsets_show_higher_clustering_than_gpt_3_5_simulated_mindsets",
+    "reason": "Finding GPT-3.5's sparser, weaker-clustering networks is the comparative basis for the human-vs-GPT clustering difference."
+  },
+  {
+    "prerequisite": "frequency_based_operationalization_of_originality_score",
+    "dependent": "ideation_fluency_predicts_originality_across_creative_tasks",
+    "reason": "An objective originality score operationalization is needed to test whether fluency predicts originality."
+  },
+  {
+    "prerequisite": "modularity_effects_on_network_evolution_and_stability",
+    "dependent": "implications_for_immunization_strategies_in_modular_networks",
+    "reason": "Understanding modularity's effects on network behavior is prerequisite to deriving immunization implications."
+  },
+  {
+    "prerequisite": "associative_thought_enhances_scene_gist_memory_but_impairs_scene_detail_memory",
+    "dependent": "implicit_scene_labeling_as_mechanism_linking_associative_thought_to_scene_gist_memory",
+    "reason": "The observed gist-memory enhancement is the phenomenon that the implicit scene labeling mechanism is proposed to explain."
+  },
+  {
+    "prerequisite": "mind_as_network_metaphor_evaluation",
+    "dependent": "incompleteness_of_network_representation_for_full_cognitive_science",
+    "reason": "Evaluating the limits of the mind-as-network metaphor leads to the conclusion that network representation is incomplete for cognitive science."
+  },
+  {
+    "prerequisite": "tdcs_over_lpfc_as_method_for_probing_cognitive_control_in_creativity",
+    "dependent": "independent_rater_scoring_of_novelty_and_appropriateness_for_creative_responses",
+    "reason": "The tDCS sentence-completion task produces the creative responses that independent raters then score."
+  },
+  {
+    "prerequisite": "individual_based_semantic_network_construction_for_creativity_research",
+    "dependent": "individual_based_semantic_memory_network_construction_via_relatedness_judgment_task_for_creativity_and_metacognition_research",
+    "reason": "The general individual-based semantic network construction approach grounds the relatedness-judgment-based construction for creativity and metacognition."
+  },
+  {
+    "prerequisite": "individual_based_semantic_network_construction_from_relatedness_judgments_in_aging_research",
+    "dependent": "individual_differences_in_vocabulary_knowledge_account_for_age_related_semantic_network_disparities",
+    "reason": "Constructing individual networks from relatedness judgments enables linking vocabulary individual differences to age-related network disparities."
+  },
+  {
+    "prerequisite": "network_science_methodology_for_quantifying_problem_representation_change",
+    "dependent": "individual_semantic_network_estimation_from_relatedness_judgments_for_problem_solving_research",
+    "reason": "The methodology for quantifying problem representation change relies on estimating individual semantic networks from relatedness judgments."
+  },
+  {
+    "prerequisite": "novel_embodied_coding_scheme_for_divergent_thinking_responses",
+    "dependent": "individual_differences_in_creativity_modulate_embodied_strategy_use_over_time",
+    "reason": "The embodied coding scheme is the tool that enables detecting creativity-level modulation of embodied strategy use."
+  },
+  {
+    "prerequisite": "exploratory_application_of_embodied_coding_to_an_existing_divergent_thinking_dataset",
+    "dependent": "individual_differences_in_creativity_modulate_embodied_strategy_use_over_time",
+    "reason": "Applying the coding scheme to a dataset is the analysis from which the individual-differences-over-time finding emerges."
+  },
+  {
+    "prerequisite": "mental_lexicon_as_complex_multilayer_cognitive_system",
+    "dependent": "individual_differences_in_creativity_reflect_differences_in_full_mental_lexicon_not_only_semantics",
+    "reason": "Framing the lexicon as a multilayer system underlies the argument that creativity differences extend beyond semantics to the full lexicon."
+  },
+  {
+    "prerequisite": "vocabulary_knowledge_predicts_semantic_network_structure_across_age_groups",
+    "dependent": "individual_differences_in_vocabulary_knowledge_account_for_age_related_semantic_network_disparities",
+    "reason": "Showing vocabulary predicts network structure is prerequisite to claiming vocabulary differences account for age-related disparities."
+  },
+  {
+    "prerequisite": "cognitive_networks_as_framework_for_knowledge_modelling_and_learning",
+    "dependent": "interdisciplinary_synthesis_of_cognitive_network_science_for_knowledge_and_learning",
+    "reason": "Positioning cognitive networks as a framework for knowledge and learning underlies the interdisciplinary synthesis of that work."
+  },
+  {
+    "prerequisite": "process_definition_of_creativity",
+    "dependent": "internal_attention_as_first_criterion",
+    "reason": "The internal attention criterion is one component of the broader process definition of creativity."
+  },
+  {
+    "prerequisite": "intro_psych_test_as_cumulative_knowledge_measure_for_grouping_students",
+    "dependent": "high_knowledge_students_semantic_memory_networks_become_more_interconnected_over_time",
+    "reason": "The cumulative knowledge test used to classify students is needed to track high-knowledge students' network changes over time."
+  },
+  {
+    "prerequisite": "task_fmri_validation_of_resting_state_dmn_ecn_switching_findings",
+    "dependent": "inverted_u_relationship_between_dmn_ecn_balance_and_creativity",
+    "reason": "Task-fMRI validation replicating the inverted-U pattern supports establishing the inverted-U relationship between DMN-ECN balance and creativity."
+  },
+  {
+    "prerequisite": "cognitive_basis_of_figurative_language_comprehension_in_context_as_understudied_domain",
+    "dependent": "jabberwocky_context_as_non_supportive_baseline_for_metaphor_comprehension",
+    "reason": "Identifying context-dependence of metaphor comprehension motivates using jabberwocky as a non-supportive baseline."
+  },
+  {
+    "prerequisite": "emotion_co_occurrence_operationalized_via_word_co_occurrence_in_social_media_text",
+    "dependent": "japanese_social_media_corpus_spanning_crises_and_non_crisis_decade_as_empirical_basis",
+    "reason": "The operationalization of emotion co-occurrence via social media text determines the need for and use of the Japanese social media corpus."
+  },
+  {
+    "prerequisite": "neural_correlates_of_semantic_relatedness_judgment_increase_with_semantic_distance",
+    "dependent": "judging_remote_concepts_as_related_is_a_cognitive_mechanism_underlying_creativity",
+    "reason": "Establishing the neural correlates of remote relatedness judgments supports the claim that judging remote concepts as related is a creativity mechanism."
+  },
+  {
+    "prerequisite": "network_science_as_a_quantitative_framework_for_cognitive_systems",
+    "dependent": "key_milestones_for_maturing_cognitive_network_science",
+    "reason": "Establishing network science as a quantitative cognitive framework is prerequisite to outlining milestones for the field's maturation."
+  },
+  {
+    "prerequisite": "vocabulary_knowledge_increases_with_age_as_a_function_of_knowledge_accumulation",
+    "dependent": "individual_differences_in_vocabulary_knowledge_account_for_age_related_semantic_network_disparities",
+    "reason": "The age-related increase in vocabulary grounds the argument that vocabulary individual differences account for network disparities."
+  },
+  {
+    "prerequisite": "knowledge_rich_creative_problem_solving_as_understudied_domain",
+    "dependent": "knowledge_reorganization_as_the_core_cognitive_operation_in_real_world_cps",
+    "reason": "Recognizing knowledge-rich CPS as understudied frames the proposal that knowledge reorganization is its core operation."
+  },
+  {
+    "prerequisite": "network_science_tools_for_quantifying_knowledge_organization_change_over_learning",
+    "dependent": "knowledge_reorganization_measurable_via_network_restructuring",
+    "reason": "The network tools for quantifying knowledge organization change are prerequisite to claiming reorganization is measurable via restructuring."
+  },
+  {
+    "prerequisite": "longitudinal_question_asking_task_design_for_knowledge_acquisition_study",
+    "dependent": "knowledge_acquisition_as_moderator_of_question_asking_specificity_effects",
+    "reason": "The longitudinal questioning task design over a semester is the method enabling the moderation claim about knowledge acquisition."
+  },
+  {
+    "prerequisite": "constructionist_view_of_emotion_as_theoretical_framework_predicting_variability",
+    "dependent": "interoceptive_states_as_key_differentiating_dimension_for_emotion_concept_representation",
+    "reason": "The constructionist framework about emotion variability motivates testing interoceptive states as a differentiating feature of emotion concepts."
+  },
+  {
+    "prerequisite": "graph_theoretical_analysis_of_resting_state_fmri_for_personality_research",
+    "dependent": "hd_eeg_combined_with_connectome_modeling_predicts_individual_creative_behavior_from_resting_state_functional_connectivity",
+    "reason": "Graph-theoretical resting-state analysis methods provide the connectivity-based modeling foundation for predicting creative behavior from resting-state data."
+  },
+  {
+    "prerequisite": "known_heuristic_cues_for_originality_judgment_biases_are_understudied",
+    "dependent": "metacognitive_perspective_on_creative_evaluation_as_understudied_domain",
+    "reason": "The gap in understanding originality judgment cues is a specific instance motivating the broader claim that creative evaluation metacognition is understudied."
+  },
+  {
+    "prerequisite": "originality_judgment_as_self_assessment_of_idea_frequency",
+    "dependent": "known_heuristic_cues_for_originality_judgment_biases_are_understudied",
+    "reason": "Operationalizing originality judgments as self-assessments is needed to frame what cues might bias those judgments."
+  },
+  {
+    "prerequisite": "labor_intensiveness_and_subjectivity_of_manual_creativity_scoring_as_limitation",
+    "dependent": "mbert_and_xlm_roberta_as_multilingual_semantic_distance_models",
+    "reason": "The limitation of manual scoring motivates developing automatic computational semantic distance models."
+  },
+  {
+    "prerequisite": "tedious_preprocessing_of_semantic_data_as_a_barrier_to_semantic_network_analysis",
+    "dependent": "lack_of_accessible_resources_as_a_barrier_to_semantic_network_analysis_adoption",
+    "reason": "Tedious preprocessing is a specific facet of the broader lack of accessible resources hindering adoption."
+  },
+  {
+    "prerequisite": "dsi_as_a_computational_originality_measure_applicable_to_large_scientific_corpora",
+    "dependent": "large_multi_field_scientific_abstract_corpus_as_empirical_basis",
+    "reason": "Applying DSI to large scientific corpora requires assembling the multi-field abstract corpus as its empirical basis."
+  },
+  {
+    "prerequisite": "semantic_flow_as_a_novel_discourse_level_metric_for_characterizing_lexical_semantic_access_in_aphasia",
+    "dependent": "large_scale_aphasia_narrative_corpus_as_empirical_basis_for_semantic_flow_analysis",
+    "reason": "The semantic flow metric defines what corpus of aphasia narratives must be assembled for analysis."
+  },
+  {
+    "prerequisite": "verbal_fluency_task_as_a_method_for_probing_semantic_network_structure_in_ci_children",
+    "dependent": "larger_aspl_and_diameter_in_nh_versus_ci_semantic_networks",
+    "reason": "The verbal fluency method provides the data from which ASPL and diameter comparisons between NH and CI groups are computed."
+  },
+  {
+    "prerequisite": "stereo_eeg_as_a_high_resolution_method_for_probing_dmn_dynamics_during_creativity_tasks",
+    "dependent": "lateral_dmn_sites_drive_gamma_power_changes_while_theta_shows_task_specific_spatial_patterns",
+    "reason": "The high-resolution stereo-EEG method enables detecting region-specific gamma and theta power dynamics within the DMN."
+  },
+  {
+    "prerequisite": "multilayer_network_model_of_phonological_and_semantic_lexical_layers",
+    "dependent": "layer_mediation_suppression_and_facilitation_in_lexical_access",
+    "reason": "The phonological-semantic multilayer model is the structure within which mediation, suppression, and facilitation interactions are revealed."
+  },
+  {
+    "prerequisite": "structural_mri_vbm_as_method_for_localizing_creativity_relevant_grey_matter",
+    "dependent": "lesion_study_approach_reveals_regions_essential_for_divergent_thinking",
+    "reason": "VBM grey-matter localization is the method by which the lesion-based approach identifies regions essential for divergent thinking."
+  },
+  {
+    "prerequisite": "semantic_dementia_as_model_for_studying_semantic_memory_role_in_creativity",
+    "dependent": "lesion_study_approach_reveals_regions_essential_for_divergent_thinking",
+    "reason": "Using SD as a neurological model is a prerequisite for the lesion-based dissociation approach to divergent thinking."
+  },
+  {
+    "prerequisite": "faster_and_further_phenomenology_in_creativity",
+    "dependent": "limitations_of_executive_accounts_in_explaining_faster_and_further_phenomenology",
+    "reason": "The faster-and-further phenomenon must be established as the target before arguing executive accounts cannot fully explain it."
+  },
+  {
+    "prerequisite": "associative_thinking_as_a_core_mechanism_of_creativity",
+    "dependent": "link_between_associative_thinking_and_episodic_memory_systems",
+    "reason": "The role of associative thinking in creativity is prerequisite to proposing it draws on episodic memory systems."
+  },
+  {
+    "prerequisite": "standardized_creativity_tasks_as_evaluation_method_for_llm_creative_diversity",
+    "dependent": "llm_creative_outputs_are_more_homogeneous_than_human_creative_outputs",
+    "reason": "The standardized task evaluation method provides the basis for measuring and concluding LLM homogeneity."
+  },
+  {
+    "prerequisite": "pre_to_post_semnet_change_as_operational_measure_of_representational_restructuring",
+    "dependent": "local_versus_global_restructuration_specificity_in_problem_solving",
+    "reason": "Measuring restructuring via SemNet change is prerequisite to distinguishing local from global restructuration specificity."
+  },
+  {
+    "prerequisite": "associative_creativity_sparker_acs_as_a_cognitive_network_science_tool_for_breaking_creative_impasse",
+    "dependent": "location_of_word_recommendations_affects_fluency_and_originality_in_creative_idea_generation",
+    "reason": "The ACS tool generating positioned recommendations is prerequisite to testing how recommendation location affects creative output."
+  },
+  {
+    "prerequisite": "near_term_applicability_to_fields_with_extensive_neuroimaging_data",
+    "dependent": "long_term_potential_to_advance_creativity_ontology_via_neuroimaging_growth",
+    "reason": "The reliance on neuroimaging data establishes the condition that long-term ontology advancement depends on growing data availability."
+  },
+  {
+    "prerequisite": "open_ended_question_asking_as_understudied_due_to_naturalistic_study_challenges",
+    "dependent": "longitudinal_question_asking_task_design_for_knowledge_acquisition_study",
+    "reason": "Recognizing question-asking as understudied motivates designing the longitudinal task to capture its development."
+  },
+  {
+    "prerequisite": "verbal_fluency_tasks_as_method_for_estimating_semantic_memory_networks_in_students",
+    "dependent": "longitudinal_semantic_network_analysis_of_undergraduate_learning",
+    "reason": "Verbal fluency estimation of semantic networks is the method underlying the longitudinal undergraduate learning analysis."
+  },
+  {
+    "prerequisite": "free_association_paradigm_as_a_window_into_semantic_memory_structure",
+    "dependent": "low_creative_semantic_networks_are_more_rigid_and_fragmented",
+    "reason": "The free association paradigm provides the empirical basis for characterizing low-creative networks as rigid and fragmented."
+  },
+  {
+    "prerequisite": "viable_cluster_as_core_structure_of_multiplex_mental_lexicon",
+    "dependent": "majority_of_associative_fluency_responses_align_with_mvt_predictions",
+    "reason": "Understanding the viable cluster's structure is foundational for interpreting how fluency search aligns with foraging predictions."
+  },
+  {
+    "prerequisite": "mvt_as_framework_for_semantic_memory_search_during_associative_fluency",
+    "dependent": "lower_entropy_of_viable_cluster_access_in_high_creatives",
+    "reason": "The MVT search framework provides the foraging context against which entropy of cluster access in high creatives is interpreted."
+  },
+  {
+    "prerequisite": "complex_network_structure_influences_processes_operating_within_a_system",
+    "dependent": "map_and_vehicle_framework_in_cognitive_network_science",
+    "reason": "The premise that network structure shapes processes underlies the map (structure) and vehicle (process) metaphor framework."
+  },
+  {
+    "prerequisite": "english_language_bias_in_semantic_distance_creativity_research",
+    "dependent": "mbert_and_xlm_roberta_as_multilingual_semantic_distance_models",
+    "reason": "Identifying English-language bias motivates adopting multilingual models to extend semantic distance scoring across languages."
+  },
+  {
+    "prerequisite": "large_scale_semantic_network_analysis_as_empirical_basis_for_hub_identification",
+    "dependent": "medial_temporal_hub_organization_negatively_predicts_creative_ability",
+    "reason": "Identifying hub structure in semantic networks is prerequisite to relating medial-temporal hubness to creative ability."
+  },
+  {
+    "prerequisite": "associative_theory_of_creativity_as_research_framework",
+    "dependent": "mental_imagery_role_in_creativity_as_understudied_from_a_semantic_memory_perspective",
+    "reason": "The semantic-memory-based associative framework is prerequisite to framing mental imagery as understudied from that perspective."
+  },
+  {
+    "prerequisite": "semantic_feature_indicators_derived_from_writing_texts_as_method_for_quantifying_integration_and_reorganization",
+    "dependent": "mental_imagery_strategy_use_outperforms_semantic_understanding_strategy_use_in_creative_writing",
+    "reason": "The semantic feature indicators method underlies the comparison showing imagery outperforms semantic understanding in creative writing."
+  },
+  {
+    "prerequisite": "multiple_interactive_cognitive_levels_influence_word_acquisition_storage_and_processing",
+    "dependent": "mental_lexicon_as_complex_multilayer_cognitive_system",
+    "reason": "Evidence that multiple cognitive levels influence words is foundational to framing the lexicon as a multilayer system."
+  },
+  {
+    "prerequisite": "prediction_of_high_level_cognition_from_mental_navigation_measures_via_regression",
+    "dependent": "mental_navigation_as_a_common_mechanism_for_intelligence_creativity_and_openness",
+    "reason": "The regression prediction of high-level cognition from navigation measures provides the evidence for navigation as a shared mechanism."
+  },
+  {
+    "prerequisite": "information_seeking_as_the_unifying_mechanism_linking_curiosity_to_creativity_and_aesthetics",
+    "dependent": "mesolimbic_dopaminergic_reward_system_underpins_information_seeking_in_curiosity_creativity_and_aesthetics",
+    "reason": "Establishing information-seeking as the unifying behavior is prerequisite to identifying its dopaminergic reward substrate."
+  },
+  {
+    "prerequisite": "nct_as_a_quantitative_framework_for_cognitive_control_in_high_level_cognition",
+    "dependent": "meta_analytic_structure_in_neural_activity_as_guide_for_task_selection",
+    "reason": "A quantitative neural framework underlies the use of meta-analytic neural structure to guide creativity task selection."
+  },
+  {
+    "prerequisite": "neurosynth_meta_analytic_maps_for_creativity_constructs",
+    "dependent": "meta_analytic_structure_in_neural_activity_as_guide_for_task_selection",
+    "reason": "Meta-analytic neural maps for constructs are prerequisite to leveraging neural similarity structure to guide task selection."
+  },
+  {
+    "prerequisite": "map_and_vehicle_framework_in_cognitive_network_science",
+    "dependent": "mind_as_network_metaphor_evaluation",
+    "reason": "Evaluating the mind-as-network metaphor builds on the dominant map-and-vehicle framing it critiques."
+  },
+  {
+    "prerequisite": "stereo_eeg_as_a_high_resolution_method_for_probing_dmn_dynamics_during_creativity_tasks",
+    "dependent": "mind_wandering_and_alternate_uses_tasks_as_proxies_for_spontaneous_and_divergent_thought_in_intracranial_research",
+    "reason": "The intracranial stereo-EEG recording context is prerequisite to operationalizing these tasks as proxies within that paradigm."
+  },
+  {
+    "prerequisite": "product_focused_standard_definition_is_insufficient",
+    "dependent": "minimal_necessity_and_sufficiency_criteria_for_creativity",
+    "reason": "Identifying insufficiency of the product definition motivates the search for minimal necessary and sufficient process criteria."
+  },
+  {
+    "prerequisite": "modularity_effects_on_network_evolution_and_stability",
+    "dependent": "missing_analytical_framework_for_modularity_and_vulnerability_as_key_research_gap",
+    "reason": "Known modularity effects on networks set up the gap that no analytical framework yet links modularity to vulnerability."
+  },
+  {
+    "prerequisite": "multilayer_network_theory_as_basis_for_modular_resilience_analysis",
+    "dependent": "modular_complex_network_resilience_under_targeted_attacks",
+    "reason": "Multilayer network theory provides the formal basis for analyzing modular network resilience under targeted attacks."
+  },
+  {
+    "prerequisite": "modular_structure_of_semantic_network_both_facilitates_routine_retrieval_and_impedes_creativity",
+    "dependent": "creative_block_as_rooted_in_semantic_memory_network_entrapment",
+    "reason": "The modular constraint on inter-module bridging underlies framing creative block as entrapment in a network region."
+  },
+  {
+    "prerequisite": "montessori_vs_traditional_education_comparison_design_with_matched_groups",
+    "dependent": "montessori_education_produces_more_flexible_semantic_network_structure",
+    "reason": "The matched-group comparison design enables attributing the more flexible semantic network structure to Montessori education."
+  },
+  {
+    "prerequisite": "computational_network_science_for_studying_child_semantic_memory_across_educational_contexts",
+    "dependent": "montessori_vs_traditional_education_comparison_design_with_matched_groups",
+    "reason": "The cross-educational network science approach is the methodological foundation for designing the matched-group comparison."
+  },
+  {
+    "prerequisite": "split_visual_field_paradigm_for_hemispheric_creativity_research",
+    "dependent": "mooney_face_and_silhouette_recognition_as_unconventional_visual_creativity_measures",
+    "reason": "The hemispheric paradigm context motivates using unconventional recognition tasks as creativity measures."
+  },
+  {
+    "prerequisite": "neglect_of_motor_system_in_mechanistic_creativity_models",
+    "dependent": "motor_system_involvement_in_creative_thought_generation",
+    "reason": "Identifying the gap in motor-system accounts motivates the argument for motor involvement in creative generation."
+  },
+  {
+    "prerequisite": "neuroimaging_evidence_for_functionally_necessary_motor_role_in_creativity",
+    "dependent": "motor_system_involvement_in_creative_thought_generation",
+    "reason": "Neuroimaging evidence of a necessary motor role supports the broader claim of motor system involvement."
+  },
+  {
+    "prerequisite": "text_mining_as_a_method_for_measuring_cognitive_potential_of_questions",
+    "dependent": "multi_dimensional_question_coding_scheme_for_complexity_originality_and_relevance",
+    "reason": "The text-mining framework for question cognitive potential underlies the multi-dimensional coding scheme."
+  },
+  {
+    "prerequisite": "question_originality_and_relevance_as_measurable_dimensions_alongside_complexity",
+    "dependent": "multi_dimensional_question_coding_scheme_for_complexity_originality_and_relevance",
+    "reason": "Establishing originality and relevance as measurable dimensions is a building block for the composite coding scheme."
+  },
+  {
+    "prerequisite": "individual_semantic_networks_estimated_from_relatedness_judgment_task",
+    "dependent": "multi_echo_fmri_for_creativity_and_semantic_memory_research",
+    "reason": "The relatedness judgment paradigm is the task during which multi-echo fMRI was acquired."
+  },
+  {
+    "prerequisite": "cross_layer_efficiency_gain_concentrated_in_shorter_distances",
+    "dependent": "multilayer_efficiency_linked_to_weak_semantic_relations_in_cue_words",
+    "reason": "The localization of efficiency gain to shorter distances is a prerequisite finding for linking efficiency to weak semantic relations."
+  },
+  {
+    "prerequisite": "multilayer_network_formalism_introduction_for_cognitive_science",
+    "dependent": "multilayer_community_detection_enables_contextual_meaning_reconstruction",
+    "reason": "The formal introduction to multilayer networks is needed before community detection methods can be applied."
+  },
+  {
+    "prerequisite": "mental_lexicon_as_complex_multilayer_cognitive_system",
+    "dependent": "multilayer_network_framework_for_mental_lexicon_review",
+    "reason": "Framing the lexicon as a multilayer system motivates reviewing the multilayer network framework."
+  },
+  {
+    "prerequisite": "multiple_interactive_cognitive_levels_influence_word_acquisition_storage_and_processing",
+    "dependent": "multilayer_network_model_of_phonological_and_semantic_lexical_layers",
+    "reason": "Evidence that multiple cognitive levels influence words motivates constructing a multilayer model with separate layers."
+  },
+  {
+    "prerequisite": "cognitive_multilayer_networks_as_framework_for_mental_lexicon",
+    "dependent": "multilayer_network_science_as_tool_for_quantifying_lexical_access_models",
+    "reason": "The multilayer framework for the lexicon underlies using multilayer network science to quantify lexical access models."
+  },
+  {
+    "prerequisite": "modularity_effects_on_network_evolution_and_stability",
+    "dependent": "multilayer_network_theory_as_basis_for_modular_resilience_analysis",
+    "reason": "Established modularity effects motivate building multilayer-network-based resilience analysis."
+  },
+  {
+    "prerequisite": "mbert_and_xlm_roberta_as_multilingual_semantic_distance_models",
+    "dependent": "multilingual_semantic_distance_validation_on_aut_across_12_languages",
+    "reason": "The multilingual deep learning models are the computational tools enabling cross-language semantic distance validation."
+  },
+  {
+    "prerequisite": "multiple_interactive_cognitive_levels_influence_word_acquisition_storage_and_processing",
+    "dependent": "multiplex_lexical_network_combining_semantics_and_phonology",
+    "reason": "Evidence for multiple interacting cognitive levels motivates combining semantic and phonological layers in a multiplex network."
+  },
+  {
+    "prerequisite": "semantic_fluency_task_as_window_into_multiplex_lexical_navigation",
+    "dependent": "multiplex_network_distance_as_creativity_index",
+    "reason": "Modeling fluency as navigation on the multiplex network is needed before multiplex distance can index creativity."
+  },
+  {
+    "prerequisite": "melodic_distance_in_pitch_sequence_network_predicts_perceived_melodic_relatedness",
+    "dependent": "music_and_language_share_analogous_complex_network_structure",
+    "reason": "The melodic-distance/relatedness finding parallels language network findings, supporting the analogy claim."
+  },
+  {
+    "prerequisite": "quadratic_relationship_between_melodic_network_distance_and_reaction_time",
+    "dependent": "music_and_language_share_analogous_complex_network_structure",
+    "reason": "The quadratic RT pattern mirroring language studies provides evidence for the music-language analogy."
+  },
+  {
+    "prerequisite": "polysemous_word_associative_fluency_task_as_paradigm_for_neurocognitive_search_study",
+    "dependent": "mvt_as_framework_for_semantic_memory_search_during_associative_fluency",
+    "reason": "The polysemous fluency paradigm provides the empirical setting for applying the MVT framework to semantic search."
+  },
+  {
+    "prerequisite": "mvt_as_framework_for_semantic_memory_search_during_associative_fluency",
+    "dependent": "mvt_deviant_search_patterns_as_novel_semantic_search_measure",
+    "reason": "The MVT framework must be applied before deviations from its predictions can be defined as a measure."
+  },
+  {
+    "prerequisite": "two_study_replication_design_for_creativity_learning_mechanism",
+    "dependent": "naturalistic_creativity_tasks_extend_the_creativity_learning_effect",
+    "reason": "The two-study design including naturalistic tasks is the methodological basis for extending the creativity-learning effect."
+  },
+  {
+    "prerequisite": "creativity_predicts_associative_learning_outcomes",
+    "dependent": "naturalistic_creativity_tasks_extend_the_creativity_learning_effect",
+    "reason": "The basic creativity-learning relationship must be established before it can be extended with naturalistic tasks."
+  },
+  {
+    "prerequisite": "nct_as_a_quantitative_framework_for_cognitive_control_in_high_level_cognition",
+    "dependent": "nct_anatomical_fingerprint_model_of_regional_brain_dynamics",
+    "reason": "The NCT framework underlies the anatomical fingerprint model of regional dynamics."
+  },
+  {
+    "prerequisite": "rumination_and_impaired_inhibition_as_core_neurocognitive_targets_for_nct_in_depression",
+    "dependent": "nct_application_to_creativity_and_intelligence_via_dti",
+    "reason": "These two are sibling NCT applications; the depression-target framing does not precede creativity application, so this should not be proposed.  (Adjusting.)"
+  },
+  {
+    "prerequisite": "nct_anatomical_fingerprint_model_of_regional_brain_dynamics",
+    "dependent": "nct_application_to_creativity_and_intelligence_via_dti",
+    "reason": "The anatomical fingerprint model of NCT is the methodological foundation for applying NCT to creativity and intelligence."
+  },
+  {
+    "prerequisite": "fragmentation_of_creative_cognition_research_as_a_critical_barrier_to_consensus",
+    "dependent": "need_for_standardized_measures_in_creative_cognition_research",
+    "reason": "The identified fragmentation barrier motivates the call for standardized measures."
+  },
+  {
+    "prerequisite": "japanese_social_media_corpus_spanning_crises_and_non_crisis_decade_as_empirical_basis",
+    "dependent": "network_based_computational_framework_for_emotion_co_occurrence_dynamics_in_social_media",
+    "reason": "The large-scale social media corpus is the empirical basis for the network-based emotion co-occurrence framework."
+  },
+  {
+    "prerequisite": "association_correlations_as_a_method_for_probing_global_lexicon_structure",
+    "dependent": "network_properties_of_hebrew_lexicon_influence_semantic_search_processes",
+    "reason": "The global lexicon structure method establishes the network properties that influence semantic search."
+  },
+  {
+    "prerequisite": "association_dependencies_as_a_method_for_probing_local_lexicon_structure",
+    "dependent": "network_properties_of_hebrew_lexicon_influence_semantic_search_processes",
+    "reason": "The local dependency structure method establishes local properties that shape semantic search processes."
+  },
+  {
+    "prerequisite": "first_within_subject_demonstration_of_neural_dynamics_in_creative_generation_vs_evaluation",
+    "dependent": "network_reconfiguration_as_neural_marker_of_creative_idea_generation",
+    "reason": "The within-subject demonstration of generation vs evaluation dynamics establishes reconfiguration as the marker of creative generation."
+  },
+  {
+    "prerequisite": "network_representations_of_cognition_beyond_metaphor",
+    "dependent": "network_science_as_tool_for_making_assumptions_visible",
+    "reason": "Treating networks as formal representations beyond metaphor underlies the argument that network science makes assumptions visible."
+  },
+  {
+    "prerequisite": "scope_limitations_of_cognitive_network_science_to_date",
+    "dependent": "network_science_application_to_cognition_as_underutilized_relative_to_brain",
+    "reason": "Recognizing limited scope of cognitive network science supports the claim it is underutilized relative to brain applications."
+  },
+  {
+    "prerequisite": "varied_node_and_edge_definitions_as_a_methodological_strength_of_network_science_in_psychology",
+    "dependent": "network_science_applications_across_experimental_psychology_topics",
+    "reason": "Flexible node and edge definitions enable the wide range of network science applications across psychology topics."
+  },
+  {
+    "prerequisite": "role_of_knowledge_and_semantic_memory_in_high_level_cognition",
+    "dependent": "network_science_applied_to_semantic_memory_for_creativity_research_program",
+    "reason": "The central goal of investigating semantic memory in high-level cognition underlies the network science research program."
+  },
+  {
+    "prerequisite": "network_science_metrics_reveal_information_unavailable_from_conventional_approaches",
+    "dependent": "network_science_as_a_quantitative_framework_for_cognitive_systems",
+    "reason": "The claim that network metrics reveal unique information supports framing network science as a quantitative cognitive framework."
+  },
+  {
+    "prerequisite": "extension_of_network_science_methodology_to_melodic_pattern_modeling",
+    "dependent": "network_science_model_of_improvised_tonal_music_melodic_patterns",
+    "reason": "Extending network methodology to melodic patterns underlies constructing the specific improvised-music network model."
+  },
+  {
+    "prerequisite": "cognitive_network_science_as_tool_for_measuring_student_learning_organization",
+    "dependent": "network_science_tools_for_quantifying_knowledge_organization_change_over_learning",
+    "reason": "Using network science to measure learning organization underlies quantifying its change over learning."
+  },
+  {
+    "prerequisite": "sensorimotor_grounding_increases_for_narrative_embedded_metaphors_relative_to_jabberwocky_embedded_metaphors",
+    "dependent": "neural_correlates_of_novel_metaphor_comprehension_vary_with_contextual_support",
+    "reason": "The increased sensorimotor grounding finding is evidence that neural correlates vary with contextual support."
+  },
+  {
+    "prerequisite": "narrative_context_eliminates_neural_distinction_between_novel_metaphors_and_literal_sentences",
+    "dependent": "neural_correlates_of_novel_metaphor_comprehension_vary_with_contextual_support",
+    "reason": "The elimination of neural distinction under narrative context is direct evidence that neural correlates vary with context."
+  },
+  {
+    "prerequisite": "understudied_neural_dynamics_of_generation_versus_evaluation_in_creativity",
+    "dependent": "neural_dynamics_differ_between_creative_idea_generation_and_evaluation",
+    "reason": "Identifying the gap in understanding generation vs evaluation dynamics motivates the finding that they differ neurally."
+  },
+  {
+    "prerequisite": "fmri_reanalysis_linking_behavioral_aesthetic_dimensions_to_neural_activity",
+    "dependent": "neural_sensitivity_to_psychological_dimensions_is_not_reducible_to_global_image_properties",
+    "reason": "The fMRI reanalysis linking dimensions to neural activity provides the basis for arguing neural sensitivity exceeds low-level image properties."
+  },
+  {
+    "prerequisite": "rsa_based_approach_for_identifying_creativity_task_construct_fit",
+    "dependent": "neurally_informed_ontology_of_creativity_measurement",
+    "reason": "The RSA-based task-construct fit approach is a methodological prerequisite for building a neurally informed creativity ontology."
+  },
+  {
+    "prerequisite": "neurosynth_meta_analytic_maps_for_creativity_constructs",
+    "dependent": "neurally_informed_ontology_of_creativity_measurement",
+    "reason": "Meta-analytic neural maps for constructs provide the data foundation for a neurally informed ontology."
+  },
+  {
+    "prerequisite": "researcher_survey_as_basis_for_creativity_construct_similarity_model",
+    "dependent": "neurosynth_meta_analytic_maps_for_creativity_constructs",
+    "reason": "The survey-derived construct model defines which constructs the meta-analytic maps must be generated for."
+  },
+  {
+    "prerequisite": "novel_embodied_coding_scheme_for_divergent_thinking_responses",
+    "dependent": "new_hypotheses_about_creative_response_generation_from_embodied_analysis",
+    "reason": "The hypotheses are generated by applying the embodied coding scheme to creative response data."
+  },
+  {
+    "prerequisite": "individual_differences_in_creativity_modulate_embodied_strategy_use_over_time",
+    "dependent": "new_hypotheses_about_creative_response_generation_from_embodied_analysis",
+    "reason": "Observed creativity-dependent embodied strategy patterns provide the empirical basis for new hypotheses about generation mechanisms."
+  },
+  {
+    "prerequisite": "link_between_associative_thinking_and_episodic_memory_systems",
+    "dependent": "new_perspective_on_a_longstanding_creativity_theory",
+    "reason": "Linking associative thinking to episodic memory systems is the substantive basis for the new perspective on classic creativity theory."
+  },
+  {
+    "prerequisite": "text_mining_as_a_method_for_measuring_cognitive_potential_of_questions",
+    "dependent": "nlp_methods_applied_to_five_creativity_relevant_question_datasets",
+    "reason": "The text-mining/NLP framework is the method that gets applied to the five datasets."
+  },
+  {
+    "prerequisite": "verbal_creativity_linked_to_unconventional_visual_recognition_in_experiment_1",
+    "dependent": "non_specialized_hemisphere_recruits_for_unconventional_stimulus_processing",
+    "reason": "Establishing that verbal creativity links to unconventional recognition precedes the hemispheric attribution to the non-specialized hemisphere."
+  },
+  {
+    "prerequisite": "graph_theoretical_analysis_of_resting_state_fmri_for_personality_research",
+    "dependent": "normal_personality_variation_influences_intrinsic_brain_network_architecture",
+    "reason": "The graph-theoretical analysis method provides the evidence supporting the claim that personality variation shapes brain network architecture."
+  },
+  {
+    "prerequisite": "embodied_grounded_cognition_framework_for_creativity",
+    "dependent": "novel_embodied_coding_scheme_for_divergent_thinking_responses",
+    "reason": "The grounded cognition framework provides the theoretical basis for devising the embodied coding dimensions."
+  },
+  {
+    "prerequisite": "nct_anatomical_fingerprint_model_of_regional_brain_dynamics",
+    "dependent": "novel_roles_of_lingual_and_lateral_occipital_gyri_in_depression",
+    "reason": "The NCT controllability model is required to characterize the regions' roles in driving brain states in depression."
+  },
+  {
+    "prerequisite": "creativity_predicts_associative_learning_outcomes",
+    "dependent": "novel_word_associations_predict_foreign_language_learning",
+    "reason": "The general creativity-learning finding underlies the specific result that novel associations predict foreign language learning."
+  },
+  {
+    "prerequisite": "associative_creativity_sparker_acs_as_a_cognitive_network_science_tool_for_breaking_creative_impasse",
+    "dependent": "novice_and_experienced_writers_differentially_benefit_from_word_recommendations",
+    "reason": "The ACS tool must exist and produce recommendations before differential expertise benefits can be tested."
+  },
+  {
+    "prerequisite": "writing_experience_as_a_moderator_of_semantic_priming_benefits_for_creativity",
+    "dependent": "novice_and_experienced_writers_differentially_benefit_from_word_recommendations",
+    "reason": "The hypothesis that writing experience moderates priming benefits frames and predicts the novice/experienced difference."
+  },
+  {
+    "prerequisite": "quantitative_semantic_distance_as_a_direct_probe_of_semantic_memory_s_role_in_creativity",
+    "dependent": "objective_measurement_of_creative_output_via_semantic_distance",
+    "reason": "Establishing semantic distance as a measurable probe is prerequisite to using it for objective creativity measurement."
+  },
+  {
+    "prerequisite": "older_adults_semantic_networks_are_less_flexible_than_younger_adults",
+    "dependent": "older_adult_free_recall_decline_linked_to_temporal_context_reinstatement_and_network_rigidity",
+    "reason": "The finding of less flexible older-adult semantic networks supports the network-rigidity component of the recall decline explanation."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "older_cohorts_have_less_connected_and_more_segregated_beauty_and_wellness_semantic_networks",
+    "reason": "The beauty/wellness semantic network analysis produces the data needed to compare cohorts' connectivity and segregation."
+  },
+  {
+    "prerequisite": "complex_network_structure_influences_processes_operating_within_a_system",
+    "dependent": "one_network_one_process_assumption_as_pitfall",
+    "reason": "Recognizing that structure shapes processes is needed before critiquing the oversimplified one-network-one-process assumption."
+  },
+  {
+    "prerequisite": "labor_intensiveness_and_subjectivity_of_manual_creativity_scoring_as_limitation",
+    "dependent": "open_access_multilingual_aut_dataset_and_python_scoring_code",
+    "reason": "The limitation of manual scoring motivates providing open automatic scoring code and datasets."
+  },
+  {
+    "prerequisite": "open_ended_question_asking_as_understudied_due_to_naturalistic_study_challenges",
+    "dependent": "spot_the_spy_online_game_as_empirical_platform_for_studying_question_asking",
+    "reason": "The difficulty of studying question-asking naturally motivates building a game platform to capture it."
+  },
+  {
+    "prerequisite": "intelligence_predicts_effective_questioning_strategies_and_game_performance_in_spot_the_spy",
+    "dependent": "optimal_question_asking_strategies_identified_via_gameplay_analysis",
+    "reason": "Identifying which strategies are effective requires linking performance to questioning behavior across players."
+  },
+  {
+    "prerequisite": "lesion_study_approach_reveals_regions_essential_for_divergent_thinking",
+    "dependent": "originality_in_bvftd_correlates_with_letter_fluency_and_response_inhibition",
+    "reason": "The lesion-group comparison design enables dissociating bvFTD's executive correlates of originality."
+  },
+  {
+    "prerequisite": "semantic_dementia_impairs_originality_and_flexibility_of_divergent_thinking",
+    "dependent": "originality_in_sd_correlates_with_semantic_naming_and_comprehension",
+    "reason": "Establishing that SD impairs originality precedes correlating that originality with semantic naming/comprehension ability."
+  },
+  {
+    "prerequisite": "frequency_based_operationalization_of_originality_score",
+    "dependent": "originality_judgment_as_self_assessment_of_idea_frequency",
+    "reason": "The objective frequency-based originality score is the reference against which self-assessed frequency judgments are defined."
+  },
+  {
+    "prerequisite": "indirect_examination_of_semantic_distance_in_creativity_due_to_measurement_challenges",
+    "dependent": "overview_of_quantitative_approaches_to_measuring_semantic_distance_in_creativity_research",
+    "reason": "The historical measurement difficulty motivates surveying the quantitative approaches that now address it."
+  },
+  {
+    "prerequisite": "perceiver_sex_modulates_aging_effect_on_facial_attractiveness",
+    "dependent": "attractiveness_as_multidimensional_construct_varying_by_age_sex_and_judgment_type",
+    "reason": "Sex-of-perceiver modulation of the aging effect is one component supporting the multidimensional, sex-varying construct claim."
+  },
+  {
+    "prerequisite": "verbal_fluency_derived_semantic_networks_for_aging_research",
+    "dependent": "older_adults_semantic_networks_are_less_flexible_than_younger_adults",
+    "reason": "The verbal-fluency-derived networks are the data on which the age-flexibility comparison is computed."
+  },
+  {
+    "prerequisite": "computational_network_science_applied_to_facial_attractiveness_judgments",
+    "dependent": "perceiver_age_modulates_aging_effect_on_facial_attractiveness",
+    "reason": "The network analysis of attractiveness judgments supports characterizing how perceiver age modulates the aging effect."
+  },
+  {
+    "prerequisite": "psychedelic_drugs_modulate_cognitive_flexibility",
+    "dependent": "phenomenological_similarity_between_artificially_induced_and_actual_psychedelic_altered_perception",
+    "reason": "The established psychedelic-cognition link frames the comparison between artificially induced and actual altered perception."
+  },
+  {
+    "prerequisite": "two_stage_problem_solving_design_problem_finding_then_solution_planning",
+    "dependent": "pilot_study_validation_of_the_martian_game",
+    "reason": "The two-stage game design must be specified before its pilot validation can be conducted."
+  },
+  {
+    "prerequisite": "dsi_applied_to_scientific_abstracts_and_titles_predicts_citation_count",
+    "dependent": "positive_association_between_scientific_originality_and_academic_recognition",
+    "reason": "The DSI-citation correlation finding is the evidence supporting the originality-recognition association claim."
+  },
+  {
+    "prerequisite": "scene_labeling_mediates_the_effect_of_associative_thought_on_scene_gist_memory",
+    "dependent": "post_perceptual_associative_processes_influence_higher_order_cognitive_functions_including_memory_consolidation",
+    "reason": "Identifying the labeling mechanism for the memory effect supports the broader claim about post-perceptual associative influence on memory."
+  },
+  {
+    "prerequisite": "network_science_methodology_for_quantifying_problem_representation_change",
+    "dependent": "pre_to_post_semantic_network_change_as_operational_measure_of_representational_restructuring",
+    "reason": "The SemNet change methodology is the basis for operationalizing restructuring as pre-to-post network change."
+  },
+  {
+    "prerequisite": "network_science_methodology_for_quantifying_representational_restructuring",
+    "dependent": "pre_to_post_semnet_change_as_operational_measure_of_representational_restructuring",
+    "reason": "The general restructuring quantification method underlies this specific pre-to-post SemNet operationalization."
+  },
+  {
+    "prerequisite": "forward_flow_as_a_new_metric_for_quantifying_free_thought",
+    "dependent": "predictive_validity_of_free_association_for_psychological_phenomena",
+    "reason": "The forward flow metric is needed to test whether free association streams predict psychological outcomes."
+  },
+  {
+    "prerequisite": "process_definition_of_creativity",
+    "dependent": "process_definition_aligns_with_creativity_neuroscience",
+    "reason": "The process definition must be stated before showing it aligns with creativity neuroscience findings."
+  },
+  {
+    "prerequisite": "minimal_necessity_and_sufficiency_criteria_for_creativity",
+    "dependent": "process_definition_distinguishes_creativity_from_mind_wandering",
+    "reason": "The minimal necessary/sufficient criteria provide the basis for distinguishing creativity from mind-wandering."
+  },
+  {
+    "prerequisite": "individual_semantic_network_estimation_from_relatedness_judgments_for_problem_solving_research",
+    "dependent": "pre_to_post_semnet_change_as_operational_measure_of_representational_restructuring",
+    "reason": "Estimating individual SemNets before and after solving is required to compute pre-to-post change as a restructuring measure."
+  },
+  {
+    "prerequisite": "text_mining_as_a_method_for_measuring_cognitive_potential_of_questions",
+    "dependent": "nlp_has_a_role_to_play_in_creativity_research_on_question_asking",
+    "reason": "The text-mining method's feasibility is the basis for concluding NLP has a role in question-asking research."
+  },
+  {
+    "prerequisite": "large_scale_aphasia_narrative_corpus_as_empirical_basis_for_semantic_flow_analysis",
+    "dependent": "perseveration_as_a_confound_in_aphasia_narrative_semantic_flow",
+    "reason": "The aphasia narrative corpus is required to examine and test the perseveration confound."
+  },
+  {
+    "prerequisite": "process_definition_of_creativity",
+    "dependent": "process_definition_distinguishes_creativity_from_retrieval",
+    "reason": "The distinction from retrieval is an application of the established process definition."
+  },
+  {
+    "prerequisite": "knowledge_rich_creative_problem_solving_as_understudied_domain",
+    "dependent": "process_level_insights_from_knowledge_rich_cps_paradigms",
+    "reason": "Identifying the gap in knowledge-rich CPS sets up the process-level insights drawn from such paradigms."
+  },
+  {
+    "prerequisite": "overlap_between_question_asking_and_prompt_engineering",
+    "dependent": "question_asking_as_a_cognitive_mechanism_for_creative_ideation",
+    "reason": "Establishing the question-asking/prompt overlap supports the broader framing of question asking as a creative cognitive mechanism."
+  },
+  {
+    "prerequisite": "neurally_informed_ontology_of_creativity_measurement",
+    "dependent": "proof_of_concept_for_neurally_informed_creativity_ontology",
+    "reason": "The proposed ontology framework must be established before its proof-of-concept demonstration."
+  },
+  {
+    "prerequisite": "percolation_analysis_as_a_method_for_quantifying_semantic_network_flexibility",
+    "dependent": "propaedeutic_role_of_creativity_in_active_ageing_via_semantic_network_maintenance",
+    "reason": "The percolation method for measuring network flexibility underlies the claim about creativity maintaining semantic networks in aging."
+  },
+  {
+    "prerequisite": "computational_tools_enable_quantification_of_previously_subjective_creativity_constructs",
+    "dependent": "quantitative_semantic_distance_as_a_direct_probe_of_semantic_memory_s_role_in_creativity",
+    "reason": "Computational quantification tools enable using semantic distance as a direct probe of semantic memory's role in creativity."
+  },
+  {
+    "prerequisite": "map_and_vehicle_framework_in_cognitive_network_science",
+    "dependent": "question_of_edge_composition_in_cognitive_networks",
+    "reason": "The structural representation framework underlies questions about what edges in cognitive networks should represent."
+  },
+  {
+    "prerequisite": "entropy_modulation_theory_of_creative_exploration",
+    "dependent": "racing_to_threshold_retrieval_model_underlying_entropy_modulation",
+    "reason": "The race-to-threshold model is an assumed mechanism within the broader entropy modulation theory."
+  },
+  {
+    "prerequisite": "individual_semantic_networks_estimated_from_relatedness_judgment_task",
+    "dependent": "real_life_creative_behavior_relies_on_semantic_memory_neural_substrates",
+    "reason": "Individual semantic networks from relatedness judgments are needed to link semantic memory and neural substrates to real-life creativity."
+  },
+  {
+    "prerequisite": "task_based_functional_connectivity_predicts_creativity_related_semantic_network_properties",
+    "dependent": "real_life_creative_behavior_relies_on_semantic_memory_neural_substrates",
+    "reason": "Demonstrating that task-based connectivity predicts semantic network properties is a basis for claiming creativity relies on those neural substrates."
+  },
+  {
+    "prerequisite": "semna_pipeline_as_a_comprehensive_tutorial_for_semantic_network_analysis",
+    "dependent": "real_world_data_demonstration_of_the_semna_pipeline",
+    "reason": "The SemNA pipeline must be defined before being demonstrated on real-world data."
+  },
+  {
+    "prerequisite": "75_candidate_aesthetic_emotion_rating_instrument_as_empirical_basis",
+    "dependent": "recalled_aesthetic_activities_rated_as_least_vivid_but_most_intense",
+    "reason": "The rating instrument and recalled-activity paradigm provide the data yielding the vividness/intensity finding."
+  },
+  {
+    "prerequisite": "semantic_flow_as_a_novel_discourse_level_metric_for_characterizing_lexical_semantic_access_in_aphasia",
+    "dependent": "reduced_taxonomic_and_thematic_semantic_distance_in_aphasia_narratives_relative_to_controls",
+    "reason": "The semantic flow metric is the method producing the finding of reduced semantic distances in aphasia."
+  },
+  {
+    "prerequisite": "taxonomic_versus_thematic_semantic_distance_as_distinct_dimensions_of_narrative_semantic_flow",
+    "dependent": "reduced_taxonomic_and_thematic_semantic_distance_in_aphasia_narratives_relative_to_controls",
+    "reason": "Defining the two distance dimensions is prerequisite to reporting reductions in both."
+  },
+  {
+    "prerequisite": "network_science_tools_characterize_dynamic_change_in_semantic_networks",
+    "dependent": "relational_but_not_attributive_compounds_increase_semantic_network_connectivity",
+    "reason": "Network tools measuring dynamic change are needed to detect connectivity increases from relational compounds."
+  },
+  {
+    "prerequisite": "network_properties_of_hebrew_lexicon_influence_semantic_search_processes",
+    "dependent": "remote_association_test_performance_linked_to_lexicon_network_topology",
+    "reason": "The claim that lexicon network properties influence search underlies linking RAT performance to network topology."
+  },
+  {
+    "prerequisite": "deepdream_algorithm_as_generator_of_hallucinatory_like_vr_stimuli",
+    "dependent": "reorganization_of_cognitive_dynamics_as_mechanism_for_flexibility_enhancement",
+    "reason": "Generating simulated psychedelic stimuli is prerequisite to proposing reorganized cognitive dynamics as the flexibility mechanism."
+  },
+  {
+    "prerequisite": "nct_applied_to_subclinical_depression_via_dti",
+    "dependent": "replication_and_extension_of_atypical_dmn_ecn_switching_findings_in_depression",
+    "reason": "Applying NCT to depression data is prerequisite to replicating and extending DMN-ECN switching findings."
+  },
+  {
+    "prerequisite": "verbal_fluency_derived_semantic_networks_for_aging_research",
+    "dependent": "replication_of_age_related_flexibility_differences_across_three_independent_datasets",
+    "reason": "Constructing fluency-derived networks across datasets is needed to replicate age-related flexibility differences."
+  },
+  {
+    "prerequisite": "cue_set_size_as_index_of_semantic_richness",
+    "dependent": "replication_of_cue_set_size_effects_across_four_studies",
+    "reason": "The cue set size operationalization underlies the multi-study replication of its effects."
+  },
+  {
+    "prerequisite": "verbal_fluency_derived_networks_index_metaphor_production_ability",
+    "dependent": "replication_of_network_differences_across_semantic_categories",
+    "reason": "Establishing that fluency networks index metaphor ability underlies replicating network differences across categories."
+  },
+  {
+    "prerequisite": "psychometric_network_analysis_of_creative_personality_structure",
+    "dependent": "replication_of_personality_network_findings_across_three_independent_samples",
+    "reason": "The original personality network analysis is what gets replicated across samples."
+  },
+  {
+    "prerequisite": "openness_more_heterogeneous_in_artists_via_higher_network_connectivity",
+    "dependent": "replication_of_personality_network_findings_across_three_independent_samples",
+    "reason": "The openness heterogeneity finding is among the key results replicated across samples."
+  },
+  {
+    "prerequisite": "scientists_personality_network_more_cohesive_than_artists_and_controls",
+    "dependent": "replication_of_personality_network_findings_across_three_independent_samples",
+    "reason": "The scientist cohesion finding is among the key results replicated across samples."
+  },
+  {
+    "prerequisite": "neural_correlates_of_semantic_relatedness_judgment_increase_with_semantic_distance",
+    "dependent": "restriction_to_native_english_speakers_as_boundary_condition",
+    "reason": "Boundary conditions are typically tied to particular empirical samples; however this is weak\u2014removing."
+  },
+  {
+    "prerequisite": "individual_semantic_network_estimation_from_relatedness_judgments_for_problem_solving_research",
+    "dependent": "restructuring_of_semantically_remote_concepts_is_instrumental_in_active_problem_solving",
+    "reason": "Estimating individual semantic networks before/after solving is required to show remote-concept restructuring drives solving."
+  },
+  {
+    "prerequisite": "solution_relevant_versus_irrelevant_term_distinction_in_semantic_network_restructuring",
+    "dependent": "restructuring_of_semantically_remote_concepts_is_instrumental_in_active_problem_solving",
+    "reason": "Distinguishing solution-relevant from remote terms is prerequisite to isolating remote-concept restructuring as instrumental."
+  },
+  {
+    "prerequisite": "cross_llm_creative_homogeneity_as_a_distinct_phenomenon_from_single_llm_narrowing",
+    "dependent": "risk_of_ai_pre_empting_human_creative_agency",
+    "reason": "Cross-LLM homogeneity supports the systemic risk argument that AI could pre-empt human creative agency."
+  },
+  {
+    "prerequisite": "analytical_framework_for_modularity_and_network_vulnerability",
+    "dependent": "robustness_design_principles_for_large_scale_infrastructure_from_modular_resilience_theory",
+    "reason": "The analytical modularity-vulnerability framework underlies deriving robustness design principles for infrastructure."
+  },
+  {
+    "prerequisite": "associative_thinking_as_a_core_mechanism_of_creativity",
+    "dependent": "role_of_associative_thinking_in_the_arts",
+    "reason": "The general claim that associative thinking is core to creativity is prerequisite to specifying its role in the arts."
+  },
+  {
+    "prerequisite": "role_of_knowledge_and_semantic_memory_in_high_level_cognition",
+    "dependent": "role_of_crystallized_knowledge_in_creativity",
+    "reason": "The broader role of knowledge in cognition frames the specific question of crystallized knowledge in creativity."
+  },
+  {
+    "prerequisite": "associative_theory_of_creativity_as_research_framework",
+    "dependent": "role_of_knowledge_and_semantic_memory_in_high_level_cognition",
+    "reason": "The associative theory framework grounds the investigation of knowledge/semantic memory in high-level cognition."
+  },
+  {
+    "prerequisite": "nct_as_a_quantitative_framework_for_cognitive_control_in_high_level_cognition",
+    "dependent": "rumination_and_impaired_inhibition_as_core_neurocognitive_targets_for_nct_in_depression",
+    "reason": "The NCT framework provides the conceptual basis for treating rumination and impaired inhibition as targets for network control analysis."
+  },
+  {
+    "prerequisite": "verbal_fluency_task_as_a_method_for_probing_semantic_network_structure_in_ci_children",
+    "dependent": "sample_matched_vs_word_matched_correlation_networks_as_complementary_analysis_approaches",
+    "reason": "The correlation network construction approaches are applied to the verbal fluency data collected from the CI and NH groups."
+  },
+  {
+    "prerequisite": "chained_free_association_as_experimental_paradigm_for_post_perceptual_associative_processing",
+    "dependent": "scene_labeling_mediates_the_effect_of_associative_thought_on_scene_gist_memory",
+    "reason": "The chained free association paradigm is the experimental method used to test the mediating role of scene labeling."
+  },
+  {
+    "prerequisite": "dsi_as_a_computational_originality_measure_applicable_to_large_scientific_corpora",
+    "dependent": "scibert_vs_bert_comparison_for_dsi_computation_on_scientific_texts",
+    "reason": "DSI applicability to scientific corpora is needed before comparing model variants for computing it."
+  },
+  {
+    "prerequisite": "limitation_of_univariate_personality_creativity_research",
+    "dependent": "scientists_personality_network_more_cohesive_than_artists_and_controls",
+    "reason": "The limitations of univariate work motivate the multivariate network approach that reveals the cohesiveness finding."
+  },
+  {
+    "prerequisite": "heuristic_cues_shape_originality_self_assessment_independently_of_objective_performance",
+    "dependent": "self_evaluations_of_creativity_diverge_from_objective_outcomes_due_to_heuristic_metacognitive_biases",
+    "reason": "The heuristic-cue account of originality self-assessment underlies the broader divergence between self-evaluation and objective outcomes."
+  },
+  {
+    "prerequisite": "associative_theory_of_creativity_as_research_framework",
+    "dependent": "semantic_dementia_as_model_for_studying_semantic_memory_role_in_creativity",
+    "reason": "The associative theory's emphasis on semantic memory motivates using semantic dementia to probe semantic memory's necessity for creativity."
+  },
+  {
+    "prerequisite": "lesion_study_approach_reveals_regions_essential_for_divergent_thinking",
+    "dependent": "semantic_dementia_impairs_divergent_thinking_disproportionately",
+    "reason": "The lesion-study design enables the finding that semantic dementia disproportionately impairs divergent thinking."
+  },
+  {
+    "prerequisite": "lesion_study_approach_reveals_regions_essential_for_divergent_thinking",
+    "dependent": "semantic_dementia_impairs_originality_and_flexibility_of_divergent_thinking",
+    "reason": "The lesion-study comparison underlies the finding about impaired originality and flexibility in semantic dementia."
+  },
+  {
+    "prerequisite": "semantic_dementia_impairs_divergent_thinking_disproportionately",
+    "dependent": "semantic_dementia_impairs_originality_and_flexibility_of_divergent_thinking",
+    "reason": "The disproportionate impairment finding is foundational to characterizing the specific deficits in originality and flexibility."
+  },
+  {
+    "prerequisite": "computational_semantic_distance_applied_to_originality_judgment_research",
+    "dependent": "semantic_distance_as_independent_predictor_of_originality_scores",
+    "reason": "Computing semantic distance is prerequisite to testing it as an independent predictor of objective originality."
+  },
+  {
+    "prerequisite": "semantic_distance_as_independent_predictor_of_originality_scores",
+    "dependent": "semantic_distance_as_metacognitive_cue_for_originality_judgments",
+    "reason": "Establishing that semantic distance predicts objective originality supports its role as a heuristic cue for subjective judgments."
+  },
+  {
+    "prerequisite": "mbert_and_xlm_roberta_as_multilingual_semantic_distance_models",
+    "dependent": "semantic_distance_correlates_medium_to_large_with_human_creativity_ratings_across_languages",
+    "reason": "The multilingual deep learning models are the tools producing the semantic distance scores correlated with human ratings."
+  },
+  {
+    "prerequisite": "multilingual_semantic_distance_validation_on_aut_across_12_languages",
+    "dependent": "semantic_distance_correlates_medium_to_large_with_human_creativity_ratings_across_languages",
+    "reason": "The cross-language validation study generates the correlation findings with human creativity ratings."
+  },
+  {
+    "prerequisite": "multilingual_semantic_distance_validation_on_aut_across_12_languages",
+    "dependent": "semantic_distance_criterion_validity_comparable_to_human_ratings_across_languages",
+    "reason": "The validation study provides the data needed to assess criterion validity against external measures across languages."
+  },
+  {
+    "prerequisite": "touch_imagery_vividness_positively_correlates_with_creative_writing_performance",
+    "dependent": "semantic_feature_indicators_derived_from_writing_texts_as_method_for_quantifying_integration_and_reorganization",
+    "reason": "The behavioral correlation between imagery vividness and creative writing motivates developing text-derived indicators to quantify the underlying semantic processes."
+  },
+  {
+    "prerequisite": "multiplex_lexical_network_combining_semantics_and_phonology",
+    "dependent": "semantic_fluency_task_as_window_into_multiplex_lexical_navigation",
+    "reason": "The multiplex lexical network model is needed before fluency responses can be modeled as navigation over it."
+  },
+  {
+    "prerequisite": "small_world_network_features_of_the_hebrew_mental_lexicon",
+    "dependent": "semantic_free_categories_emerge_from_association_correlation_structure",
+    "reason": "Characterizing the Hebrew lexicon's structure underlies the identification of emergent semantic free categories."
+  },
+  {
+    "prerequisite": "semantic_induction_rsa_similarity_in_ag_pcc_ipl",
+    "dependent": "semantic_induction_increases_divergent_thinking_originality",
+    "reason": "The neural signature of semantic induction supports the behavioral finding that semantic induction increases originality."
+  },
+  {
+    "prerequisite": "associative_theory_of_creativity_as_research_framework",
+    "dependent": "semantic_memory_network_integration_predicts_originality_across_creative_tasks",
+    "reason": "The associative theory motivates linking semantic memory integration to creative originality across tasks."
+  },
+  {
+    "prerequisite": "associative_theory_of_creativity_as_research_framework",
+    "dependent": "semantic_memory_network_properties_predict_real_life_creativity",
+    "reason": "The associative theory provides the theoretical basis for predicting real-life creativity from semantic memory structure."
+  },
+  {
+    "prerequisite": "semantic_memory_network_structure_as_a_driver_of_creative_block",
+    "dependent": "semantic_memory_network_structure_as_indicator_of_learning_quality",
+    "reason": "The view that network structure drives cognitive outcomes generalizes to structure indicating learning quality."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "semantic_verbal_description_network_predicts_preference_for_abstract_art",
+    "reason": "Cannot infer \u2014 removing this incorrect candidate."
+  },
+  {
+    "prerequisite": "semantic_memory_network_integration_predicts_originality_across_creative_tasks",
+    "dependent": "semantic_network_integration_predicts_aut_originality_self_assessment",
+    "reason": "Establishing that integration predicts objective originality is prerequisite to relating integration to self-assessment in the AUT."
+  },
+  {
+    "prerequisite": "semantic_relatedness_judgment_task_as_an_fmri_paradigm_for_probing_creativity_relevant_semantic_memory",
+    "dependent": "semantic_relatedness_judgment_paradigm_for_mixed_concreteness_network_construction",
+    "reason": "The relatedness judgment fMRI paradigm provides the methodological foundation extended to mixed-concreteness network construction."
+  },
+  {
+    "prerequisite": "associative_theory_of_creativity_as_research_framework",
+    "dependent": "semantic_relatedness_judgment_task_as_an_fmri_paradigm_for_probing_creativity_relevant_semantic_memory",
+    "reason": "The associative theory frames the relatedness judgment task as a way to operationalize creativity-relevant semantic memory."
+  },
+  {
+    "prerequisite": "creative_metaphor_production_task_as_creativity_measure",
+    "dependent": "semantic_relatedness_judgment_task_as_method_for_studying_metaphor_comprehension_across_creativity_levels",
+    "reason": "Cannot infer reliably \u2014 removing this incorrect candidate."
+  },
+  {
+    "prerequisite": "prior_evidence_for_semantic_network_flexibility_in_metaphor_comprehension",
+    "dependent": "semantic_relatedness_judgment_task_as_method_for_studying_metaphor_comprehension_across_creativity_levels",
+    "reason": "Prior evidence linking semantic flexibility and metaphor comprehension motivates the relatedness judgment paradigm across creativity levels."
+  },
+  {
+    "prerequisite": "polysemous_word_associative_fluency_task_for_semantic_search",
+    "dependent": "semantic_search_components_as_neurocognitive_correlates_of_creative_ability",
+    "reason": "The fluency task isolating clustering and switching is prerequisite to linking search components to neurocognitive correlates of creativity."
+  },
+  {
+    "prerequisite": "verbal_descriptors_are_important_for_evaluating_abstract_art_empirically",
+    "dependent": "semantic_verbal_description_network_predicts_art_style_affiliation_of_abstract_paintings",
+    "reason": "The argument that verbal descriptors matter supports using verbal-description networks to predict art style."
+  },
+  {
+    "prerequisite": "creativeable_ai_powered_creativity_training_program",
+    "dependent": "semantically_distant_word_prompts_as_creative_story_writing_task_stimulus",
+    "reason": "The Creativeable program is the platform within which distant word prompts are used as story-writing stimuli."
+  },
+  {
+    "prerequisite": "semnetdictionaries_and_semnetcleaner_as_efficient_preprocessing_tools",
+    "dependent": "semna_pipeline_as_a_comprehensive_tutorial_for_semantic_network_analysis",
+    "reason": "The preprocessing packages are components incorporated into the comprehensive SemNA pipeline."
+  },
+  {
+    "prerequisite": "semnet_as_a_graphical_user_interface_driven_network_estimation_and_comparison_tool",
+    "dependent": "semna_pipeline_as_a_comprehensive_tutorial_for_semantic_network_analysis",
+    "reason": "The SemNeT estimation tool is a component used within the full SemNA pipeline tutorial."
+  },
+  {
+    "prerequisite": "embodied_grounded_cognition_framework_for_creativity",
+    "dependent": "sensorimotor_network_supports_sensorimotor_simulations_during_imagery_involved_creative_cognition",
+    "reason": "The grounded cognition framework provides the theoretical basis for sensorimotor simulations during creative cognition."
+  },
+  {
+    "prerequisite": "application_of_bigram_semantic_distance_to_classic_short_fiction",
+    "dependent": "sentence_boundary_punctuation_by_semantic_distance_jumps",
+    "reason": "Applying bigram distance to the short fiction text is the analysis from which the sentence-boundary jump finding emerges."
+  },
+  {
+    "prerequisite": "tdcs_over_lpfc_as_method_for_probing_cognitive_control_in_creativity",
+    "dependent": "sentence_completion_with_uncommon_endings_as_creative_ideation_task",
+    "reason": "The sentence completion task is the creative ideation paradigm used within the tDCS cognitive-control study."
+  },
+  {
+    "prerequisite": "computational_network_science_applied_to_empirical_aesthetics_of_abstract_art",
+    "dependent": "semantic_verbal_description_network_predicts_art_style_affiliation_of_abstract_paintings",
+    "reason": "The network science aesthetics framework is the methodological basis for predicting art style from verbal-description networks."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "sex_differences_in_conceptual_organization_of_beauty_and_wellness",
+    "reason": "The semantic network analysis of beauty and wellness concepts provides the methodological basis for detecting sex differences in conceptual organization."
+  },
+  {
+    "prerequisite": "group_based_semantic_network_estimation_from_free_association_responses_as_method_for_probing_lay_concepts",
+    "dependent": "sex_differences_in_conceptual_organization_of_beauty_and_wellness",
+    "reason": "The group-based network estimation method enables comparison of beauty/wellness networks across sexes."
+  },
+  {
+    "prerequisite": "connectome_predictive_modeling_applied_to_remote_associative_thinking",
+    "dependent": "shared_functional_connectivity_between_remote_associative_combining_and_divergent_thinking",
+    "reason": "CPM applied to remote associative thinking provides the connectivity patterns that are then compared to divergent thinking patterns."
+  },
+  {
+    "prerequisite": "whole_brain_functional_connectivity_predicts_cat_performance",
+    "dependent": "shared_functional_connectivity_between_remote_associative_combining_and_divergent_thinking",
+    "reason": "Identifying the connectivity predicting CAT performance is a prerequisite for showing its overlap with divergent thinking connectivity."
+  },
+  {
+    "prerequisite": "curiosity_as_a_driver_of_creative_and_aesthetic_experience",
+    "dependent": "shared_psychological_and_neural_mechanisms_across_curiosity_creativity_and_aesthetics",
+    "reason": "The hypothesis that curiosity drives creative and aesthetic experience underlies the claim of shared mechanisms across the three domains."
+  },
+  {
+    "prerequisite": "deepdream_algorithm_as_generator_of_hallucinatory_like_vr_stimuli",
+    "dependent": "simulated_psychedelic_exposure_produces_more_flexible_semantic_network_structure",
+    "reason": "The hallucinatory VR stimuli are the experimental manipulation that produces the more flexible semantic networks."
+  },
+  {
+    "prerequisite": "simulated_visual_hallucinations_via_vr_enhance_cognitive_flexibility",
+    "dependent": "simulated_psychedelic_exposure_produces_more_flexible_semantic_network_structure",
+    "reason": "The behavioral cognitive flexibility enhancement is the broader effect within which the semantic network flexibility finding is situated."
+  },
+  {
+    "prerequisite": "large_multi_field_scientific_abstract_corpus_as_empirical_basis",
+    "dependent": "slight_temporal_rise_in_dsi_over_time_in_scientific_literature",
+    "reason": "The large multi-field abstract corpus with publication-year data is required to detect temporal DSI trends."
+  },
+  {
+    "prerequisite": "dsi_varies_significantly_by_scientific_subject_and_field",
+    "dependent": "slight_temporal_rise_in_dsi_over_time_in_scientific_literature",
+    "reason": "Establishing that DSI varies by field is a foundational analysis preceding the temporal trend analysis on the same corpus."
+  },
+  {
+    "prerequisite": "verbal_fluency_derived_semantic_networks_for_aging_research",
+    "dependent": "small_world_network_structure_decline_as_marker_of_semantic_memory_aging",
+    "reason": "Semantic networks derived from fluency for aging research are the basis for characterizing the decline of small-world structure."
+  },
+  {
+    "prerequisite": "older_adults_semantic_networks_are_less_flexible_than_younger_adults",
+    "dependent": "small_world_network_structure_decline_as_marker_of_semantic_memory_aging",
+    "reason": "The finding that older adults' networks are less flexible supports the interpretation of declining small-world structure as an aging marker."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "sociocultural_perspectives_on_cyber_creativity_as_understudied_domain",
+    "reason": "The unifying construct of cyber-creativity must be introduced before identifying its sociocultural dimensions as understudied."
+  },
+  {
+    "prerequisite": "decalogue_of_research_challenges_as_a_structured_agenda_for_cyber_creativity_science",
+    "dependent": "sociocultural_perspectives_on_cyber_creativity_as_understudied_domain",
+    "reason": "The structured decalogue of challenges organizes the sociocultural perspective as one of the identified research challenges."
+  },
+  {
+    "prerequisite": "the_martian_game_as_an_ecologically_valid_platform_for_studying_open_ended_question_asking",
+    "dependent": "solar_energy_system_design_for_a_martian_city_as_creative_problem_solving_scenario",
+    "reason": "The Martian Game platform provides the context within which the solar energy design scenario is embedded."
+  },
+  {
+    "prerequisite": "two_stage_problem_solving_design_problem_finding_then_solution_planning",
+    "dependent": "solution_originality_and_appropriateness_as_outcome_measures_of_question_driven_problem_solving",
+    "reason": "The two-stage design separating problem-finding from solution-planning enables measuring solution originality and appropriateness as outcomes."
+  },
+  {
+    "prerequisite": "solar_energy_system_design_for_a_martian_city_as_creative_problem_solving_scenario",
+    "dependent": "solution_originality_and_appropriateness_as_outcome_measures_of_question_driven_problem_solving",
+    "reason": "The solar energy design scenario provides the concrete solutions whose originality and appropriateness are rated."
+  },
+  {
+    "prerequisite": "network_science_methodology_for_quantifying_problem_representation_change",
+    "dependent": "solution_relevant_and_remote_concepts_both_become_more_strongly_related_in_solvers",
+    "reason": "Quantifying problem representation change via semantic networks is needed to detect that both concept types become more related in solvers."
+  },
+  {
+    "prerequisite": "solution_relevant_versus_irrelevant_term_distinction_in_semantic_network_restructuring",
+    "dependent": "solution_relevant_and_remote_concepts_both_become_more_strongly_related_in_solvers",
+    "reason": "The distinction between relevant and remote terms is needed to evaluate which concept types strengthen in solvers."
+  },
+  {
+    "prerequisite": "individual_semantic_network_estimation_from_relatedness_judgments_for_problem_solving_research",
+    "dependent": "solution_relevant_versus_irrelevant_term_distinction_in_semantic_network_restructuring",
+    "reason": "The relatedness judgment network estimation procedure provides the basis for classifying nodes as solution-relevant or irrelevant."
+  },
+  {
+    "prerequisite": "cue_set_size_as_index_of_semantic_richness",
+    "dependent": "sparse_semantic_knowledge_penalizes_originality_when_fluid_intelligence_is_low",
+    "reason": "Operationalizing semantic richness via cue set size is required to define the sparse-cue condition where the penalty occurs."
+  },
+  {
+    "prerequisite": "network_science_metrics_reveal_information_unavailable_from_conventional_approaches",
+    "dependent": "special_issue_as_a_call_to_broaden_network_science_adoption_in_experimental_psychology",
+    "reason": "Demonstrating that network metrics reveal unique information motivates the call to broaden adoption."
+  },
+  {
+    "prerequisite": "split_visual_field_paradigm_for_hemispheric_creativity_research",
+    "dependent": "specialized_rh_advantage_for_conventional_faces",
+    "reason": "The split visual field paradigm is the method used to demonstrate the right hemisphere advantage for conventional faces."
+  },
+  {
+    "prerequisite": "mooney_face_and_silhouette_recognition_as_unconventional_visual_creativity_measures",
+    "dependent": "specialized_rh_advantage_for_conventional_faces",
+    "reason": "The face recognition tasks provide the stimuli used to contrast conventional and unconventional face processing across hemispheres."
+  },
+  {
+    "prerequisite": "multi_center_meta_analytic_resting_state_fmri_approach_to_creativity_neuroscience",
+    "dependent": "specificity_of_dmn_ecn_switching_to_creativity_versus_intelligence",
+    "reason": "The large multi-sample resting-state dataset enables testing whether DMN-ECN switching is specific to creativity versus intelligence."
+  },
+  {
+    "prerequisite": "chatbot_agent_as_interactive_partner_for_naturalistic_question_asking_paradigm",
+    "dependent": "spot_the_spy_online_game_as_empirical_platform_for_studying_question_asking",
+    "reason": "The chatbot agent partner is the core interactive mechanism enabling the Spot the Spy game's question-asking platform."
+  },
+  {
+    "prerequisite": "semantic_richness_costs_and_benefits_to_creative_idea_generation",
+    "dependent": "spreading_activation_interference_as_mechanism_for_association_size_effects_on_creativity",
+    "reason": "The observed costs and benefits of semantic richness are what the spreading activation interference mechanism is proposed to explain."
+  },
+  {
+    "prerequisite": "small_world_network_features_of_the_hebrew_mental_lexicon",
+    "dependent": "spreading_activation_properties_shaped_by_hebrew_network_topology",
+    "reason": "The small-world and scale-free properties of the Hebrew lexicon are the topology that shapes spreading activation."
+  },
+  {
+    "prerequisite": "crisis_specific_strengthening_of_tension_associated_emotion_links",
+    "dependent": "stable_emotion_co_occurrence_network_structure_across_crises_and_normal_periods",
+    "reason": "Showing that only specific Tension links strengthen during crises supports the broader claim that the overall network structure remains stable."
+  },
+  {
+    "prerequisite": "link_between_curiosity_and_creativity_via_knowledge_gap_problem_finding",
+    "dependent": "stages_of_art_viewing_and_making_as_expressions_of_curiosity",
+    "reason": "The knowledge-gap problem-finding link grounds the framing of art viewing and making as curiosity-driven information-seeking stages."
+  },
+  {
+    "prerequisite": "population_level_diversity_comparison_as_method_for_studying_llm_creativity",
+    "dependent": "standardized_creativity_tests_as_evaluation_method_for_llm_creative_diversity",
+    "reason": "Population-level diversity comparison is the methodological frame for using standardized creativity tests to evaluate LLM diversity."
+  },
+  {
+    "prerequisite": "stereo_eeg_as_a_high_resolution_method_for_probing_dmn_dynamics_during_creativity_tasks",
+    "dependent": "stimulation_induced_originality_decrease_without_fluency_change_as_evidence_for_dissociable_creativity_components",
+    "reason": "The stereo-EEG method combined with direct cortical stimulation provides the causal evidence underlying the dissociation of originality from fluency."
+  },
+  {
+    "prerequisite": "nct_as_a_quantitative_framework_for_cognitive_control_in_high_level_cognition",
+    "dependent": "subclinical_depression_negatively_related_to_integration_ability_in_right_anterior_insula",
+    "reason": "Network control theory framework is required to derive integration ability measures linked to subclinical depression."
+  },
+  {
+    "prerequisite": "nct_anatomical_fingerprint_model_of_regional_brain_dynamics",
+    "dependent": "subclinical_depression_related_to_easy_to_reach_neural_state_driving_in_bilateral_lingual_and_lateral_occipital_gyri",
+    "reason": "The NCT anatomical fingerprint model defines the controllability metrics used to identify easy-to-reach state driving in depression."
+  },
+  {
+    "prerequisite": "free_recall_paradigm_as_method_for_constructing_semantic_memory_networks",
+    "dependent": "subgroup_identification_of_non_temporal_and_backward_retrieval_strategies",
+    "reason": "The free recall paradigm provides the retrieval data from which divergent retrieval-strategy subgroups are identified."
+  },
+  {
+    "prerequisite": "diminished_temporal_contiguity_effect_in_older_adults_during_free_recall",
+    "dependent": "subgroup_identification_of_non_temporal_and_backward_retrieval_strategies",
+    "reason": "Characterizing temporal contiguity dynamics is needed to identify subgroups deviating with non-temporal or backward strategies."
+  },
+  {
+    "prerequisite": "verbal_fluency_tasks_as_method_for_estimating_semantic_memory_networks_in_students",
+    "dependent": "successful_learners_have_a_distinct_semantic_memory_organization_characterized_by_high_connectivity_and_short_path_distances",
+    "reason": "Estimating student semantic networks from fluency tasks is the method behind characterizing successful learners' network organization."
+  },
+  {
+    "prerequisite": "polysemous_word_associative_fluency_task_for_semantic_search",
+    "dependent": "switching_predicted_by_default_control_salience_network_connectivity",
+    "reason": "The polysemous word fluency task isolates switching as the search component whose neural predictors are then identified."
+  },
+  {
+    "prerequisite": "distinction_between_clustering_and_switching_as_semantic_search_components",
+    "dependent": "switching_correlates_with_remote_associate_combination_ability",
+    "reason": "Defining switching as a distinct search component is necessary to relate it to remote associate combination ability."
+  },
+  {
+    "prerequisite": "polysemous_word_associative_fluency_task_for_semantic_search",
+    "dependent": "switching_reflects_memory_structure_and_executive_ability_interaction",
+    "reason": "The polysemous word task that isolates switching is the basis for showing switching reflects memory structure and executive ability."
+  },
+  {
+    "prerequisite": "individual_semantic_network_construction_via_relatedness_judgment_task_for_creativity_and_metacognition_research",
+    "dependent": "task_based_functional_connectivity_predicts_creativity_related_semantic_network_properties",
+    "reason": "Constructing individual semantic networks is required as the target property that task-based connectivity is shown to predict."
+  },
+  {
+    "prerequisite": "cathodal_lpfc_stimulation_does_not_increase_novelty_in_sentence_completion_task",
+    "dependent": "task_demands_moderate_effect_of_cognitive_control_on_creative_ideation",
+    "reason": "The null effect of cathodal stimulation in this specific task motivates the proposal that task demands moderate cognitive control effects."
+  },
+  {
+    "prerequisite": "large_scale_aphasia_narrative_corpus_as_empirical_basis_for_semantic_flow_analysis",
+    "dependent": "taxonomic_and_thematic_semantic_distance_as_predictors_of_semantic_impairment_and_aphasia_severity",
+    "reason": "The aphasia narrative corpus provides the data needed to test semantic distance metrics as predictors of impairment and severity."
+  },
+  {
+    "prerequisite": "bigram_semantic_distance_as_an_index_of_continuous_semantic_flow",
+    "dependent": "taxonomic_versus_thematic_semantic_distance_as_distinct_dimensions_of_narrative_semantic_flow",
+    "reason": "The bigram semantic distance index over continuous language is the basis for distinguishing taxonomic versus thematic flow dimensions."
+  },
+  {
+    "prerequisite": "two_stage_problem_solving_design_problem_finding_then_solution_planning",
+    "dependent": "the_martian_game_as_an_ecologically_valid_platform_for_studying_open_ended_question_asking",
+    "reason": "The two-stage problem-finding/solution-planning design is the structural design of the Martian Game platform."
+  },
+  {
+    "prerequisite": "cue_set_size_as_index_of_semantic_richness",
+    "dependent": "three_experiment_replication_of_cue_association_size_effects",
+    "reason": "Operationalizing cue set size as semantic richness is required to conduct the three-experiment replication of its effects."
+  },
+  {
+    "prerequisite": "cognitive_control_facilitates_idea_production_under_sparse_knowledge",
+    "dependent": "top_down_cognitive_control_compensates_for_sparse_semantic_network_during_idea_generation",
+    "reason": "The finding that cognitive control facilitates production under sparse knowledge directly supports the compensation claim."
+  },
+  {
+    "prerequisite": "creativity_correlates_with_semantic_distance_of_scene_based_associations_but_not_with_scene_memory",
+    "dependent": "touch_imagery_vividness_positively_correlates_with_creative_writing_performance",
+    "reason": "Prior evidence linking imagery-related associative breadth to creativity grounds the touch imagery vividness correlation finding."
+  },
+  {
+    "prerequisite": "bigram_semantic_distance_as_an_index_of_continuous_semantic_flow",
+    "dependent": "two_metrics_of_semantic_distance_appended_per_bigram",
+    "reason": "The bigram semantic distance index underlies appending two distinct distance metrics per bigram."
+  },
+  {
+    "prerequisite": "semdistflow_r_package_for_bigram_semantic_distance_computation",
+    "dependent": "two_metrics_of_semantic_distance_appended_per_bigram",
+    "reason": "The semdistflow package is the tool that appends the two semantic distance metrics to each bigram."
+  },
+  {
+    "prerequisite": "ai_chatbot_as_interactive_partner_for_naturalistic_open_ended_question_asking",
+    "dependent": "two_stage_problem_solving_design_problem_finding_then_solution_planning",
+    "reason": "The AI chatbot partner enables the problem-finding questioning phase within the two-stage design."
+  },
+  {
+    "prerequisite": "spot_the_spy_online_game_as_empirical_platform_for_studying_question_asking",
+    "dependent": "two_study_design_for_replication_and_extension_of_question_asking_findings",
+    "reason": "The game platform must exist before a two-study design using it can be conducted."
+  },
+  {
+    "prerequisite": "split_visual_field_paradigm_for_hemispheric_creativity_research",
+    "dependent": "unconventional_face_processing_by_non_specialized_lh_correlates_with_verbal_creativity",
+    "reason": "Hemispheric attribution of unconventional face processing requires the split visual field paradigm."
+  },
+  {
+    "prerequisite": "split_visual_field_paradigm_for_hemispheric_creativity_research",
+    "dependent": "unconventional_face_processing_by_non_specialized_lh_correlates_with_visual_creativity",
+    "reason": "Lateralized presentation via SVF is needed to attribute processing to a specific hemisphere."
+  },
+  {
+    "prerequisite": "mooney_face_and_silhouette_recognition_as_unconventional_visual_creativity_measures",
+    "dependent": "unconventional_face_processing_by_non_specialized_lh_correlates_with_visual_creativity",
+    "reason": "The unconventional visual recognition measures are required to assess the LH-visual creativity link."
+  },
+  {
+    "prerequisite": "default_network_activity_underlies_spontaneous_and_self_generated_cognition",
+    "dependent": "underexplored_role_of_personality_in_normal_dn_variation",
+    "reason": "The established functional roles of the DN motivate the focus on what drives its normal variation."
+  },
+  {
+    "prerequisite": "executive_control_default_mode_and_salience_network_interaction_as_marker_of_creative_ability",
+    "dependent": "understudied_neural_dynamics_of_generation_versus_evaluation_in_creativity",
+    "reason": "Knowledge of network interactions as a creativity marker frames the gap concerning generation versus evaluation dynamics."
+  },
+  {
+    "prerequisite": "individual_based_semantic_memory_network_construction_via_relatedness_judgment_task_for_creativity_and_metacognition_research",
+    "dependent": "usefulness_is_less_reliably_predicted_than_originality_and_shows_task_specific_associations",
+    "reason": "Network construction is needed to test prediction of usefulness from network properties."
+  },
+  {
+    "prerequisite": "cyber_creativity_as_a_unifying_construct_for_human_ai_collaboration_in_creative_processes",
+    "dependent": "utopian_vs_dystopian_scenario_framing_for_ai_impact_on_human_creativity",
+    "reason": "Framing AI impact scenarios presupposes the cyber-creativity construct for human-AI collaboration."
+  },
+  {
+    "prerequisite": "risk_of_ai_pre_empting_human_creative_agency",
+    "dependent": "utopian_vs_dystopian_scenario_framing_for_ai_impact_on_human_creativity",
+    "reason": "The dystopian scenario is grounded in the identified risk of AI pre-empting human creative agency."
+  },
+  {
+    "prerequisite": "three_psychological_dimensions_of_aesthetic_response_to_architectural_interiors",
+    "dependent": "valuation_of_architectural_processing_in_visual_cortex_varies_by_dimension_and_task",
+    "reason": "The identified psychological dimensions are needed to assess how visual cortex processing varies by dimension."
+  },
+  {
+    "prerequisite": "fmri_reanalysis_linking_behavioral_aesthetic_dimensions_to_neural_activity",
+    "dependent": "valuation_of_architectural_processing_in_visual_cortex_varies_by_dimension_and_task",
+    "reason": "The neural reanalysis linking dimensions to activity underpins the conclusion about dimension- and task-specific valuation."
+  },
+  {
+    "prerequisite": "network_science_as_a_multidisciplinary_quantitative_field_for_complex_systems",
+    "dependent": "varied_node_and_edge_definitions_as_a_methodological_strength_of_network_science_in_psychology",
+    "reason": "The general network science framework underlies the methodological point about varied node and edge definitions."
+  },
+  {
+    "prerequisite": "two_network_approach_verbal_description_network_vs_gip_network_for_abstract_art",
+    "dependent": "verbal_descriptors_are_important_for_evaluating_abstract_art_empirically",
+    "reason": "Comparing verbal-description and GIP networks supports the importance of verbal descriptors for abstract art."
+  },
+  {
+    "prerequisite": "individual_based_semantic_network_construction_for_creativity_research",
+    "dependent": "verbal_fluency_derived_semantic_networks_for_aging_research",
+    "reason": "Individual-based network construction methodology underlies the verbal-fluency-derived networks used in aging research."
+  },
+  {
+    "prerequisite": "verbal_fluency_task_as_a_method_for_probing_semantic_network_structure_in_ci_children",
+    "dependent": "verbal_fluency_tasks_as_method_for_estimating_semantic_memory_networks_in_students",
+    "reason": "The verbal fluency network methodology established for CI children extends to estimating student networks."
+  },
+  {
+    "prerequisite": "free_association_paradigm_as_a_window_into_semantic_memory_structure",
+    "dependent": "verbal_production_tasks_as_method_for_estimating_semantic_memory_networks_across_age_groups",
+    "reason": "Free association as a window into semantic memory underlies using verbal production tasks to estimate networks."
+  },
+  {
+    "prerequisite": "verbal_fluency_task_as_a_method_for_probing_semantic_network_structure_in_ci_children",
+    "dependent": "verbal_production_tasks_as_method_for_estimating_semantic_memory_networks_across_age_groups",
+    "reason": "Verbal fluency network methodology grounds the broader set of verbal production tasks used across age groups."
+  },
+  {
+    "prerequisite": "individual_based_semantic_network_construction_from_relatedness_judgments_in_aging_research",
+    "dependent": "vocabulary_knowledge_predicts_semantic_network_structure_across_age_groups",
+    "reason": "Network construction in aging research is needed to relate vocabulary knowledge to network structure."
+  },
+  {
+    "prerequisite": "recalled_activity_paradigm_as_experimental_design_for_studying_aesthetic_emotions",
+    "dependent": "whether_aesthetic_emotions_are_qualitatively_unique_or_context_dependent_variants_of_general_emotions",
+    "reason": "The recalled-activity paradigm comparing conditions is needed to address whether aesthetic emotions are unique or context-dependent."
+  },
+  {
+    "prerequisite": "psychometric_network_analysis_as_method_for_mapping_aesthetic_emotional_space",
+    "dependent": "whether_aesthetic_emotions_are_qualitatively_unique_or_context_dependent_variants_of_general_emotions",
+    "reason": "The psychometric network method for mapping emotional space enables addressing the uniqueness question."
+  },
+  {
+    "prerequisite": "within_subjects_fmri_design_for_creative_generation_and_evaluation",
+    "dependent": "understudied_neural_dynamics_of_generation_versus_evaluation_in_creativity",
+    "reason": "The within-subject fMRI design enables directly probing the understudied generation versus evaluation dynamics."
+  },
+  {
+    "prerequisite": "semantic_network_analysis_of_beauty_and_wellness_concepts",
+    "dependent": "women_have_more_segregated_and_organized_beauty_and_wellness_semantic_networks_than_men",
+    "reason": "The semantic network analysis of beauty and wellness is needed to detect sex differences in network organization."
+  },
+  {
+    "prerequisite": "associative_creativity_sparker_acs_as_a_cognitive_network_science_tool_for_breaking_creative_impasse",
+    "dependent": "writing_experience_as_a_moderator_of_semantic_priming_benefits_for_creativity",
+    "reason": "The ACS tool providing semantic recommendations is the basis for testing how writing experience moderates priming benefits."
+  },
+  {
+    "prerequisite": "whole_brain_functional_connectivity_predicts_cat_performance",
+    "dependent": "within_subjects_fmri_design_for_creative_generation_and_evaluation",
+    "reason": "Prior connectome modeling of creative tasks informs the design probing within-subject neural dynamics."
+  }
+]

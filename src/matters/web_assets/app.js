@@ -817,7 +817,7 @@ function refreshLayout() {
 }
 
 async function createTerminalSession() {
-  terminalStatus.textContent = "starting zsh...";
+  terminalStatus.textContent = "starting shell...";
   const rows = state.terminal?.rows || 24;
   const cols = state.terminal?.cols || 100;
   const session = await api("/api/terminal/sessions", {

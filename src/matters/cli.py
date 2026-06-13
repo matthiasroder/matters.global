@@ -124,6 +124,16 @@ def main(argv=None):
         action="store_true",
         help="Do not open the browser automatically.",
     )
+    web_parser.add_argument(
+        "--terminal-workspace",
+        default=None,
+        help="Directory to use for the web terminal. Defaults to the state directory or cwd.",
+    )
+    web_parser.add_argument(
+        "--terminal-shell",
+        default=None,
+        help="Shell executable to use for the web terminal. Defaults to $SHELL or /bin/sh.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -139,6 +149,8 @@ def main(argv=None):
             host=args.host,
             port=args.port,
             open_browser=not args.no_open,
+            terminal_workspace=args.terminal_workspace,
+            terminal_shell=args.terminal_shell,
         )
         return 0
 

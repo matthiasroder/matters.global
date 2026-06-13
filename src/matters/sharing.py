@@ -1,6 +1,7 @@
 """Helpers for exporting shareable matter states."""
 
 from .engine import as_condition_list, serialize_condition
+from .storage import normalize_dependency_records
 
 
 PUBLIC = "public"
@@ -66,11 +67,11 @@ def merge_public_state(matters, conditions, dependencies, visibility, incoming_s
         for prerequisite, dependent in dependencies
         if prerequisite not in public_matters or dependent not in public_matters
     }
-    incoming_dependencies = {
-        tuple(dependency)
-        for dependency in incoming_state.get("dependencies", ())
-        if dependency[0] in public_matters and dependency[1] in public_matters
-    }
+    incoming_dependencies = normalize_dependency_records(
+        incoming_state.get("dependencies", []),
+        public_matters,
+        context="incoming public state",
+    )
     merged_dependencies = private_dependencies | incoming_dependencies
 
     return {

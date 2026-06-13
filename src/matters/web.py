@@ -15,6 +15,7 @@ import threading
 import time
 import uuid
 import webbrowser
+from contextlib import contextmanager
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -32,8 +33,8 @@ from .storage import load_state, resolve_state_path, save_state
 
 DEFAULT_WEB_HOST = "127.0.0.1"
 DEFAULT_WEB_PORT = 8765
-TERMINAL_WORKSPACE = Path("/Users/matthias/.openclaw/workspace")
-DEFAULT_SHELL = "/bin/zsh"
+DEFAULT_TERMINAL_SHELL = os.environ.get("SHELL") or "/bin/sh"
+TERMINAL_WORKSPACE_ENV = "MATTERS_TERMINAL_WORKSPACE"
 MAX_TERMINAL_CHUNKS = 1000
 
 
@@ -43,6 +44,23 @@ class ApiError(ValueError):
     def __init__(self, message, status=HTTPStatus.BAD_REQUEST):
         super().__init__(message)
         self.status = status
+
+
+class StateMutationLocks:
+    def __init__(self):
+        self._locks = {}
+        self._guard = threading.Lock()
+
+    @contextmanager
+    def lock(self, state_path):
+        lock_key = str(resolve_state_path(state_path))
+        with self._guard:
+            lock = self._locks.setdefault(lock_key, threading.RLock())
+        with lock:
+            yield
+
+
+state_mutation_locks = StateMutationLocks()
 
 
 def graph_payload(state_path=None):
@@ -79,81 +97,85 @@ def graph_payload(state_path=None):
 
 
 def create_matter(state_path, payload):
-    matters, conditions, dependencies = load_state(state_path)
-    matter_id = normalized_matter_id(payload)
-    if matter_id in matters:
-        raise ApiError(f"matter already exists: {matter_id}", HTTPStatus.CONFLICT)
+    with state_mutation_locks.lock(state_path):
+        matters, conditions, dependencies = load_state(state_path)
+        matter_id = normalized_matter_id(payload)
+        if matter_id in matters:
+            raise ApiError(f"matter already exists: {matter_id}", HTTPStatus.CONFLICT)
 
-    condition_payloads = payload.get("conditions") or [
-        {"label": f"Resolved: {matter_id.replace('_', ' ')}", "truth": False}
-    ]
-    normalized_conditions = [
-        normalize_condition(condition, index)
-        for index, condition in enumerate(condition_payloads, start=1)
-    ]
+        condition_payloads = payload.get("conditions") or [
+            {"label": f"Resolved: {matter_id.replace('_', ' ')}", "truth": False}
+        ]
+        normalized_conditions = [
+            normalize_condition(condition, index)
+            for index, condition in enumerate(condition_payloads, start=1)
+        ]
 
-    matters.add(matter_id)
-    conditions[matter_id] = normalized_conditions
-    save_state(matters, conditions, dependencies, path=state_path)
-    return graph_payload(state_path)
+        matters.add(matter_id)
+        conditions[matter_id] = normalized_conditions
+        save_state(matters, conditions, dependencies, path=state_path)
+        return graph_payload(state_path)
 
 
 def update_conditions(state_path, matter_id, payload):
-    matters, conditions, dependencies = load_state(state_path)
-    if matter_id not in matters:
-        raise ApiError(f"unknown matter: {matter_id}", HTTPStatus.NOT_FOUND)
+    with state_mutation_locks.lock(state_path):
+        matters, conditions, dependencies = load_state(state_path)
+        if matter_id not in matters:
+            raise ApiError(f"unknown matter: {matter_id}", HTTPStatus.NOT_FOUND)
 
-    action = payload.get("action")
-    current = list(conditions.get(matter_id, []))
+        action = payload.get("action")
+        current = list(conditions.get(matter_id, []))
 
-    if "conditions" in payload:
-        current = [
-            normalize_condition(condition, index)
-            for index, condition in enumerate(payload["conditions"], start=1)
-        ]
-    elif action == "toggle":
-        index = require_condition_index(payload, current)
-        current[index]["truth"] = not truth(current[index])
-    elif action == "delete":
-        index = require_condition_index(payload, current)
-        del current[index]
-    else:
-        index = payload.get("index")
-        if index is None:
-            current.append(normalize_condition(payload, len(current) + 1))
-        else:
+        if "conditions" in payload:
+            current = [
+                normalize_condition(condition, index)
+                for index, condition in enumerate(payload["conditions"], start=1)
+            ]
+        elif action == "toggle":
             index = require_condition_index(payload, current)
-            updated = dict(current[index])
-            if "label" in payload:
-                updated["label"] = str(payload["label"]).strip()
-            if "truth" in payload:
-                updated["truth"] = truth(payload["truth"])
-            current[index] = normalize_condition(updated, index + 1)
+            current[index]["truth"] = not truth(current[index])
+        elif action == "delete":
+            index = require_condition_index(payload, current)
+            del current[index]
+        else:
+            index = payload.get("index")
+            if index is None:
+                current.append(normalize_condition(payload, len(current) + 1))
+            else:
+                index = require_condition_index(payload, current)
+                updated = dict(current[index])
+                if "label" in payload:
+                    updated["label"] = str(payload["label"]).strip()
+                if "truth" in payload:
+                    updated["truth"] = truth(payload["truth"])
+                current[index] = normalize_condition(updated, index + 1)
 
-    conditions[matter_id] = current
-    save_state(matters, conditions, dependencies, path=state_path)
-    return graph_payload(state_path)
+        conditions[matter_id] = current
+        save_state(matters, conditions, dependencies, path=state_path)
+        return graph_payload(state_path)
 
 
 def add_dependency(state_path, payload):
-    matters, conditions, dependencies = load_state(state_path)
-    source, target = dependency_endpoints(payload, matters)
-    next_dependencies = set(dependencies)
-    next_dependencies.add((source, target))
-    if has_dependency_cycle(next_dependencies):
-        raise ApiError("dependency would create a cycle")
+    with state_mutation_locks.lock(state_path):
+        matters, conditions, dependencies = load_state(state_path)
+        source, target = dependency_endpoints(payload, matters)
+        next_dependencies = set(dependencies)
+        next_dependencies.add((source, target))
+        if has_dependency_cycle(next_dependencies):
+            raise ApiError("dependency would create a cycle")
 
-    save_state(matters, conditions, next_dependencies, path=state_path)
-    return graph_payload(state_path)
+        save_state(matters, conditions, next_dependencies, path=state_path)
+        return graph_payload(state_path)
 
 
 def remove_dependency(state_path, payload):
-    matters, conditions, dependencies = load_state(state_path)
-    source, target = dependency_endpoints(payload, matters)
-    next_dependencies = set(dependencies)
-    next_dependencies.discard((source, target))
-    save_state(matters, conditions, next_dependencies, path=state_path)
-    return graph_payload(state_path)
+    with state_mutation_locks.lock(state_path):
+        matters, conditions, dependencies = load_state(state_path)
+        source, target = dependency_endpoints(payload, matters)
+        next_dependencies = set(dependencies)
+        next_dependencies.discard((source, target))
+        save_state(matters, conditions, next_dependencies, path=state_path)
+        return graph_payload(state_path)
 
 
 def run_command(state_path, payload):
@@ -161,10 +183,27 @@ def run_command(state_path, payload):
     if not text:
         raise ApiError("command is required")
 
-    matters, conditions, dependencies = load_state(state_path)
     command, _, rest = text.partition(" ")
     command = command.lower()
     rest = rest.strip()
+
+    if command == "create":
+        if not rest:
+            raise ApiError("create requires an expression")
+        with state_mutation_locks.lock(state_path):
+            matters, conditions, dependencies = load_state(state_path)
+            try:
+                created = create_matters_from_expression(
+                    rest, matters, conditions, dependencies
+                )
+            except ValueError as error:
+                raise ApiError(str(error)) from error
+            if has_dependency_cycle(dependencies):
+                raise ApiError("created expression would create a cycle")
+            save_state(matters, conditions, dependencies, path=state_path)
+            return {"type": "create", "created": created, "state": graph_payload(state_path)}
+
+    matters, conditions, dependencies = load_state(state_path)
 
     if command == "universe":
         return {"type": "universe", "items": sorted(universe(matters, conditions, dependencies))}
@@ -176,17 +215,6 @@ def run_command(state_path, payload):
         return {"type": "horizon", "matter": rest, "items": sorted(horizon(rest, conditions, dependencies))}
     if command == "unlock":
         return {"type": "unlock", "report": unlock_report(matters, conditions, dependencies)}
-    if command == "create":
-        if not rest:
-            raise ApiError("create requires an expression")
-        try:
-            created = create_matters_from_expression(rest, matters, conditions, dependencies)
-        except ValueError as error:
-            raise ApiError(str(error)) from error
-        if has_dependency_cycle(dependencies):
-            raise ApiError("created expression would create a cycle")
-        save_state(matters, conditions, dependencies, path=state_path)
-        return {"type": "create", "created": created, "state": graph_payload(state_path)}
     if command == "extract":
         if not rest:
             raise ApiError("extract requires source text")
@@ -201,12 +229,19 @@ def run_command(state_path, payload):
 
 
 class TerminalManager:
-    def __init__(self):
+    def __init__(self, default_workspace=None, default_shell=None):
         self.sessions = {}
         self.lock = threading.Lock()
+        self.default_workspace = default_workspace
+        self.default_shell = default_shell or DEFAULT_TERMINAL_SHELL
 
-    def create(self, workspace=TERMINAL_WORKSPACE, shell=DEFAULT_SHELL, rows=24, cols=100):
-        session = TerminalSession(workspace=workspace, shell=shell, rows=rows, cols=cols)
+    def create(self, workspace=None, shell=None, rows=24, cols=100):
+        session = TerminalSession(
+            workspace=workspace or self.default_workspace or Path.cwd(),
+            shell=shell or self.default_shell,
+            rows=rows,
+            cols=cols,
+        )
         with self.lock:
             self.sessions[session.id] = session
         return session
@@ -234,9 +269,15 @@ class TerminalManager:
 
 
 class TerminalSession:
-    def __init__(self, workspace=TERMINAL_WORKSPACE, shell=DEFAULT_SHELL, rows=24, cols=100):
+    def __init__(
+        self,
+        workspace=None,
+        shell=DEFAULT_TERMINAL_SHELL,
+        rows=24,
+        cols=100,
+    ):
         self.id = uuid.uuid4().hex
-        self.workspace = Path(workspace)
+        self.workspace = Path(workspace or Path.cwd()).expanduser()
         self.shell = shell
         self.master_fd = None
         self.process = None
@@ -368,9 +409,6 @@ def safe_int(value, default):
         return default
 
 
-terminal_manager = TerminalManager()
-
-
 class StatePathStore:
     def __init__(self, state_path=None):
         self._path = resolve_state_path(state_path)
@@ -409,14 +447,47 @@ def switch_state_path(state_paths, payload):
     return graph_payload(next_path)
 
 
-def serve(state_path=None, host=DEFAULT_WEB_HOST, port=DEFAULT_WEB_PORT, open_browser=True):
+def resolve_terminal_workspace(state_path=None, terminal_workspace=None):
+    raw_workspace = terminal_workspace or os.environ.get(TERMINAL_WORKSPACE_ENV)
+    if raw_workspace:
+        return Path(raw_workspace).expanduser()
+
+    if state_path is not None:
+        state_parent = resolve_state_path(state_path).parent
+        if state_parent.exists():
+            return state_parent
+
+    return Path.cwd()
+
+
+def serve(
+    state_path=None,
+    host=DEFAULT_WEB_HOST,
+    port=DEFAULT_WEB_PORT,
+    open_browser=True,
+    terminal_workspace=None,
+    terminal_shell=None,
+):
     resolved_state_path = resolve_state_path(state_path)
     state_paths = StatePathStore(resolved_state_path)
-    handler = partial(MattersWebHandler, state_paths=state_paths)
+    terminal_workspace = resolve_terminal_workspace(
+        resolved_state_path,
+        terminal_workspace=terminal_workspace,
+    )
+    terminal_manager = TerminalManager(
+        default_workspace=terminal_workspace,
+        default_shell=terminal_shell,
+    )
+    handler = partial(
+        MattersWebHandler,
+        state_paths=state_paths,
+        terminal_manager=terminal_manager,
+    )
     server = ThreadingHTTPServer((host, port), handler)
     url = f"http://{host}:{server.server_port}/"
     print(f"Serving matters web UI at {url}")
     print(f"State file: {resolved_state_path}")
+    print(f"Terminal workspace: {terminal_workspace}")
     if open_browser:
         webbrowser.open(url)
     try:
@@ -429,8 +500,9 @@ def serve(state_path=None, host=DEFAULT_WEB_HOST, port=DEFAULT_WEB_PORT, open_br
 
 
 class MattersWebHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, state_paths=None, **kwargs):
+    def __init__(self, *args, state_paths=None, terminal_manager=None, **kwargs):
         self.state_paths = state_paths or StatePathStore()
+        self.terminal_manager = terminal_manager or TerminalManager()
         super().__init__(*args, directory=str(web_assets_path()), **kwargs)
 
     def log_message(self, format, *args):
@@ -446,7 +518,7 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             query = parse_qs(parsed.query)
             seq = query.get("seq", ["0"])[0]
             try:
-                session = terminal_manager.get(unquote(match.group(1)))
+                session = self.terminal_manager.get(unquote(match.group(1)))
                 self.write_json(session.output_since(seq))
             except ApiError as error:
                 self.write_error(error)
@@ -458,6 +530,8 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         try:
+            if parsed.path.startswith("/api/"):
+                self.require_api_mutation_request()
             if parsed.path == "/api/matters":
                 self.write_json(create_matter(self.current_state_path(), self.read_json()), HTTPStatus.CREATED)
                 return
@@ -472,7 +546,7 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
                 return
             if parsed.path == "/api/terminal/sessions":
                 payload = self.read_json()
-                session = terminal_manager.create(
+                session = self.terminal_manager.create(
                     rows=payload.get("rows", 24),
                     cols=payload.get("cols", 100),
                 )
@@ -480,7 +554,7 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
                 return
             match = re.fullmatch(r"/api/terminal/sessions/([^/]+)/(input|resize)", parsed.path)
             if match:
-                session = terminal_manager.get(unquote(match.group(1)))
+                session = self.terminal_manager.get(unquote(match.group(1)))
                 payload = self.read_json()
                 if match.group(2) == "input":
                     self.write_json(session.write(payload.get("data", "")))
@@ -499,23 +573,23 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             return
         matter_id = unquote(match.group(1))
         try:
+            self.require_api_mutation_request()
             self.write_json(update_conditions(self.current_state_path(), matter_id, self.read_json()))
         except ApiError as error:
             self.write_error(error)
 
     def do_DELETE(self):
         parsed = urlparse(self.path)
-        match = re.fullmatch(r"/api/terminal/sessions/([^/]+)", parsed.path)
-        if match:
-            try:
-                self.write_json(terminal_manager.close(unquote(match.group(1))))
-            except ApiError as error:
-                self.write_error(error)
-            return
-        if parsed.path != "/api/dependencies":
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
         try:
+            if parsed.path.startswith("/api/"):
+                self.require_api_mutation_request()
+            match = re.fullmatch(r"/api/terminal/sessions/([^/]+)", parsed.path)
+            if match:
+                self.write_json(self.terminal_manager.close(unquote(match.group(1))))
+                return
+            if parsed.path != "/api/dependencies":
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
             self.write_json(remove_dependency(self.current_state_path(), self.read_json()))
         except ApiError as error:
             self.write_error(error)
@@ -528,8 +602,35 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             return "text/javascript"
         return mimetypes.guess_type(path)[0] or "application/octet-stream"
 
+    def require_api_mutation_request(self):
+        self.require_same_origin_request()
+        self.require_json_content_type()
+
+    def require_same_origin_request(self):
+        for header in ("Origin", "Referer"):
+            value = self.headers.get(header)
+            if value and not self.is_same_origin(value):
+                raise ApiError("cross-origin API request rejected", HTTPStatus.FORBIDDEN)
+
+    def is_same_origin(self, value):
+        parsed = urlparse(value)
+        host = (self.headers.get("Host") or "").lower()
+        return parsed.scheme == "http" and parsed.netloc.lower() == host
+
+    def require_json_content_type(self):
+        content_type = self.headers.get("Content-Type", "")
+        media_type = content_type.split(";", 1)[0].strip().lower()
+        if media_type != "application/json":
+            raise ApiError(
+                "API mutation requests must use application/json",
+                HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            )
+
     def read_json(self):
-        length = int(self.headers.get("Content-Length", "0"))
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError as error:
+            raise ApiError("invalid Content-Length") from error
         if length == 0:
             return {}
         try:

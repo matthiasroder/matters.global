@@ -2,6 +2,7 @@
 
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from .engine import as_condition_list, normalize_conditions, serialize_condition
@@ -34,10 +35,12 @@ def load_state(path=None):
     except FileNotFoundError:
         data = {"matters": [], "conditions": {}, "dependencies": []}
 
+    validate_state_data(data)
+    matters = set(data["matters"])
     return (
-        set(data["matters"]),
+        matters,
         normalize_conditions(data["conditions"]),
-        {tuple(dependency) for dependency in data["dependencies"]},
+        normalize_dependency_records(data["dependencies"], matters),
     )
 
 
@@ -60,10 +63,28 @@ def save_state(*args, path=None):
         },
         "dependencies": sorted([list(dependency) for dependency in dependencies]),
     }
+    validate_state_data(data)
 
-    with state_path.open("w") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{state_path.name}.",
+        suffix=".tmp",
+        dir=state_path.parent,
+        text=True,
+    )
+    tmp_path = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, state_path)
+    except Exception:
+        try:
+            tmp_path.unlink()
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def resolve_save_args(args, path):
@@ -81,3 +102,46 @@ def resolve_save_args(args, path):
         "save_state expects (matters, conditions, dependencies[, path]) "
         "or legacy (path, matters, conditions, dependencies)"
     )
+
+
+def validate_state_data(data):
+    if not isinstance(data, dict):
+        raise ValueError("state must be a JSON object")
+
+    matters = data.get("matters")
+    if not isinstance(matters, list):
+        raise ValueError("state matters must be a list")
+    matter_ids = set()
+    for index, matter in enumerate(matters):
+        if not isinstance(matter, str) or not matter:
+            raise ValueError(f"state matters[{index}] must be a non-empty string")
+        matter_ids.add(matter)
+
+    conditions = data.get("conditions")
+    if not isinstance(conditions, dict):
+        raise ValueError("state conditions must be an object")
+    for matter in conditions:
+        if matter not in matter_ids:
+            raise ValueError(f"conditions contain unknown matter: {matter}")
+
+    dependencies = data.get("dependencies")
+    if not isinstance(dependencies, list):
+        raise ValueError("state dependencies must be a list")
+    normalize_dependency_records(dependencies, matter_ids)
+
+
+def normalize_dependency_records(dependencies, matters, context="state"):
+    matter_ids = set(matters)
+    normalized = set()
+    for index, dependency in enumerate(dependencies):
+        if not isinstance(dependency, (list, tuple)) or len(dependency) != 2:
+            raise ValueError(f"{context} dependency {index} must have two endpoints")
+        source, target = dependency
+        if not isinstance(source, str) or not isinstance(target, str):
+            raise ValueError(f"{context} dependency {index} endpoints must be strings")
+        if source not in matter_ids:
+            raise ValueError(f"{context} dependency {index} has unknown source: {source}")
+        if target not in matter_ids:
+            raise ValueError(f"{context} dependency {index} has unknown target: {target}")
+        normalized.add((source, target))
+    return normalized

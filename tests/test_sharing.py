@@ -69,3 +69,33 @@ def test_merge_public_state_rejects_non_public_matter_ids():
                 "dependencies": [],
             },
         )
+
+
+def test_merge_public_state_rejects_malformed_dependency():
+    with pytest.raises(ValueError, match="dependency 0 must have two endpoints"):
+        merge_public_state(
+            {"public_goal"},
+            {"public_goal": []},
+            set(),
+            {"public_goal": "public"},
+            {
+                "matters": ["public_goal"],
+                "conditions": {"public_goal": []},
+                "dependencies": [["public_goal"]],
+            },
+        )
+
+
+def test_merge_public_state_rejects_private_dependency_endpoint():
+    with pytest.raises(ValueError, match="unknown target: private_goal"):
+        merge_public_state(
+            {"public_goal", "private_goal"},
+            {"public_goal": [], "private_goal": []},
+            set(),
+            {"public_goal": "public", "private_goal": "private"},
+            {
+                "matters": ["public_goal"],
+                "conditions": {"public_goal": []},
+                "dependencies": [["public_goal", "private_goal"]],
+            },
+        )

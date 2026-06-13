@@ -56,6 +56,8 @@ Use this workflow when the user asks to unlock, advance, resolve, or work toward
 
 Use this workflow when the user asks to extract matters from a PDF, AI conversation, blog post, notes, pasted text, or another source.
 
+Extraction has two engines. The LLM engine (default when `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is set) reads prose and is the right choice for scientific papers and other unstructured text; it returns evidence-grounded conditions and semantic dependency candidates. The deterministic marker engine recognizes explicit `Goal:`/`Problem:`/`Decision:`/`Risk:`/`Responsibility:`/`Matter:` lines and runs offline. Selection is automatic with fallback to the marker engine when no key is present or the API call fails; the proposal's `engine` field records which one ran. Force the marker engine with `--no-llm`.
+
 1. Convert the source to readable text first. For PDFs or documents, use an available parser or export path before extraction.
 2. Extract candidate matters with stable ids, clear names, short descriptions, and observable false resolution conditions.
 3. Compare candidates against existing matters in the selected state file.
@@ -122,7 +124,7 @@ Do not persist exploratory conversation by default. Persist when the user is man
 - Persist each condition as an object with `label` and `truth`; do not save new conditions as bare booleans.
 - Treat legacy boolean conditions as unlabeled data that must be normalized before saving; callable condition predicates are runtime-only.
 - For unlock-style reports, prefer `matters unlock --state <path>` when the CLI is installed, or the `unlock_report` API from the `matters` package when working from source.
-- For extraction, prefer `matters extract <source-text-file> --source-type <kind> --state <path>` when the CLI is installed, or the `extraction_proposal` API from the `matters` package when working from source.
+- For extraction, prefer `matters extract <source-text-file> --source-type <kind> --state <path>` when the CLI is installed, or the `build_extraction_proposal` API from the `matters` package when working from source. `build_extraction_proposal` runs the LLM engine when a key is available and falls back to the deterministic `extraction_proposal` marker engine; pass `use_llm=False` (or `--no-llm`) to force the marker engine, and inject a `client` to test without network access.
 - For public sharing, prefer `matters export-public --state <private-state> --visibility <visibility.json>`, or the `public_state` API from the `matters` package when working from source.
 - For public edit intake, prefer `matters merge-public --state <private-state> --public-state <public-state> --visibility <visibility.json>`, or the `merge_public_state` API from the `matters` package when working from source.
 - If `matters` is not installed, ask the user to install the `matters.global` package before performing persisted operations:

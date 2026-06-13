@@ -5,7 +5,8 @@ import json
 import sys
 
 from .engine import frontier, horizon, universe
-from .extraction import extraction_proposal, slugify
+from .extraction import slugify
+from .llm_extraction import build_extraction_proposal
 from .reports import format_unlock_report, unlock_report
 from .sharing import merge_public_state, public_state
 from .storage import load_state, resolve_state_path, save_state
@@ -62,6 +63,18 @@ def main(argv=None):
         "--source-type",
         default="text",
         help="Source label such as pdf, conversation, blog_post, notes, or text.",
+    )
+    extract_parser.add_argument(
+        "--model",
+        default=None,
+        help="Override the extraction model id (default: claude-sonnet-4-6 or "
+        "MATTERS_EXTRACT_MODEL).",
+    )
+    extract_parser.add_argument(
+        "--no-llm",
+        dest="use_llm",
+        action="store_false",
+        help="Use only the deterministic marker engine; never call the LLM.",
     )
 
     export_public_parser = subparsers.add_parser(
@@ -150,10 +163,12 @@ def main(argv=None):
         source_text = read_source_text(args.source)
         print(
             json.dumps(
-                extraction_proposal(
+                build_extraction_proposal(
                     source_text,
                     source_type=args.source_type,
                     existing_matters=matters,
+                    use_llm=args.use_llm,
+                    model=args.model,
                 ),
                 indent=2,
             )

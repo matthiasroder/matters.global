@@ -113,6 +113,7 @@ def test_cli_extract_reads_text_file_without_saving(tmp_path, capsys):
                 str(source_path),
                 "--source-type",
                 "notes",
+                "--no-llm",
                 "--state",
                 str(state_path),
             ]
@@ -123,6 +124,7 @@ def test_cli_extract_reads_text_file_without_saving(tmp_path, capsys):
     output = json.loads(capsys.readouterr().out)
     assert output["candidates"][0]["id"] == "build_shared_matter_map"
     assert output["requires_confirmation"] is True
+    assert output["engine"] == "marker"
     assert json.loads(state_path.read_text()) == {
         "matters": [],
         "conditions": {},

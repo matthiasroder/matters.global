@@ -22,6 +22,10 @@ from .extraction import (
     propose_dependency_candidates,
     slugify,
 )
+from .llm_extraction import (
+    build_extraction_proposal,
+    llm_extraction_proposal,
+)
 from .reports import (
     false_condition_labels,
     format_unlock_report,
@@ -41,12 +45,14 @@ __all__ = [
     "DEFAULT_STATE_PATH",
     "PUBLIC",
     "as_condition_list",
+    "build_extraction_proposal",
     "condition_label",
     "create_condition",
     "dependents",
     "descendants",
     "extract_candidate_matters",
     "extraction_proposal",
+    "llm_extraction_proposal",
     "frontier",
     "false_condition_labels",
     "format_unlock_report",

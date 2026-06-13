@@ -170,9 +170,39 @@ Use `-` to read from stdin:
 pbpaste | matters extract - --source-type conversation
 ```
 
-For PDFs, blog posts, documents, and AI conversations, extract or paste the readable text first, then pass the source type as context. The output includes candidate matter ids, descriptions, initial false resolution conditions, dependency candidates against existing matters, and `requires_confirmation: true`.
+Every proposal includes candidate matter ids, descriptions, initial false
+resolution conditions, dependency candidates against existing matters,
+`requires_confirmation: true`, and an `engine` field naming which extractor
+produced it.
 
-The extractor recognizes explicit markers like `Goal:`, `Problem:`, `Decision:`, `Risk:`, `Responsibility:`, and `Matter:`. In conversation exports, speaker-prefixed lines such as `Agent: Goal: Map creativity interventions` are also recognized. See `examples/creativity_research/` for a small corpus and expected extraction-quality notes.
+### Two extraction engines
+
+- **LLM engine** (default when an API key is available): reads prose — paper
+  abstracts, sections, blog posts — and extracts the source's actual claims,
+  contributions, and findings as matters, with evidence-grounded conditions and
+  semantic dependency candidates. This is the right engine for scientific
+  papers, which rarely contain explicit markers. It calls the Anthropic API, so
+  it needs `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) in the environment.
+  The model defaults to `claude-sonnet-4-6` and can be overridden with `--model`
+  or the `MATTERS_EXTRACT_MODEL` environment variable.
+- **Marker engine** (deterministic fallback): recognizes explicit markers like
+  `Goal:`, `Problem:`, `Decision:`, `Risk:`, `Responsibility:`, and `Matter:`,
+  plus speaker-prefixed lines such as `Agent: Goal: Map creativity
+  interventions`. It runs with no network access and no key.
+
+The selection is automatic: `matters extract` uses the LLM engine when a key is
+present and falls back to the marker engine when the key is missing or the API
+call fails (the proposal then carries `engine: "marker"` and a
+`fallback_reason`). Pass `--no-llm` to force the marker engine.
+
+```sh
+ANTHROPIC_API_KEY=... matters extract paper.txt --source-type paper
+matters extract notes.txt --no-llm   # deterministic, offline
+```
+
+For PDFs and documents, extract the readable text first (v1 is text-only), then
+pipe it in. See `examples/creativity_research/` for a small corpus and expected
+extraction-quality notes.
 
 ## Public Sharing
 

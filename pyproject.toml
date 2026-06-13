@@ -12,6 +12,9 @@ license = { text = "MIT" }
 authors = [
   { name = "Matthias Roeder" }
 ]
+dependencies = [
+  "anthropic>=0.40",
+]
 
 [project.scripts]
 matters = "matters.cli:main"

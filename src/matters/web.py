@@ -24,7 +24,8 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from .cli import create_matters_from_expression
 from .engine import dependents, frontier, horizon, prerequisites, resolved, truth, universe
-from .extraction import extraction_proposal, slugify
+from .extraction import slugify
+from .llm_extraction import build_extraction_proposal
 from .reports import unlock_report
 from .storage import load_state, resolve_state_path, save_state
 
@@ -191,7 +192,9 @@ def run_command(state_path, payload):
             raise ApiError("extract requires source text")
         return {
             "type": "extract",
-            "proposal": extraction_proposal(rest, source_type="text", existing_matters=matters),
+            "proposal": build_extraction_proposal(
+                rest, source_type="text", existing_matters=matters
+            ),
         }
 
     raise ApiError(f"unknown command: {command}")

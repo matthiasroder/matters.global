@@ -1,0 +1,1496 @@
+[
+  {
+    "paperId": "208a9acc271f12610806aab7bea0982a59ff6de4",
+    "title": "Knowledge reshapes inquiry by changing question asking ability and impacting academic assessment",
+    "abstract": "Question-asking is central to human communication, cognitive development, and learning. While prior research has examined questioning in controlled, non-longitudinal settings, little is known about how the originality and complexity of the questions people ask change over time or how these abilities respond to knowledge acquisition. This study examined how gained knowledge shapes question-asking and whether these abilities predict academic outcomes. Undergraduate students (N\u2009=\u200968) enrolled in a semester-long \u201cIntro to Psychology\u201d course completed general and domain-specific question-asking tasks at the start and end of the semester, along with an open-ended final project and a closed-ended multiple-choice exam. Domain-specific question-asking improved over time, whereas general question-asking remained stable or declined. General and specific question-asking abilities were negatively related to closed-ended test performance and positively related to open-ended project performance. These findings clarify how knowledge reshapes inquiry and highlight the educational value of fostering stronger question-asking skills.",
+    "year": 2026,
+    "citationCount": 1,
+    "venue": "npj Science of Learning",
+    "doi": "10.1038/s41539-026-00402-0"
+  },
+  {
+    "paperId": "44fe7f11a5e4b3cb70b19cf7ab301bbb5b775a76",
+    "title": "Semantic Memory Structure and Self-Evaluation of Creativity: Evidence Across Tasks and Dimensions",
+    "abstract": "Creativity involves generating ideas that are both original and useful, relying on intertwined cognitive and metacognitive processes. We examined how individual differences in semantic memory structure and ideation fluency predict creative performance and self-evaluations across two studies. In Study 1, participants completed a creative problem-solving (CPS) task, with semantic memory networks estimated from a relatedness judgment task. Creative output was assessed for originality and usefulness, alongside participants\u2019 self-evaluations. In Study 2, a within-subjects design compared participants\u2019 output and self-evaluation of their performance in a divergent thinking task (alternative uses task) and CPS. Results revealed that ideation fluency and semantic memory network integration consistently predicted originality across tasks. In contrast, usefulness was less reliably predicted, showing task-specific associations with semantic memory network properties primarily in CPS. Importantly, self-evaluations often diverged from objective outcomes, reflecting metacognitive biases shaped by heuristic cues. These findings highlight both stable and context-sensitive mechanisms in creative performance and self-evaluation.",
+    "year": 2026,
+    "citationCount": 0,
+    "venue": "Journal of Intelligence",
+    "doi": "10.3390/jintelligence14030041"
+  },
+  {
+    "paperId": "95b3ac9bb22852f594a38c85688847aa8d386efb",
+    "title": "Creative Cognition: A Collaborative Research Agenda",
+    "abstract": "Creative cognition research has flourished in recent decades, revealing how extraordinary creative outcomes emerge from ordinary cognitive processes. However, the field faces fragmentation that hinders consensus and integration. This research agenda, developed through a collaborative workshop of 50 European researchers at the Lorentz Centre in Leiden, the Netherlands, identifies four critical challenges for advancing creative cognition research. Challenge 1 addresses theoretical concerns around defining core research terms like divergent thinking, emotions, and metacognition. Challenge 2 focuses on identifying different types and domains of knowledge that influence creative performance. Challenge 3 emphasizes measuring dynamic interactions between cognitive, affective, and metacognitive processes over time. Challenge 4 calls for incorporating environmental and interpersonal contexts, including collaboration, technology, and embodied cognition. These challenges highlight the need for collaborative approaches to develop standardized measures, synthesize existing findings, and foster methodological innovations. By working together as a research community, we can build more comprehensive theories and effective methods for understanding creativity's cognitive foundations while embracing rather than reducing its inherent complexity.",
+    "year": 2026,
+    "citationCount": 0,
+    "venue": "The Journal of creative behavior",
+    "doi": "10.1002/jocb.70097"
+  },
+  {
+    "paperId": "974dfb1fac359a0d3cc13d61a1ca9a533f85d668",
+    "title": "REM sleep favors the restructuring of problem-related semantic associations.",
+    "abstract": "",
+    "year": 2026,
+    "citationCount": 0,
+    "venue": "Communications Biology",
+    "doi": "10.1038/s42003-026-10354-1"
+  },
+  {
+    "paperId": "9c9de7efa94a9766592fb9f3449245fd86b97019",
+    "title": "The Martian Game: Exploring Open-Ended Question-Asking via an Online Gaming Environment",
+    "abstract": "Question asking is a crucial human skill, influencing social cognition, creative problem solving, and information seeking. Yet, its cognitive mechanisms remain poorly understood due to challenges in studying it naturally. We developed The Martian Game, an open-ended online question-asking game that simulates creative problem solving in realistic contexts. Players design a solar energy system for a Martian city through two stages: (1) a problem finding phase where they ask an AI chatbot (\u201cMark\u201d) questions to gather information, and (2) a solution-planning phase producing written and visual designs. Questions are coded for complexity, originality, and relevance; solutions are rated for originality and appropriateness. This game offers an ecologically valid, interdisciplinary tool to study question asking and supports the hypothesis that complex questions promote effective problem solving. A pilot study validates its potential for examining open-ended cognition beyond the lab.",
+    "year": 2026,
+    "citationCount": 0,
+    "venue": "Conference on Human Information Interaction and Retrieval",
+    "doi": "10.1145/3786304.3787878"
+  },
+  {
+    "paperId": "9f00838e877f6ef76e9ff2642b880e1306f22eb9",
+    "title": "Examining the neural dynamics of semantic memory integration using noninvasive brain stimulation with concurrent EEG",
+    "abstract": "",
+    "year": 2026,
+    "citationCount": 0,
+    "venue": "JoCN Forum",
+    "doi": "10.21428/8e6ba8ef.ff955ba9"
+  },
+  {
+    "paperId": "d66809ba2af0ac94b08bc8dc79902b4d0fc54947",
+    "title": "There are no stupid questions, only ones we think are stupid: The accuracy of self-assessed question asking ability",
+    "abstract": "",
+    "year": 2026,
+    "citationCount": 2,
+    "venue": "Personality and Individual Differences",
+    "doi": "10.1016/j.paid.2026.113721"
+  },
+  {
+    "paperId": "f7fd36e38112a3d634590dc8c36a1ec3dca4fb71",
+    "title": "Large language models are homogeneously creative",
+    "abstract": "Abstract Numerous large language models (LLMs) are marketed for use as creativity support tools, despite several studies showing that using an LLM as a creative partner narrows creative outputs. However, these studies only consider the effects of interacting with a single LLM on specific creativity tasks, begging the question of whether narrowed creativity stems from using a particular LLM\u2014with an arguably limited range of outputs\u2014or from using LLMs in general. To test this, we elicit creative responses from many humans and LLMs using standardized creativity tasks and compare population-level response diversity. We find that LLM responses mirror other LLM responses far more than humans do other humans, even after controlling for key confounding variables. This finding adds a new dimension to the ongoing discussion about creativity and LLMs. If today\u2019s LLMs behave similarly, using them as creative partners\u2014regardless of the model used\u2014may drive users toward similar \u201ccreative\u201d outputs.",
+    "year": 2026,
+    "citationCount": 4,
+    "venue": "PNAS Nexus",
+    "doi": "10.1093/pnasnexus/pgag042"
+  },
+  {
+    "paperId": "0b6d5a486ab0b99ac9061c6b773c883b9e657d99",
+    "title": "Cyber-Creativity: A Decalogue of Research Challenges",
+    "abstract": "Creativity is the primary driver of our cultural evolution. The astonishing potential of artificial intelligence (AI) and its possible application in the creative process poses an urgent and dramatic challenge for humanity; how can we maximize the benefits of AI while minimizing the associated risks? In this article, we identify all forms of human\u2013AI collaboration in this realm as cyber-creativity. We introduce the following two forward-looking scenarios: a utopian vision for cyber-creativity, in which AI serves to enhance and not replace human creativity, and a dystopian view associated with the pre-emption of all human creative agency caused by the rise of AI. In our view, the scientific community is called to bring its contribution, however small, to help humanity make steps towards the utopian scenario, while avoiding the dystopian one. Here, we present a decalogue of research challenges identified for this purpose, touching upon the following dimensions: (1) the theoretical framework for cyber-creativity; (2) sociocultural perspectives; (3) the cyber-creative process; (4) the creative agent; (5) the co-creative team; (6) cyber-creative products; (7) cyber-creative domains; (8) cyber-creative education; (9) ethical aspects; and (10) the dark side of cyber-creativity. For each dimension, a brief review of the state-of-the-art is provided, followed by the identification of a main research challenge, then specified into a list of research questions. Whereas there is no claim that this decalogue of research challenges represents an exhaustive classification, which would be an impossible objective, it still should serve as a valid starting point for future (but urgent) research endeavors, with the ambition to provide a significant contribution to the understanding, development, and alignment of AI to human values the realm of creativity.",
+    "year": 2025,
+    "citationCount": 10,
+    "venue": "Journal of Intelligence",
+    "doi": "10.3390/jintelligence13080103"
+  },
+  {
+    "paperId": "0d48d2859838b90436aa52b3eae8baadfecda977",
+    "title": "Lower engagement of cognitive control, attention, modulation networks and lower creativity in children while using ChatGPT: an fMRI study",
+    "abstract": "",
+    "year": 2025,
+    "citationCount": 0,
+    "venue": "bioRxiv",
+    "doi": "10.1101/2025.11.07.687207"
+  },
+  {
+    "paperId": "0f818d8cebb38a8671d802738bd119a1792ec0f4",
+    "title": "The Effect of Aging on Question-Asking, Divergent Thinking, and Problem-Solving Abilities",
+    "abstract": "",
+    "year": 2025,
+    "citationCount": 8,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2025.2498916"
+  },
+  {
+    "paperId": "17da49f3380c5b52359db62936a3ae9293ab3e1f",
+    "title": "We're Different, We're the Same: Creative Homogeneity Across LLMs",
+    "abstract": "Numerous powerful large language models (LLMs) are now available for use as writing support tools, idea generators, and beyond. Although these LLMs are marketed as helpful creative assistants, several works have shown that using an LLM as a creative partner results in a narrower set of creative outputs. However, these studies only consider the effects of interacting with a single LLM, begging the question of whether such narrowed creativity stems from using a particular LLM -- which arguably has a limited range of outputs -- or from using LLMs in general as creative assistants. To study this question, we elicit creative responses from humans and a broad set of LLMs using standardized creativity tests and compare the population-level diversity of responses. We find that LLM responses are much more similar to other LLM responses than human responses are to each other, even after controlling for response structure and other key variables. This finding of significant homogeneity in creative outputs across the LLMs we evaluate adds a new dimension to the ongoing conversation about creativity and LLMs. If today's LLMs behave similarly, using them as a creative partners -- regardless of the model used -- may drive all users towards a limited set of\"creative\"outputs.",
+    "year": 2025,
+    "citationCount": 41,
+    "venue": "arXiv.org",
+    "doi": "10.48550/arXiv.2501.19361"
+  },
+  {
+    "paperId": "1fa52f83f16d71df9cd6fb53b9128f778362677c",
+    "title": "Neural dynamics during the generation and evaluation of creative and non-creative ideas",
+    "abstract": "What are the neural dynamics that drive creative thinking? The interaction between the executive control, default mode, and salience brain networks is an important marker of individual differences in creativity. However, how these networks might be recruited dynamically during the two key components of the creative process\u2014generation and evaluation of ideas\u2014remains far from understood. We applied state-of-the-art network neuroscience methodologies to examine the neural dynamics related to the generation and evaluation of creative and non-creative ideas, at the whole- and brain-networks levels. Participants completed two functional magnetic resonance imaging sessions, taking place a week apart. In the first imaging session, participants generated creative or non-creative responses to common objects. In the second session, participants evaluated their own responses to the same objects. We found different dynamic patterns of neural activity across the executive control, default mode, and salience networks, highlighting the complexity of the creative process. Network neuroscience methods shed new light on the neural dynamics related to the generation and evaluation of creative and non-creative ideas\u2014across the executive, default, and salience networks\u2014highlighting the complexity of the creative process.",
+    "year": 2025,
+    "citationCount": 1,
+    "venue": "Communications Biology",
+    "doi": "10.1038/s42003-025-09018-3"
+  },
+  {
+    "paperId": "385206314d5f2ff9b79b434572481a036e48359d",
+    "title": "Response to \u201cComment on the Process Definition of Creativity\u201d",
+    "abstract": "",
+    "year": 2025,
+    "citationCount": 1,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2025.2461824"
+  },
+  {
+    "paperId": "3a109912ab4085ecb8c1efc4f97721c89c7b233d",
+    "title": "Network science in experimental psychology.",
+    "abstract": "This introduction to the special issue entitled \"Network Science in Experimental Psychology\" describes how complex networks are used by experimental psychologists to examine questions from a range of topics in psychology. Complex networks use nodes to represent individual entities and connections between nodes that are related in some way. The overall weblike structure that emerges influences the processes that operate in that system. The articles summarized here illustrate the various definitions of nodes (e.g., people, words, parts of the brain) and connections between nodes (e.g., friendships, semantic similarity, coactivation of brain regions) and also illustrate a wide range of metrics that reveal information that could not be found using contemporary and conventional approaches. The guest editors and authors hope that these examples encourage other researchers to apply the computational techniques from network science to their questions of interest to make new and interesting discoveries. (PsycInfo Database Record (c) 2025 APA, all rights reserved).",
+    "year": 2025,
+    "citationCount": 0,
+    "venue": "Canadian journal of experimental psychology = Revue canadienne de psychologie experimentale",
+    "doi": "10.1037/cep0000367"
+  },
+  {
+    "paperId": "3cbc86ebf1ae0c3a64ead78e058dd74b510af0a9",
+    "title": "Associative thinking and creative ability in older adulthood",
+    "abstract": "ABSTRACT Successful problem-solving and enhanced creative ability may improve physical health, cognitive well-being, and overall independence of older adults. In general, older adults who are more creative, may be better able to cope with cognitive decline and navigate everyday tasks. While previous research on creative performance in older adulthood showed age-related stability, open questions remain regarding the specific underlying cognitive basis for this invariability across the lifespan. Mediation analyses showed that intelligence measures served as underlying cognitive mechanisms for the stability of creative thinking in older age. The broader implications of these findings provide insight into the complex relationships supporting age-related preservation in creativity.",
+    "year": 2025,
+    "citationCount": 4,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2024.2443720"
+  },
+  {
+    "paperId": "460e26084d67e4f369c90909d8e7fdf01de00add",
+    "title": "Laughing across the bridge: The role of associative abilities in humor.",
+    "abstract": "",
+    "year": 2025,
+    "citationCount": 1,
+    "venue": "Psychology of Aesthetics, Creativity, and the Arts",
+    "doi": "10.1037/aca0000776"
+  },
+  {
+    "paperId": "4b3fa51e385b217020008200095beaba28787f92",
+    "title": "Automated Scoring of Question Complexity with Transformer Language Models",
+    "abstract": "",
+    "year": 2025,
+    "citationCount": 3,
+    "venue": "Thinking Skills and Creativity",
+    "doi": "10.1016/j.tsc.2025.102090"
+  },
+  {
+    "paperId": "56d675a59ba2bc1e9977acbdc8d7efafd7094c68",
+    "title": "Creativity supports learning through associative thinking",
+    "abstract": "Creativity is a key 21st-century skill and a consistent predictor of academic learning outcomes. Despite decades of research on creativity and learning, little is known about the cognitive mechanisms underlying their relationship. In two studies, we examined whether creativity supports associative learning through associative thinking\u2014the ability to generate novel word associations\u2014an ability central to creativity which has not been previously tied to associative learning. In Study 1, we found that students who generated more novel word associations learned more words on a foreign language learning test 24\u2009h later. In Study 2, we replicated and extended the effect to naturalistic creativity tasks (i.e., writing short stories and sketching line drawings), finding associative thinking mediated the relationship between creativity and associative learning. Importantly, both studies controlled for general intelligence. Our findings suggest that creativity\u2019s contribution to learning operates partly through a shared cognitive capacity for making new connections.",
+    "year": 2025,
+    "citationCount": 5,
+    "venue": "npj Science of Learning",
+    "doi": "10.1038/s41539-025-00334-1"
+  },
+  {
+    "paperId": "5ba30160046a634e442185b11b4ad968cd895100",
+    "title": "A cognitive multiplex network approach to investigate mental navigation and predict high-level cognition",
+    "abstract": "High-level cognition, such as intelligence and creativity, are considered the hallmark of human cognition; however, their complexity hinders the identification of underlying common mechanisms. We focus on one such likely mechanism\u2014mental navigation. We utilize converging computational methods to demonstrate how mental navigation\u2014operationalized via verbal fluency tasks\u2014predicts individual differences in creativity, intelligence, and openness to experience (the personality trait most closely related to them). Participants\u2019 (N = 479) responses to two tasks\u2014a 2-min animal fluency task and a 2-min generating synonyms of the word \u201chot\u201d fluency task\u2014were modeled over a multidimensional model (a cognitive multiplex network) of the mental lexicon. Quantitative measures of their mental navigation were used to build regression models that significantly predicted their assessed high-level cognition (replicating across both fluency tasks). Finally, we developed an online tool that capitalizes on our approach\u2014the High-level Cognitive Prediction tool. Overall, we show how converging computational tools can elucidate the complexity of high-level cognition.",
+    "year": 2025,
+    "citationCount": 0,
+    "venue": "Behavior Research Methods",
+    "doi": "10.3758/s13428-025-02748-6"
+  },
+  {
+    "paperId": "8aa4f545be28f1002b3ecf8145a8c81dee1d68f8",
+    "title": "Spot the spy: An online game for exploring question-asking in the wild",
+    "abstract": "Question-asking is a crucial aspect of human interaction. Questions fuel engagement, stimulate thought processes, foster learning, and facilitate information-seeking behavior. Yet, scarce empirical research exists on question-asking, or its relation to related cognitive capacities such as creativity, curiosity, and intelligence. The use of digital games as a research medium offers significant advantages for studying cognitive processes in natural settings. As such, this study empirically investigates how people ask questions in an online serious game. To do so, we developed an online game\u2014Spot the Spy\u2014where players are required to find a hidden spy amidst a crowded room, by asking a chatbot agent questions that guide them in their investigation. Our game thus offers to investigate question-asking in natural settings empirically, and optimal question-asking strategies, which we conducted in two studies. Study 1 (online, N\u2009=\u2009103) focused on game development and exploratory validation, whereas Study 2 (in-lab, N\u2009=\u2009100) focused on replication and extension. In both studies, participants completed a series of cognitive tasks assessing creativity, curiosity, and intelligence before playing the game. Our results highlight strategies related to optimal performance in the game, as well as how players\u2019 gameplay correlates with their cognitive abilities, especially with intelligence. Specifically, we found that higher intelligence scores were associated with more effective questioning strategies and better game performance. These insights highlight the potential of gamified environments to enhance our understanding of cognitive processes and advance the development of educational and training tools that foster strategic thinking and question-asking capacities.",
+    "year": 2025,
+    "citationCount": 1,
+    "venue": "Behavior Research Methods",
+    "doi": "10.3758/s13428-025-02835-8"
+  },
+  {
+    "paperId": "8b904ed79d3c42fc9b5f9a374d55f346c5108026",
+    "title": "Dynamic switching between brain networks predicts creative ability",
+    "abstract": "Creativity is hypothesized to arise from a mental state which balances spontaneous thought and cognitive control, corresponding to functional connectivity between the brain\u2019s Default Mode (DMN) and Executive Control (ECN) Networks. Here, we conduct a large-scale, multi-center examination of this hypothesis. Employing a meta-analytic network neuroscience approach, we analyze resting-state fMRI and creative task performance across 10 independent samples from Austria, Canada, China, Japan, and the United States (N\u2009=\u20092433)\u2014constituting the largest and most ethnically diverse creativity neuroscience study to date. Using time-resolved network analysis, we investigate the relationship between creativity (i.e., divergent thinking ability) and dynamic switching between DMN and ECN. We find that creativity, but not general intelligence, can be reliably predicted by the number of DMN-ECN switches. Importantly, we identify an inverted-U relationship between creativity and the degree of balance between DMN-ECN switching, suggesting that optimal creative performance requires balanced brain network dynamics. Furthermore, an independent task-fMRI validation study (N\u2009=\u200931) demonstrates higher DMN-ECN switching during creative idea generation (compared to a control condition) and replicates the inverted-U relationship. Therefore, we provide robust evidence across multi-center datasets that creativity is tied to the capacity to dynamically switch between brain networks supporting spontaneous and controlled cognition. Robust evidence that creativity is tied to the capacity to dynamically switch between brain networks supporting spontaneous and controlled cognition.",
+    "year": 2025,
+    "citationCount": 40,
+    "venue": "Communications Biology",
+    "doi": "10.1038/s42003-025-07470-9"
+  },
+  {
+    "paperId": "9c112084f51ce5f559e1f5e80832379675def75c",
+    "title": "Cognitive networks highlight differences and similarities in the STEM mindsets of human and LLM-simulated trainees, experts and academics",
+    "abstract": "Understanding attitudes towards STEM means quantifying the cognitive and emotional ways in which individuals, and potentially large language models too, conceptualise such subjects. This study uses behavioural forma mentis networks (BFMNs) to investigate the STEM-focused mindset, i.e. ways of associating and perceiving ideas, of 177 human participants and 177 artificial humans simulated by GPT-3.5. Participants were split in 3 groups\u2014trainees, experts and academics\u2014to compare the influence of expertise level on their mindsets. The results revealed that human forma mentis networks exhibited significantly higher clustering coefficients compared to GPT-3.5\u2019s, indicating that human mindsets displayed a tendency to form and close triads of conceptual associations while recollecting STEM ideas. Human experts, in particular, demonstrated robust clustering coefficients, reflecting better integration of STEM concepts into their cognitive networks. In contrast, GPT-3.5 produced sparser networks with weaker clustering, highlighting its limitations in replicating human-like mindsets. Furthermore, both human and GPT mindsets framed \u2018mathematics\u2019 in neutral/positive terms, differently from STEM high-schoolers, researchers and other large language models sampled in other works. This research contributes to understanding how mindset structure can provide cognitive insights about memory structure and machine limitations.",
+    "year": 2025,
+    "citationCount": 1,
+    "venue": "J. Complex Networks",
+    "doi": "10.48550/arXiv.2502.19529"
+  },
+  {
+    "paperId": "a2349ee5d5f2a6576c82bb61345eeba8c088dca4",
+    "title": "Applying Text Mining to Analyze Human Question Asking in Creativity Research",
+    "abstract": "Creativity relates to the ability to generate novel and effective ideas in the areas of interest. How are such creative ideas generated? One possible mechanism that supports creative ideation and is gaining increased empirical attention is by asking questions. Question asking is a likely cognitive mechanism that allows defining problems, facilitating creative problem solving. However, much is unknown about the exact role of questions in creativity. This work presents an attempt to apply text mining methods to measure the cognitive potential of questions, taking into account, among others, (a) question type, (b) question complexity, and (c) the content of the answer. This contribution summarizes the history of question mining as a part of creativity research, along with the natural language processing methods deemed useful or helpful in the study. In addition, a novel approach is proposed, implemented, and applied to five datasets. The experimental results obtained are comprehensively analyzed, suggesting that natural language processing has a role to play in creative research.",
+    "year": 2025,
+    "citationCount": 5,
+    "venue": "Journ\u00e9es Bases de Donn\u00e9es Avanc\u00e9es",
+    "doi": "10.1007/978-3-031-86193-2_4"
+  },
+  {
+    "paperId": "aa6b9ac15dc53f6689407766383f1b539fb248ec",
+    "title": "Semantic memory network resilience in aging: The role of abstract and semantically diverse words.",
+    "abstract": "Individuals continuously acquire new words and concepts throughout their lifespan. Previous research on semantic memory networks found that with increased age, semantic memory becomes less efficient, less organized, and more sparsely connected. Most of this work focused on concrete concepts, though abstract concepts comprise a significant portion of our knowledge and may fundamentally differ in their organization and lexical properties. The current study examined age-related differences in semantic networks of 47 younger adults (20-35\u00a0years) and 49 older adults (60-78\u00a0years) based on semantic relatedness judgments of words that varied in concreteness and semantic diversity. Adding abstract words to semantic memory estimations significantly altered the network structures and, in some cases, minimized age differences. Networks that included abstract words were more interconnected (higher clustering coefficients and lower modularity) and more efficient (shorter path lengths), and abstract words remained connected in the networks longer under simulated 'attacks' compared to concrete word networks. Independent effects of semantic diversity and concreteness suggest that words that are more semantically diverse or abstract are more connected in the networks. Finally, age-related differences were minimal when considering individual-based semantic memory networks that included both abstract and concrete words, while group-based network analyses suggested more prominent age differences consistent with previous observations (e.g., less efficiency, interconnectedness, and more segregation). Overall, this study advances our understanding of age-related differences in semantic memory highlighting the important influence that abstract words and semantic diversity have on the mental lexicon, and the importance of analyzing semantic networks with multiple approaches.",
+    "year": 2025,
+    "citationCount": 4,
+    "venue": "Cognition",
+    "doi": "10.1016/j.cognition.2025.106339"
+  },
+  {
+    "paperId": "bbeb410f527d05fc20213a5a48dbdbff825b5193",
+    "title": "Release from (creative) Proactive Inhibition: Can we manipulate divergent thinking the same as memory?",
+    "abstract": "",
+    "year": 2025,
+    "citationCount": 2,
+    "venue": "Thinking Skills and Creativity",
+    "doi": "10.1016/j.tsc.2025.101821"
+  },
+  {
+    "paperId": "c00345ba1c6b3f666b373c1d1c6e9450490f834c",
+    "title": "Originality in scientific titles and abstracts can predict citation count",
+    "abstract": "In this research-in-progress paper, we apply a computational measure correlating with originality from creativity science: Divergent Semantic Integration (DSI), to a selection of 99,557 scientific abstracts and titles selected from the Web of Science. We observe statistically significant differences in DSI between subject and field of research, and a slight rise in DSI over time. We model the base 10 logarithm of the citation count after 5 years with DSI and find a statistically significant positive correlation in all fields of research with an adjusted $R^2$ of 0.13.",
+    "year": 2025,
+    "citationCount": 2,
+    "venue": "arXiv.org",
+    "doi": "10.48550/arXiv.2502.01417"
+  },
+  {
+    "paperId": "d1405c5387c2620d130c8dd630bbab73f89f7feb",
+    "title": "Semantic memory and creative evaluation",
+    "abstract": "Creativity is a fundamental cognitive skill enabling the generation of original and effective ideas. While research has focused on creative idea generation, relatively little is known about creative idea evaluation, particularly from a metacognitive perspective. Understanding how knowledge structures relate to metacognitive processes that accompany creative thinking can further elucidate its complexity. Using the relatedness judgment task, we constructed participants\u2019 (N\u2009=\u2009106) semantic memory networks. These networks provide individual-level measures such as network integration (efficiency), local connectivity, and community structure. These metrics were related to participants\u2019 performance in the alternative uses task (AUT), which was used to assess both creative performance and participants\u2019 subjective judgments of the originality of their responses. Objective originality was predicted by semantic memory networks that were broadly connected and avoided tightly knit clusters. In contrast, originality judgments were predicted by semantic memory networks that were highly integrated and efficient. These findings suggest a dissociation between objective originality performance and individuals\u2019 self-assessments of originality. Finally, the number of ideas generated in the AUT was a consistent and strong predictor of both creative performance and individuals\u2019 self-assessments of originality. Our findings reveal how different aspects of semantic memory structure contribute to creative thinking and metacognitive judgments.",
+    "year": 2025,
+    "citationCount": 5,
+    "venue": "BMC Psychology",
+    "doi": "10.1186/s40359-025-03124-x"
+  },
+  {
+    "paperId": "d3242bb2e0ae8a33c85df2969de27154b137e81b",
+    "title": "The Causal Role of the Left Angular Gyrus in Creativity-Driven Restructuring",
+    "abstract": "",
+    "year": 2025,
+    "citationCount": 0,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2025.2591458"
+  },
+  {
+    "paperId": "d4324ddc578d3f802d6e8fe7c05dc22b1082291e",
+    "title": "Cognitive and neural mechanisms of mental imagery supporting creative cognition",
+    "abstract": "While the role of mental imagery in creative cognition is acknowledged, the specific cognitive and neural mechanisms remain underexplored. This study aims to elucidate the supportive role of mental imagery in creative cognition from a semantic memory perspective, and elucidating its underlying neural substrates. Initially, we conducted a behavioral study and found positive correlation between the vividness of touch imagery with creative performance in a creative writing task. By establishing semantic feature indicators based on writing texts and mediation models, we found that the vividness of touch imagery facilitates creative writing performance by semantic integration and reorganization. A subsequent behavioral study comparing mental imagery and semantic understanding strategies usage in creative writing tasks further confirmed the positive impact of mental imagery on creative cognition, and suggested that semantic reorganization, beyond the role of semantic integration, plays a critical role in how mental imagery enhances creativity. Finally, a functional magnetic resonance imaging (fMRI) study explored the distribution of functional brain networks\u2019 edge communities during creative writing under mental imagery and semantic understanding conditions. We found that the sensorimotor network facilitates sensorimotor simulations in creative cognition; the dorsal attention and salience networks collaboratively support the writing process by maintaining goal-directed attention and reorienting attention; the limbic network supports multimodal semantic processing and novel associations; the frontoparietal control network and default mode network contribute to information integration; and a subnetwork of default mode network plays a special role in integrating semantic information related to objects and actions. Collectively, our study sheds light on the cognitive and neural underpinnings of mental imagery supporting creative cognition. This study sheds light on the role of mental imagery in creativity via semantic memory processing and identifies key brain networks during imagery-involved creative cognition.",
+    "year": 2025,
+    "citationCount": 5,
+    "venue": "Communications Biology",
+    "doi": "10.1038/s42003-025-08513-x"
+  },
+  {
+    "paperId": "d723856763ff2a5c4b0b97b0b21832117c4b7c23",
+    "title": "Creativeable: Leveraging AI for Personalized Creativity Enhancement",
+    "abstract": "Creativity is central to innovation and problem-solving, yet scalable training solutions remain limited. This study evaluates Creativeable, an AI-powered creativity training program that provides automated feedback and adjusts creative story writing task difficulty without human intervention. A total of 385 participants completed five rounds of creative story writing using semantically distant word prompts across four conditions: (1) feedback with adaptive difficulty (F/VL); (2) feedback with constant difficulty (F/CL); (3) no feedback with adaptive difficulty (NF/VL); (4) no feedback with constant difficulty (NF/CL). Before and after using Creativeable, participants were assessed for their creativity, via the alternative uses task, as well as undergoing a control semantic fluency task. While creativity improvements were evident across conditions, the degree of effectiveness varied. The F/CL condition led to the most notable gains, followed by the NF/CL and NF/VL conditions, while the F/VL condition exhibited comparatively smaller improvements. These findings highlight the potential of AI to democratize creativity training by offering scalable, personalized interventions, while also emphasizing the importance of balancing structured feedback with increasing task complexity to support sustained creative growth.",
+    "year": 2025,
+    "citationCount": 3,
+    "venue": "Applied Informatics",
+    "doi": "10.3390/ai6100247"
+  },
+  {
+    "paperId": "dc6e49d94b429ac3e294fa4987af83a630c07e6c",
+    "title": "Automated assessment of creativity in multilingual narratives.",
+    "abstract": "",
+    "year": 2025,
+    "citationCount": 16,
+    "venue": "Psychology of Aesthetics, Creativity, and the Arts",
+    "doi": "10.1037/aca0000725"
+  },
+  {
+    "paperId": "e76ba2b50d5d5d44bd384d5c9f650ca4d0be493c",
+    "title": "Stable Emotional Co-occurrence Patterns Revealed by Network Analysis of Social Media",
+    "abstract": "Examining emotion interactions as an emotion network in social media offers key insights into human psychology, yet few studies have explored how fluctuations in such emotion network evolve during crises and normal times. This study proposes a novel computational approach grounded in network theory, leveraging large-scale Japanese social media data spanning varied crisis events (earthquakes and COVID-19 vaccination) and non-crisis periods over the past decade. Our analysis identifies and evaluates links between emotions through the co-occurrence of emotion-related concepts (words), revealing a stable structure of emotion network across situations and over time at the population level. We find that some emotion links (represented as link strength) such as emotion links associated with Tension are significantly strengthened during earthquake and pre-vaccination periods. However, the rank of emotion links remains highly intact. These findings challenge the assumption that emotion co-occurrence is context-based and offer a deeper understanding of emotions'intrinsic structure. Moreover, our network-based framework offers a systematic, scalable method for analyzing emotion co-occurrence dynamics, opening new avenues for psychological research using large-scale textual data.",
+    "year": 2025,
+    "citationCount": 0,
+    "venue": "arXiv.org",
+    "doi": "10.48550/arXiv.2510.25204"
+  },
+  {
+    "paperId": "eb10250095a8044b68c6cca495ac5274266293d7",
+    "title": "Creativity, the fountain of youth: Association between creativity and semantic memory networks across the lifespan.",
+    "abstract": "Creativity relies on the ability to make new associations between concepts stored in our semantic memory in order to create new and effective ideas in a specific context. Recent studies showed that creative people are characterized by more flexible semantic memory structures, which facilitate novel associations between concepts. On the other hand, older adults exhibit more rigid semantic memory structures and ability to access these structures, raising questions about how the relationship between semantic memory networks and creativity may change with ageing. Can creativity support a more flexible reconstruction of semantic memory network during ageing? To investigate this, 77 older adults (M\u00a0=\u00a077.8\u00a0years, SD\u00a0=\u00a04.63) and 81 younger adults (M\u00a0=\u00a020.3\u00a0years, SD\u00a0=\u00a01.71) completed four verbal production tasks (i.e., two verbal fluency and two free association tasks), from which semantic memory networks were estimated. Moreover, two divergent thinking tasks (i.e., Alternative Uses Task) were used to assess creative performance. The results showed that the typical maturation of older adults' semantic memory network is associated with a decrease in creative performance in comparison to younger adults. On the other hand, higher creative older adults exhibited preservation of their overall semantic memory flexibility in comparison to lower creative older adults, similar to lower creative young adults. Overall, this study highlights the potential protective role of creativity in supporting active ageing through its propaedeutic role in maintaining a flexible organization and access to semantic memory structures.",
+    "year": 2025,
+    "citationCount": 6,
+    "venue": "Cognition",
+    "doi": "10.1016/j.cognition.2025.106318"
+  },
+  {
+    "paperId": "f1b42392e361f083438e6bbf2bcc492986fb2a18",
+    "title": "Switching, fast and slow: Deciphering the dynamics of memory search, its brain connectivity patterns, and its role in creativity",
+    "abstract": "Abstract Creative ideas emerge from the process of searching and combining concepts in memory, involving both associative and controlled mechanisms. How these processes unfold during memory search and relate to creativity remains unclear. We explored the neurocognitive underpinnings of semantic memory search using a clustering\u2013switching framework and the Marginal Value Theorem (MVT) from optimal foraging theory. During an associative fluency task with polysemous words, most responses aligned with MVT predictions, but some deviated from them. These behavioral results were replicated in an independent sample. Connectome-based modeling revealed that functional brain connectivity predicted these MVT-deviant patterns and mediated the relationship between brain connectivity and creative performance. These findings suggest that the cognitive policy favoring creativity may differ from the policy optimizing fluency (i.e., MVT). This study introduces novel measures of semantic search, identifies their neurocognitive correlates, and underscores the importance of search patterns in understanding creative abilities.",
+    "year": 2025,
+    "citationCount": 4,
+    "venue": "Imaging neuroscience",
+    "doi": "10.1162/IMAG.a.1018"
+  },
+  {
+    "paperId": "f34793807d069e0f1b87cbbd8b2ff67d2a3753e5",
+    "title": "Investigating the originality of scientific papers across time and domain: A quantitative analysis",
+    "abstract": "The study of creativity in science has long sought quantitative metrics capable of capturing the originality of the scientific insights contained within articles and other scientific works. In recent years, the field has witnessed a substantial expansion of research activity, enabled by advances in natural language processing and network analysis, and has utilised both macro- and micro-scale approaches with success. However, they often do not examine the text itself for evidence of originality. In this paper, we apply a computational measure correlating with originality from creativity science, Divergent Semantic Integration (DSI), to a set of 51,200 scientific abstracts and titles sourced from the Web of Science. To adapt DSI for application to scientific texts, we advance the original BERT method by incorporating SciBERT (a model trained on scientific corpora) into the computation of DSI. In our study, we observe that DSI plays a more pronounced role in the accrual of early citations for papers with fewer authors, varies substantially across subjects and research fields, and exhibits a declining correlation with citation counts over time. Furthermore, by modelling SciBERT- and BERT-DSI as predictors of the logarithm of 5-year citation counts alongside field, publication year, and the logarithm of author count, we find statistically significant relationships, with adjusted R-squared of 0.103 and 0.101 for BERT-DSI and SciBERT-DSI. Because existing scientometric measures rarely assess the originality expressed in textual content, DSI provides a valuable means of directly quantifying the conceptual originality embedded in scientific writing.",
+    "year": 2025,
+    "citationCount": 0,
+    "venue": "arXiv.org",
+    "doi": "10.48550/arXiv.2512.07892"
+  },
+  {
+    "paperId": "0ec3821e6261b9d31d4cab838182e39bef859d8e",
+    "title": "Dynamics of memory search",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 0,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "142a694fac7ae7cf915d739bdbe17e0b51c556cb",
+    "title": "The Art of Creative Inquiry\u2014From Question Asking to Prompt Engineering",
+    "abstract": "As\u00a0artificial intelligence and natural language processing methods rapidly develop, communication plays a pivotal role in every\u2010day interactions. In this theoretical paper, we explore the overlap and commonalities between question\u2010asking and prompt engineering. While seemingly distinct, these processes share a common foundation in essential skills like creativity, critical thinking, and cognitive flexibility. We contend that prompt engineering, the art of crafting cues for language models, and question\u2010asking, the skill of formulating inquiries, form a symbiotic relationship. Delving into question complexity through Bloom's taxonomy and diverse types of questions, we propose strategies for not only efficient but also engaging prompt design. Our theoretical contribution emphasizes the dynamic role of creativity in both processes, offering intriguing perspectives on human\u2013machine interactions and advancing our understanding of language models and communication skills.",
+    "year": 2024,
+    "citationCount": 33,
+    "venue": "The Journal of creative behavior",
+    "doi": "10.1002/jocb.671"
+  },
+  {
+    "paperId": "1678454a978247fa75a5367442cb5d7977bd160a",
+    "title": "Cognitive modelling of concepts in the mental lexicon with multilayer networks: Insights, advancements, and future challenges",
+    "abstract": "The mental lexicon is a complex cognitive system representing information about the words/concepts that one knows. Over decades psychological experiments have shown that conceptual associations across multiple, interactive cognitive levels can greatly influence word acquisition, storage, and processing. How can semantic, phonological, syntactic, and other types of conceptual associations be mapped within a coherent mathematical framework to study how the mental lexicon works? Here we review cognitive multilayer networks as a promising quantitative and interpretative framework for investigating the mental lexicon. Cognitive multilayer networks can map multiple types of information at once, thus capturing how different layers of associations might co-exist within the mental lexicon and influence cognitive processing. This review starts with a gentle introduction to the structure and formalism of multilayer networks. We then discuss quantitative mechanisms of psychological phenomena that could not be observed in single-layer networks and were only unveiled by combining multiple layers of the lexicon: (i) multiplex viability highlights language kernels and facilitative effects of knowledge processing in healthy and clinical populations; (ii) multilayer community detection enables contextual meaning reconstruction depending on psycholinguistic features; (iii) layer analysis can mediate latent interactions of mediation, suppression, and facilitation for lexical access. By outlining novel quantitative perspectives where multilayer networks can shed light on cognitive knowledge representations, including in next-generation brain/mind models, we discuss key limitations and promising directions for cutting-edge future research.",
+    "year": 2024,
+    "citationCount": 20,
+    "venue": "Psychonomic Bulletin & Review",
+    "doi": "10.3758/s13423-024-02473-9"
+  },
+  {
+    "paperId": "186e9d730af79c3da02ef7c9dc2b46fddbab0db6",
+    "title": "Sparking creativity: Encouraging creative idea generation through automatically generated word recommendations",
+    "abstract": "Creative block is a familiar foe to any who attempt to create and is especially related to \u201cwriters block\u201d. While significant effort has been focused on developing methods to break such blocks, it remains an active challenge. Here, we focus on the role of semantic memory structure in driving creative block, by having people get \u201cstuck\u201d in a certain part of their semantic memory network. We directly examine whether we can \u201cpull out\u201d a participant from where they got \u201cstuck\u201d in their semantic memory, breaking their creative impasse. Our Associative Creativity Sparker (ACS) is a cognitive network science-based online tool that aims to spark creative ideas and break creative impasse: Once a participant runs out of ideas in a creative idea generation task, word recommendations are suggested to prime new ideas. These word recommendations are either towards or away from previous ideas, as well as close or far from the target object, based on a conceptual space extracted from the participants responses using online text analysis. In Study 1, 121 participants use the ACS to generate creative alternative uses for five different objects and completed creativity and Gf tasks. In Study 2, we repeat the design of Study 1, but further examine the impact of writing experience on the ACS, by examining 120 novice and 120 experienced writers. Across both studies, our results indicate that the location of word recommendations affects the fluency and originality of one\u2019s ideas, and that novice and experienced writers differently benefit from these word recommendations.",
+    "year": 2024,
+    "citationCount": 12,
+    "venue": "Behavior Research Methods",
+    "doi": "10.3758/s13428-024-02463-8"
+  },
+  {
+    "paperId": "19469ab063898e53a9b6b2ff07e60f727dc25990",
+    "title": "Spot the Spy: Exploring Natural Question-Asking in Gaming Environments",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 0,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "45b3802b74cdbe7f872ab7fd363262aa6d9983f7",
+    "title": "Conceptual Structure of Emotions",
+    "abstract": "Theories of semantic organization have historically prioritized investigation of concrete concepts pertaining to inanimate objects and natural kinds. As a result, accounts of the conceptual representation of emotions have almost exclusively focused on their juxtaposition with concrete concepts. The present study aims to fill this gap by deriving a large set of normative feature data for emotion concepts and assessing similarities and differences between the featural representation of emotion, nonemotion abstract, and concrete concepts. We hypothesized that differences between the experience of emotions (e.g., happiness and sadness) and the experience of other abstract concepts (e.g., equality and tyranny), specifically regarding the relative importance of interoceptive states, might drive distinctions in the dimensions along which emotion concepts are represented. We also predicted, based on constructionist views of emotion, that emotion concepts might demonstrate more variability in their representation than concrete and other abstract concepts. Participants listed features which we coded into discrete categories and contrasted the feature distributions across conceptual types. Analyses revealed statistically significant differences in the distribution of features among the category types by condition. We also examined variability in the features generated, finding that, contrary to expectation, emotion concepts were associated with less variability. Our results reflect subtle differences between the structure of emotion concepts and the structure of, not only concrete concepts, but also other abstract concepts. We interpret these findings in the context of our sample, which was restricted to native English speakers, and discuss the importance of validating these findings across speakers of different languages.",
+    "year": 2024,
+    "citationCount": 3,
+    "venue": "Emotion",
+    "doi": "10.1037/emo0001327"
+  },
+  {
+    "paperId": "4c1d2f44320e53bb18784e5373143959d4d782b0",
+    "title": "An entropy modulation theory of creative exploration.",
+    "abstract": "Compared to individuals who are rated as less creative, higher creative individuals tend to produce ideas more quickly and with more novelty-what we call faster-and-further phenomenology. This has traditionally been explained either as supporting an associative theory-based on differences in the structure of cognitive representations-or as supporting an executive theory-based on the principle that higher creative individuals utilize cognitive control to navigate their cognitive representations differently. Though extensive research demonstrates evidence of differences in semantic structure, structural explanations are limited in their ability to formally explain faster-and-further phenomenology. At the same time, executive abilities also correlate with creativity, but formal process models explaining how they contribute to faster-and-further phenomenology are lacking. Here, we introduce entropy modulation theory which integrates structure and process-based creativity accounts. Relying on a broad set of evidence, entropy modulation theory assumes that the difference between lower and higher creative individuals lies in the executive modulation of entropy during cognitive search (e.g., memory retrieval). With retrieval targets racing to reach an activation threshold, activation magnitude and variance both independently enhance the entropy of target retrieval and increase retrieval speed, reproducing the faster-and-further phenomenology. Thus, apparent differences in semantic structure can be produced via an entropy modulating retrieval process, which tunes cognitive entropy to mediate cognitive flexibility and the exploration-exploitation trade-off. (PsycInfo Database Record (c) 2024 APA, all rights reserved).",
+    "year": 2024,
+    "citationCount": 16,
+    "venue": "Psychology Review",
+    "doi": "10.1037/rev0000511"
+  },
+  {
+    "paperId": "4fddfd446641b07c0437e0604557c9e797cd52d6",
+    "title": "Open and Closed-Ended Problem Solving in Humans and AI: The Influence of Question Asking Complexity",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 26,
+    "venue": "Thinking Skills and Creativity",
+    "doi": "10.1016/j.tsc.2024.101598"
+  },
+  {
+    "paperId": "7026c6a219452a5a59f634d425cf20c6e0ff2b24",
+    "title": "Creative connections: the neural correlates of semantic relatedness are associated with creativity",
+    "abstract": "The associative theory of creativity proposes that creative ideas result from connecting remotely related concepts in memory. Previous research found that higher creative individuals exhibit a more flexible organization of semantic memory, generate more uncommon word associations, and judge remote concepts as more related. In this study (N\u2009=\u200993), we used fMRI to investigate brain regions involved in judging the relatedness of concepts that vary in their semantic distance, and how such neural involvement relates to individual differences in creativity. Brain regions where activity increased with semantic relatedness mainly overlapped with default, control, salience, semantic control, and multiple demand networks. The default and semantic control networks exhibited increased involvement when evaluating more remote associations. Finally, higher creative people, who provided higher relatedness judgements on average, exhibited lower activity in those regions, possibly reflecting higher neural efficiency. We discuss these findings in the context of the neurocognitive processing underlying creativity. Overall, our findings indicate that judging remote concepts as related reflects a cognitive mechanism underlying creativity and shed light on the neural correlates of this mechanism. Combining HD-EEG with connectome modeling predicts individual creative behavior from resting-state functional connectivity, highlighting the importance of optimal activation interplay across networks in creative cognition.",
+    "year": 2024,
+    "citationCount": 12,
+    "venue": "Communications Biology",
+    "doi": "10.1038/s42003-024-06493-y"
+  },
+  {
+    "paperId": "730bdfe92ce68e2cdedd0ae2e47ff852d37a0e28",
+    "title": "Spontaneous associative thought may facilitate scene-gist memory via implicit scene-labeling",
+    "abstract": "Spontaneous associative processes (e.g., mind wandering, spontaneous memory recollection) are prevalent in everyday life, yet their influence on perceptual scene memory is under debate. Given that scene perception involves extraction of contextual associations, we hypothesized that associative thought would enhance scene memory by promoting encoding of contextual associations. In an online experiment (N\u2009=\u200975), participants viewed scenes, and following each scene either generated chained-free associations (associative processing), or, as control, listed words that begin with a specific letter (phonological processing). Scene memory was tested after an intermediate creativity task, which is also shown to rely on associative processes. Results revealed that associative thought, regardless of its conceptual (semantic) distances between responses, enhanced scene-gist memory, but hampered memory of scene details, implying that associative thought facilitates contextual encoding. In a follow-up experiment (N\u2009=\u200974), we found that the effect of associative thought on scene-gist memory was mediated by scene labeling. When participants were asked to explicitly label the scene before completing an associative processing or a phonological processing task, scene-gist memory was prioritized at the expense of scene details, eliminating the memory differences between tasks. These findings imply that labeling past perceived scenes, whether explicitly or implicitly during associative thought, facilitates scene-gist memory. Lastly, in both experiments, creativity was not correlated with scene memory but was positively correlated with the semantic distances between scene-based associations, extending past findings that link creativity with the breadth of associative processes. Together, these findings highlight the likely effect of post-perceptual associative processes on higher-order cognitive functions, such as memory consolidation and creative thought.",
+    "year": 2024,
+    "citationCount": 0,
+    "venue": "Memory & Cognition",
+    "doi": "10.3758/s13421-024-01672-y"
+  },
+  {
+    "paperId": "79d2e2d9e04cb7f25592c1ab0ee342ca1837da8e",
+    "title": "A meta-analysis of the effects of transcranial direct current stimulation on creative thinking.",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 10,
+    "venue": "Psychology of Aesthetics, Creativity, and the Arts",
+    "doi": "10.1037/aca0000704"
+  },
+  {
+    "paperId": "802d73de833e99d77f75550f105657d40aafcdb6",
+    "title": "Spontaneous associative thought facilitates scene-gist memory",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 0,
+    "venue": "Journal of Vision",
+    "doi": "10.1167/jov.24.10.1112"
+  },
+  {
+    "paperId": "834b3ad0bb7ff3fb4aaf4997d7e0d2073835b7f7",
+    "title": "Changes in semantic memory structure support successful problem-solving and analogical transfer",
+    "abstract": "Creative problem-solving is central in daily life, yet its underlying mechanisms remain elusive. Restructuring (i.e., reorganization of problem-related representations) is considered one problem-solving mechanism and may lead to an abstract problem-related representation facilitating the solving of analogous problems. Here, we used network science methodology to estimate participants\u2019 semantic memory networks (SemNets) before and after attempting to solve a riddle. Restructuring was quantified as the difference in SemNets metrics between pre- and post-solving phases. Our results provide initial evidence that problem-related SemNets restructuring may be associated with the successful solving of the riddle and, subsequently, an analogous one. Solution-relevant concepts and semantically remote concepts became more strongly related in solvers. Only changes in semantically remote concepts were instrumental in actively solving the riddle while changes in solution-relevant concepts may reflect a pre-exposure to the solution. Using SemNets to test for changes in semantic distances between riddle-related concepts shows that solving a riddle and an analogous one benefit from a restructuring of problem representation.",
+    "year": 2024,
+    "citationCount": 13,
+    "venue": "Communications Psychology",
+    "doi": "10.1038/s44271-024-00100-w"
+  },
+  {
+    "paperId": "86c31cd5bf1f5a67b5a4c9eaf7f8cf2be4c5a6eb",
+    "title": "Mapping the Memory Structure of High-Knowledge Students: A Longitudinal Semantic Network Analysis",
+    "abstract": "Standard learning assessments like multiple-choice questions measure what students know but not how their knowledge is organized. Recent advances in cognitive network science provide quantitative tools for modeling the structure of semantic memory, revealing key learning mechanisms. In two studies, we examined the semantic memory networks of undergraduate students enrolled in an introductory psychology course. In Study 1, we administered a cumulative multiple-choice test of psychology knowledge, the Intro Psych Test, at the end of the course. To estimate semantic memory networks, we administered two verbal fluency tasks: domain-specific fluency (naming psychology concepts) and domain-general fluency (naming animals). Based on their performance on the Intro Psych Test, we categorized students into a high-knowledge or low-knowledge group, and compared their semantic memory networks. Study 1 (N = 213) found that the high-knowledge group had semantic memory networks that were more clustered, with shorter distances between concepts\u2014across both the domain-specific (psychology) and domain-general (animal) categories\u2014compared to the low-knowledge group. In Study 2 (N = 145), we replicated and extended these findings in a longitudinal study, collecting data near the start and end of the semester. In addition to replicating Study 1, we found the semantic memory networks of high-knowledge students became more interconnected over time, across both domain-general and domain-specific categories. These findings suggest that successful learners show a distinct semantic memory organization\u2014characterized by high connectivity and short path distances between concepts\u2014highlighting the utility of cognitive network science for studying variation in student learning.",
+    "year": 2024,
+    "citationCount": 10,
+    "venue": "Journal of Intelligence",
+    "doi": "10.3390/jintelligence12060056"
+  },
+  {
+    "paperId": "86f287beb954a01f79119c33d1fe3c3fbbe94a5b",
+    "title": "Connector hubs in semantic network contribute to creative thinking.",
+    "abstract": "Semantic memory offers a rich repository of raw materials (e.g., various concepts and connections between concepts) for creative thinking, represented as a semantic network. Similar to other networks, the semantic network exhibits a modular structure characterized by modules with dense internal connections and sparse connections between them. This organizational principle facilitates the routine storage and retrieval of information but may impede creativity. The present study investigated the effect of hub concepts with varying connection patterns on creative thinking from the perspective of a modular structured semantic network. By analyzing a large-scale semantic network, connector hubs (C-hubs) and provincial hubs (P-hubs) were identified based on their intra- and intermodule connections. These hubs were used as cue words in the alternative uses task, a widely used measure of creative thinking. Across four experiments, behavioral and neural evidence indicated that C-hubs facilitate the generation of more novel and remote ideas compared to P-hubs. However, this effect is predominantly observed in the early stage of the creative thinking process, involving changes in brain activation and functional connectivity in core regions of the default mode network and the frontoparietal network, including the dorsolateral prefrontal cortex, angular gyrus, and precuneus. Neural findings suggest that the superior performance of C-hubs relies on stronger interactions between automatic spreading activation, controlled semantic retrieval, and attentional regulation of salient information. These results provide insight into how concepts with varying semantic connection patterns facilitate and constrain different stages of the creative thinking process through the modular structure of semantic network. (PsycInfo Database Record (c) 2024 APA, all rights reserved).",
+    "year": 2024,
+    "citationCount": 6,
+    "venue": "Journal of experimental psychology. General",
+    "doi": "10.1037/xge0001675"
+  },
+  {
+    "paperId": "91622d91fa8db8635dcca71c9c0b3ae012e1448c",
+    "title": "How Retrieval Processes Change with Age: Exploring Age Differences in Semantic Network and Retrieval Dynamics",
+    "abstract": "This study investigated the impact of age on semantic memory networks and retrieval dynamics using a single-list free recall paradigm, involving 318 participants. The younger group, with 175 participants aged 25 to 55 years (M = 46.68 years; SD = 10.69), and the older group, consisting of 143 participants aged 61 to 88 years (M = 68.71 years; SD = 6.09), completed a word recall test to assess delayed recall performance. Semantic memory networks were constructed from recall data by analyzing the co-occurrence and sequence of recalled words. We observed significant differences in network structure, where the older group displayed higher average shortest path length and modularity values, indicative of less integrated networks, while the younger group exhibited a higher clustering coefficient, suggesting a more interconnected network. In terms of retrieval dynamics, both groups showed a temporal contiguity effect with forward asymmetry. However, this effect was less pronounced in older adults. The study also identified participants that diverted from the average dynamic curves: one subgroup relied on non-temporal mechanisms, and the other employed a backward direction in memory search. Participants utilizing forward temporal associations demonstrated the highest recall performance. Overall, our findings suggest that lower free recall performance in older adults may be related to a diminished capacity to reinstate temporal context for retrieval and distinct differences in their semantic memory network structure. Specifically, older adults appear to exhibit networks with a less flexible, small-world-like structure.",
+    "year": 2024,
+    "citationCount": 2,
+    "venue": "Canadian journal of experimental psychology = Revue canadienne de psychologie experimentale",
+    "doi": "10.1037/cep0000332"
+  },
+  {
+    "paperId": "9ca1243f93e855c5111cb8d0b0f6e44513e8cc27",
+    "title": "Protect our environment from information overload.",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 37,
+    "venue": "Nature Human Behaviour",
+    "doi": "10.1038/s41562-024-01833-8"
+  },
+  {
+    "paperId": "ade4f9d03679c37469da9dec9d487a36bab56321",
+    "title": "The Role of Knowledge in Creative Thinking",
+    "abstract": "ABSTRACT In this invited paper, I briefly review my past, current, and future lines of research. The associative theory of creativity argues that higher creative individuals have a richer semantic memory structure that facilitates broader associative search processes, that leads to the combination of remote concepts into novel and appropriate ideas. Based on this theory, in my research I investigate the role of knowledge \u2013 or semantic memory \u2013 in high-level cognition, focusing on creativity, associative thinking, and memory search, in typical and clinical populations. To do so, I apply computational tools from network science, natural language processing, and machine learning, coupled with empirical cognitive and neural research. Such computational tools are enabling the representation and operationalization of the structure of semantic memory and the processes that operate over it. This is critical as it allows us to start quantifying issues that for a very long time were studied very subjectively in creativity research \u2013 remoteness of ideas, associative thinking, flexible/richer semantic memory structure, etc. Such work is offering unique, quantitative, ways to directly study classic theories of creativity, propelling forward our understanding of its complexity.",
+    "year": 2024,
+    "citationCount": 62,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2024.2322858"
+  },
+  {
+    "paperId": "b74b66dd4545e6e25ae48304f2a55f4258981e75",
+    "title": "Recognizing ideas generated in a creative task: the roles of the hippocampus and medial prefrontal cortex in facilitating self-generated learning.",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 11,
+    "venue": "Cerebral Cortex",
+    "doi": "10.1093/cercor/bhae219"
+  },
+  {
+    "paperId": "bef2b208e7ad5f98970b3ccad4a0dc777ef9365e",
+    "title": "Neural Dynamics During the Generation and Evaluation of Creative and Non-Creative Ideas",
+    "abstract": "What are the neural dynamics that drive creative thinking? Recent studies have provided much insight into the neural mechanisms of creative thought. Specifically, the interaction between the executive control, default mode, and salience brain networks has been shown to be an important marker of individual differences in creative ability. However, how these different brain systems might be recruited dynamically during the two key components of the creative process\u2014 generation and evaluation of ideas\u2014remains far from understood. In the current study we applied state-of-the-art network neuroscience methodologies to examine the neural dynamics related to the generation and evaluation of creative and non-creative ideas using a novel within-subjects design. Participants completed two functional magnetic resonance imaging sessions, taking place a week apart. In the first imaging session, participants generated either creative (alternative uses) or non-creative (common characteristics) responses to common objects. In the second imaging session, participants evaluated their own creative and non-creative responses to the same objects. Network neuroscience methods were applied to examine and directly compare reconfiguration, integration, and recruitment of brain networks during these four conditions. We found that generating creative ideas led to significantly higher network reconfiguration than generating non-creative ideas, whereas evaluating creative and non-creative ideas led to similar levels of network integration. Furthermore, we found that these differences were attributable to different dynamic patterns of neural activity across the executive control, default mode, and salience networks. This study is the first to show within-subject differences in neural dynamics related to generating and evaluating creative and non-creative ideas.",
+    "year": 2024,
+    "citationCount": 5,
+    "venue": "bioRxiv",
+    "doi": "10.1101/2024.04.15.589621"
+  },
+  {
+    "paperId": "dc6f0ad0f5acbee561438043d3ae89be46bc76e9",
+    "title": "The role of semantic memory networks in crystallized intelligence and creative thinking ability",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 15,
+    "venue": "Learning and Individual Differences",
+    "doi": "10.1016/j.lindif.2024.102426"
+  },
+  {
+    "paperId": "e4394f7c4638f05664c8849b22d02117edd73540",
+    "title": "Default mode network electrophysiological dynamics and causal role in creative thinking",
+    "abstract": "Abstract The default mode network (DMN) is a widely distributed, intrinsic brain network thought to play a crucial role in internally directed cognition. The present study employs stereo-EEG in 13 human patients, obtaining high resolution neural recordings across multiple canonical DMN regions during two processes that have been associated with creative thinking: spontaneous and divergent thought. We probe these two DMN-associated higher cognitive functions through mind wandering and alternate uses tasks, respectively. Our results reveal DMN recruitment during both tasks, as well as a task-specific dissociation in spatiotemporal response dynamics. When compared to the fronto-parietal network, DMN activity was characterized by a stronger increase in gamma band power (30\u201370\u2005Hz) coupled with lower theta band power (4\u20138\u2005Hz). The difference in activity between the two networks was especially strong during the mind wandering task. Within the DMN, we found that the tasks showed different dynamics, with the alternate uses task engaging the DMN more during the initial stage of the task, and mind wandering in the later stage. Gamma power changes were mainly driven by lateral DMN sites, while theta power displayed task-specific effects. During alternate uses task, theta changes did not show spatial differences within the DMN, while mind wandering was associated to an early lateral and late dorsomedial DMN engagement. Furthermore, causal manipulations of DMN regions using direct cortical stimulation preferentially decreased the originality of responses in the alternative uses task, without affecting fluency or mind wandering. Our results suggest that DMN activity is flexibly modulated as a function of specific cognitive processes and supports its causal role in divergent thinking. These findings shed light on the neural constructs supporting different forms of cognition and provide causal evidence for the role of DMN in the generation of original connections among concepts.",
+    "year": 2024,
+    "citationCount": 39,
+    "venue": "Brain : a journal of neurology",
+    "doi": "10.1093/brain/awae199"
+  },
+  {
+    "paperId": "f2b19dc695182465056ac4bb7b25e4b187062452",
+    "title": "The role of alpha oscillations in free\u2010 and goal\u2010directed semantic associations",
+    "abstract": "Alpha oscillations are known to play a central role in several higher\u2010order cognitive functions, especially selective attention, working memory, semantic memory, and creative thinking. Nonetheless, we still know very little about the role of alpha in the generation of more remote semantic associations, which is key to creative and semantic cognition. Furthermore, it remains unclear how these oscillations are shaped by the intention to \u201cbe creative,\u201d which is the case in most creativity tasks. We aimed to address these gaps in two experiments. In Experiment 1, we compared alpha oscillatory activity (using a method which distinguishes genuine oscillatory activity from transient events) during the generation of free associations which were more vs. less distant from a given concept. In Experiment 2, we replicated these findings and also compared alpha oscillatory activity when people were generating free associations versus associations with the instruction to be creative (i.e. goal\u2010directed). We found that alpha was consistently higher during the generation of more distant semantic associations, in both experiments. This effect was widespread, involving areas in both left and right hemispheres. Importantly, the instruction to be creative seems to increase alpha phase synchronisation from left to right temporal brain areas, suggesting that intention to be creative changed the flux of information in the brain, likely reflecting an increase in top\u2010down control of semantic search processes. We conclude that goal\u2010directed generation of remote associations relies on top\u2010down mechanisms compared to when associations are freely generated.",
+    "year": 2024,
+    "citationCount": 10,
+    "venue": "Human Brain Mapping",
+    "doi": "10.1002/hbm.26770"
+  },
+  {
+    "paperId": "fa78e8fabe741f2e5b4be7aeb9c55850f6afb1b8",
+    "title": "Bridging the Measurement Gap: a Large Language Model Method of Assessing Open-Ended Question Complexity",
+    "abstract": "",
+    "year": 2024,
+    "citationCount": 3,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "1118567d353a3a3bd73851be507ae6493c52fd8f",
+    "title": "Convergent Thinking and Insight Problem Solving Relate to Semantic Memory Network Structure",
+    "abstract": "",
+    "year": 2023,
+    "citationCount": 32,
+    "venue": "Thinking Skills and Creativity",
+    "doi": "10.1016/j.tsc.2023.101277"
+  },
+  {
+    "paperId": "13ded01a18cc9ddd4c1d9904d8c4e4687e5b29fc",
+    "title": "A Thirst for Knowledge: Grounding Curiosity, Creativity, and Aesthetics in Memory and Reward Neural Systems",
+    "abstract": "ABSTRACT Curiosity, creativity, and aesthetics are typically studied separately. The extent to which they share psychological and neural mechanisms is not well understood, despite all being linked to broader personality characteristics like Openness to Experience and are driven by a desire for information and knowledge. Here, we review evidence and advance the hypothesis that creative and aesthetic experiences depend on curiosity as a driver of information-seeking and exploratory behavior because they are exemplars of situations that highlight gaps in knowledge or require problem finding and solving. At the psychological level, we link curiosity, creativity, and aesthetics to Openness to Experience and to ones\u2019 semantic memory. We demonstrate how Openness is a critical personality trait in enhancing curious behaviors, as well as creative and aesthetic acts. Furthermore, we highlight the role of semantic memory in such information-seeking behavior, leading to knowledge acquisition. At the neural level, we examine the neurobiological underpinnings of these constructs in relation to the mesolimbic dopaminergic reward system, as related to information-seeking. Finally, we link creativity and aesthetic experience and discuss how stages of art viewing and making relate to curiosity. Thus, we argue that information-seeking, the key behavior attributed to curiosity, motivates both creative and aesthetic activities.",
+    "year": 2023,
+    "citationCount": 63,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2023.2165748"
+  },
+  {
+    "paperId": "19481ae89aba2938027b98ba396d3ad361a03a13",
+    "title": "Using cognitive psychology to understand GPT-like models needs to extend beyond human biases",
+    "abstract": "1) evaluation of Large Language Models (LLMs) via cognitive tasks propelled the adoption of psycho - logical frameworks for",
+    "year": 2023,
+    "citationCount": 37,
+    "venue": "Proceedings of the National Academy of Sciences of the United States of America",
+    "doi": "10.1073/pnas.2312911120"
+  },
+  {
+    "paperId": "198fe837bb4b212b29f9b5a172cb76b7949bd169",
+    "title": "On semantic structures and processes in creative thinking.",
+    "abstract": "",
+    "year": 2023,
+    "citationCount": 9,
+    "venue": "Trends in Cognitive Sciences",
+    "doi": "10.1016/j.tics.2023.07.011"
+  },
+  {
+    "paperId": "19c085816c5d3bcc8a10b8538ef216e4c0ac9ae9",
+    "title": "Predicting Openness to Experience via a Multiplex Cognitive Network Approach",
+    "abstract": "",
+    "year": 2023,
+    "citationCount": 10,
+    "venue": "Journal of Research in Personality",
+    "doi": "10.1016/j.jrp.2023.104369"
+  },
+  {
+    "paperId": "1e19f0431509dafc83d16d6a61c3f0a2fd7bff47",
+    "title": "Brain Connectivity-Based Prediction of Combining Remote Semantic Associates for Creative Thinking",
+    "abstract": "ABSTRACT Associative thinking plays a major role in creativity, as it involves the ability to link distant concepts. Yet, the neural mechanisms allowing to combine distant associates in creative thinking tasks remain poorly understood. We investigated the whole-brain functional connectivity patterns related to combining remote associations for creative thinking. Using a connectome predictive modeling approach, we examined whole-brain functional connectivity patterns related to connecting close and distant remote associates in the Combination Association Task (CAT). Brain connectivity networks predicting CAT performance showed contributions from brain functional connectivity mostly related to the Default Mode Network, likely related to associative processes required in all trials of the task. Besides, the functional connectivity pattern of associative remoteness linked to CAT trials also largely involved the Executive Control Network, Dorsal Attention Network and Somatomotor networks, suggesting that more controlled processes played an important role in trials with higher associative remoteness. Critically, the functional connectivity patterns related to higher creative demands of the task share similarities with functional connectivity patterns previously found to predict divergent thinking. Thus, our work potentially offers insights into neural mechanisms that play a role in both convergent and divergent remote thinking.",
+    "year": 2023,
+    "citationCount": 16,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2023.2192563"
+  },
+  {
+    "paperId": "22a3d0372380b644308d18976128639e135b454a",
+    "title": "Mapping the Creative Personality: A Psychometric Network Analysis of Highly Creative Artists and Scientists",
+    "abstract": "ABSTRACT Existing research has consistently supported a relationship between creative achievement and specific personality traits (e.g. openness to experience). However, such work has largely focused on univariate associations, potentially obscuring complex interactions among multiple personality factors, rendering an incomplete picture of the creative personality. We applied a psychometric network approach to characterize the multidimensional personality structure of highly creative individuals in the arts (\u201cartists\u201d) and sciences (\u201cscientists\u201d), using data from three samples (N\u2009=\u20094,015): college students, a representative adult sample, and the Big-C project of eminent creative professionals. Replicating past work, we found that artists showed reliably higher levels of openness to experience compared to scientists and a control group of less creative people. Psychometric network analysis revealed that artists were characterized by higher connectivity (i.e. co-occurrence) with other personality traits for openness, indicating that openness may be more heterogeneous in how it co-occurs with other personality traits in highly creative people. Across all three samples, we found that the scientists\u2019 personality network structure was more cohesive than the personality network of artists and the control group, indicating greater homogeneity in the personality characteristics of scientists. Our findings uncover a constellation of traits that give rise to creative achievement in the arts and sciences.",
+    "year": 2023,
+    "citationCount": 23,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2023.2184558"
+  },
+  {
+    "paperId": "3590d754aca20a848eb6036fe12f097425020e9e",
+    "title": "Representing melodic relationships using network science.",
+    "abstract": "Music is a complex system consisting of many dimensions and hierarchically organized information-the organization of which, to date, we do not fully understand. Network science provides a powerful approach to representing such complex systems, from the social networks of people to modelling the underlying network structures of different cognitive mechanisms. In the present research, we explored whether network science methodology can be extended to model the melodic patterns underlying expert improvised music. Using a large corpus of transcribed improvisations, we constructed a network model in which 5-pitch sequences were linked depending on consecutive occurrences, constituting 116,403 nodes (sequences) and 157,429 edges connecting them. We then investigated whether mathematical graph modelling relates to musical characteristics in real-world listening situations via a behavioral experiment paralleling those used to examine language. We found that as melodic distance within the network increased, participants judged melodic sequences as less related. Moreover, the relationship between distance and reaction time (RT) judgements was quadratic: participants slowed in RT up to distance four, then accelerated; a parallel finding to research in language networks. This study offers insights into the hidden network structure of improvised tonal music and suggests that humans are sensitive to the property of melodic distance in this network. More generally, our work demonstrates the similarity between music and language as complex systems, and how network science methods can be used to quantify different aspects of its complexity.",
+    "year": 2023,
+    "citationCount": 10,
+    "venue": "Cognition",
+    "doi": "10.1016/j.cognition.2022.105362"
+  },
+  {
+    "paperId": "3d40b9fddc70ca2f25fd473215a9fc92f5b4914b",
+    "title": "Aesthetic emotions are affected by context: a psychometric network analysis",
+    "abstract": "Aesthetic emotions are defined as emotions arising when a person evaluates a stimulus for its aesthetic appeal. Whether these emotions are unique to aesthetic activities is debated. We address this debate by examining if recollections of different types of engaging activities entail different emotional profiles. A large sample of participants were asked to recall engaging aesthetic (N\u2009=\u2009167), non-aesthetic (N\u2009=\u2009160), or consumer (N\u2009=\u2009172) activities. They rated the extent to which 75 candidate aesthetic emotions were evoked by these activities. We applied a computational psychometric network approach to represent and compare the space of these emotions across the three conditions. At the behavioral level, recalled aesthetic activities were rated as the least vivid but most intense compared to the two other conditions. At the network level, we found several quantitative differences across the three conditions, related to the typology, community (clusters) and core nodes (emotions) of these networks. Our results suggest that aesthetic and non-aesthetic activities evoke emotional spaces differently. Thus, we propose that aesthetic emotions are distributed differently in a multidimensional aesthetic space than for other engaging activities. Our results highlight the context-specificity of aesthetic emotions.",
+    "year": 2023,
+    "citationCount": 10,
+    "venue": "Scientific Reports",
+    "doi": "10.1038/s41598-023-48219-w"
+  },
+  {
+    "paperId": "4d86fe714aac551a29b3f2c8b3b65fc3f9b7ebf3",
+    "title": "Creative metacognition: A much needed bridge between meta-reasoning and creativity.",
+    "abstract": "",
+    "year": 2023,
+    "citationCount": 5,
+    "venue": "Physics of Life Reviews",
+    "doi": "10.1016/j.plrev.2023.10.006"
+  },
+  {
+    "paperId": "58f2ea24b8ba2a30b7513eec11aa8dc20ae856b5",
+    "title": "Multilingual semantic distance: Automatic verbal creativity assessment in many languages.",
+    "abstract": "Creativity research commonly involves recruiting human raters to judge the originality of responses to divergent thinking tasks, such as the alternate uses task (AUT). These manual scoring practices have ben-e \ufb01 ted the \ufb01 eld, but they also have limitations, including labor-intensiveness and subjectivity, which can adversely impact the reliability and validity of assessments. To address these challenges, researchers are increasingly employing automatic scoring approaches, such as distributional models of semantic distance. However, semantic distance has primarily been studied in English-speaking samples, with very little research in the many other languages of the world. In a multilab study ( N = 6,522 participants), we aimed to validate semantic distance on the AUT in 12 languages: Arabic, Chinese, Dutch, English, Farsi, French, German, Hebrew, Italian, Polish, Russian, and Spanish. We gathered AUT responses and human creativity ratings ( N = 107,672 responses), as well as criterion measures for validation (e.g., creative achievement). We compared two deep learning-based semantic models \u2014 multilingual bidirectional encoder representations from transformers and cross-lingual language model RoBERTa \u2014 to compute semantic distance and validate this automated metric with human ratings and criterion measures. We found that the top-performing model for each language correlated positively with human creativity ratings, with correlations ranging from medium to large across languages. Regarding criterion validity, semantic distance showed small-to-moderate effect sizes (comparable to human ratings) for openness, creative behavior/ achievement, and creative self-concept. We provide open access to our multilingual dataset for future algorithmic development, along with Python code to compute semantic distance in 12 languages.",
+    "year": 2023,
+    "citationCount": 35,
+    "venue": "Psychology of Aesthetics, Creativity, and the Arts",
+    "doi": "10.1037/aca0000618"
+  },
+  {
+    "paperId": "6434971bd0c3ac1c32af1445699fb9515d95aea4",
+    "title": "The Role of Semantic Associations as a Metacognitive Cue in Creative Idea Generation",
+    "abstract": "Is my idea creative? This question directs investing in companies and choosing a research agenda. Following previous research, we focus on the originality of ideas and consider their association with self-assessments of idea generators regarding their own originality. We operationalize the originality score as the frequency (%) of each idea within a sample of participants and originality judgment as the self-assessment of this frequency. Initial evidence suggests that originality scores and originality judgments are produced by separate processes. As a result, originality judgments are prone to biases. So far, heuristic cues that lead to such biases are hardly known. We used methods from computational linguistics to examine the semantic distance as a potential heuristic cue underlying originality judgments. We examined the extent to which the semantic distance would contribute additional explanatory value in predicting originality scores and originality judgments, above and beyond cues known from previous research. In Experiment 1, we re-analyzed previous data that compared originality scores and originality judgments after adding the semantic distance of the generated ideas from the stimuli. We found that the semantic distance contributed to the gap between originality scores and originality judgments. In Experiment 2, we manipulated the examples given in task instructions to prime participants with two levels of idea originality and two levels of semantic distance. We replicated Experiment 1 in finding the semantic distance as a biasing factor for originality judgments. In addition, we found differences among the conditions in the extent of the bias. This study highlights the semantic distance as an unacknowledged metacognitive cue and demonstrates its biasing power for originality judgments.",
+    "year": 2023,
+    "citationCount": 19,
+    "venue": "Journal of Intelligence",
+    "doi": "10.3390/jintelligence11040059"
+  },
+  {
+    "paperId": "701538f95f74f1f8961826b539c050504e3bcbd5",
+    "title": "A Mirror to Human Question Asking: Analyzing the Akinator Online Question Game",
+    "abstract": "Question-asking is a critical aspect of human communications. Yet, little is known about the reasons that lead people to ask questions, which questions are considered better than others, or what cognitive mechanisms allow the ability to ask informative questions. Here, we take a first step towards investigating human question-asking. We do so by an exploratory data-driven analysis of the questions asked by Akinator, a popular online game of a genie who asks questions to guess the character that the user is thinking of. We propose that the Akinator\u2019s question-asking process may be viewed as a reflection of how humans ask questions. We conduct an exploratory data analysis to examine different strategies for the Akinator\u2019s question-asking process, ranging from mathematical algorithms to gamification-based considerations, by analyzing complete games and individual questions. Furthermore, we use topic-modelling techniques to explore the topics of the Akinator\u2019s inquiries and map similar questions into clusters. Overall, we find surprising aspects of the specificity and types of questions generated by the Akinator game, that may be driven by the gamification characteristics of the game. In addition, we find coherent topics that the Akinator retrieves from when generating questions. Our results highlight commonalities in the strategies for question-asking used by people and by the Akinator.",
+    "year": 2023,
+    "citationCount": 15,
+    "venue": "Big Data and Cognitive Computing",
+    "doi": "10.3390/bdcc7010026"
+  },
+  {
+    "paperId": "865c6b2185ca917ebf29ad8b85a2a2215d46b85b",
+    "title": "The Effects of Environmental Scene and Body Posture on Embodied Strategies in Creative Thinking",
+    "abstract": "ABSTRACT Accounts of embodied cognition suggest that environmental scene and motor information can be used in a type of neural simulation when generating creative uses for manipulable objects. A scarce amount of studies suggests that the state of the body and environment play a role in people\u2019s ability to devise creative uses for objects. In this theoretically motivated study, we manipulated the environmental context and adopted a previously used body posture manipulation, while participants performed the alternative uses task (AUT) under general instructions or instructions to describe actions toward or away from the body. We show that the environment and body posture interact to shape performance on the AUT. Specifically, body posture facilitates fluent responding under high fixedness environmental contexts. In addition, describing actions away from the body results in more original AUT responses. Further, we replicate previous findings that higher-creative individuals use different \u201cembodied strategies\u201d than less-creative individuals when generating creative uses for objects. We propose that higher-creative individuals differentially access and navigate an abstract \u201caction space\u201d necessary for simulating creative uses of objects.",
+    "year": 2023,
+    "citationCount": 7,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2022.2160563"
+  },
+  {
+    "paperId": "937aa101fb3e2d96409503f862fe028655b4eeb1",
+    "title": "Free association ability distinguishes highly creative artists from scientists: Findings from the Big-C Project.",
+    "abstract": "",
+    "year": 2023,
+    "citationCount": 19,
+    "venue": "Psychology of Aesthetics, Creativity, and the Arts",
+    "doi": "10.1037/aca0000545"
+  },
+  {
+    "paperId": "9ad7a95b73d7ba7fa73f8c0fb08a4edb06eb82cf",
+    "title": "The role of memory in creative ideation",
+    "abstract": "",
+    "year": 2023,
+    "citationCount": 131,
+    "venue": "Nature Reviews Psychology",
+    "doi": "10.1038/s44159-023-00158-z"
+  },
+  {
+    "paperId": "a8252cd4e16885c5eb2547a04a9270e57554cd6d",
+    "title": "Age differences in semantic network structure: Acquiring knowledge shapes semantic memory.",
+    "abstract": "Computational research suggests that semantic memory, operationalized as semantic memory networks, undergoes age-related changes. Previous work suggests that concepts in older adults' semantic memory networks are more separated, more segregated, and less connected to each other. However, cognitive network research often relies on group averages (e.g., young vs. older adults), and it remains unclear if individual differences influence age-related disparities in language production abilities. Here, we analyze the properties of younger and older participants' individual-based semantic memory networks based on their semantic relatedness judgments. We related individual-based network measures-clustering coefficient (CC; connectivity), global efficiency, and modularity (structure)-to language production (verbal fluency) and vocabulary knowledge. Similar to previous findings, we found significant age effects: CC and global efficiency were lower, and modularity was higher, for older adults. Furthermore, vocabulary knowledge was significantly related to the semantic memory network measures: corresponding with the age effects, CC and global efficiency had a negative relationship, while modularity had a positive relationship with vocabulary knowledge. More generally, vocabulary knowledge significantly increased with age, which may reflect the critical role that the accumulation of knowledge within semantic memory has on its structure. These results highlight the impact of diverse life experiences on older adults' semantic memory and demonstrate the importance of accounting for individual differences in the aging mental lexicon. (PsycInfo Database Record (c) 2023 APA, all rights reserved).",
+    "year": 2023,
+    "citationCount": 45,
+    "venue": "Psychology and Aging",
+    "doi": "10.1037/pag0000721"
+  },
+  {
+    "paperId": "cc76d541376058cb4f6f1606173487acf5372107",
+    "title": "Associative thinking at the core of creativity.",
+    "abstract": "Creativity has long been thought to involve associative processes in memory: connecting concepts to form ideas, inventions, and artworks. However, associative thinking has been difficult to study due to limitations in modeling memory structure and retrieval processes. Recent advances in computational models of semantic memory allow researchers to examine how people navigate a semantic space of concepts when forming associations, revealing key search strategies associated with creativity. Here, we synthesize cognitive, computational, and neuroscience research on creativity and associative thinking. This Review highlights distinctions between free- and goal-directed association, illustrates the role of associative thinking in the arts, and links associative thinking to brain systems supporting both semantic and episodic memory - offering a new perspective on a longstanding creativity theory.",
+    "year": 2023,
+    "citationCount": 181,
+    "venue": "Trends in Cognitive Sciences",
+    "doi": "10.1016/j.tics.2023.04.004"
+  },
+  {
+    "paperId": "d575ee88e4b757bdfe32609d0299813403e9eccd",
+    "title": "Bigram Semantic Distance as an Index of Continuous Semantic Flow in Natural Language: Theory, Tools, and Applications",
+    "abstract": "Much of our understanding of word meaning has been informed through studies of single words. High dimensional semantic space models have recently proven instrumental in elucidating connections between words. Here we show how bigram semantic distance can yield novel insights into conceptual cohesion and topic flow when computed over continuous language samples. For example, \u2018Cats drink milk\u2019 is comprised of an ordered vector of bigrams (cat-drink, drink-milk). Each of these bigrams has a unique semantic distance. These distances in turn may provide a metric of dispersion or the flow of concepts as language unfolds. We offer an R package (\u2018semdistflow\u2019) that transforms any user-specified language transcript into a vector of ordered bigrams, appending two metrics of semantic distance to each pair. We validated these distance metrics on a continuous stream of simulated verbal fluency data assigning predicted switch markers between alternating semantic clusters (animals, musical instruments, fruit). We then generated bigram distance norms on a large sample of text and demonstrated applications of the technique to a classic work of short fiction, To Build a Fire (Jack London, 1908). In one application, we showed that bigrams spanning sentence boundaries are punctuated by jumps in semantic distance. We discuss the promise of this technique for characterizing semantic processing in real world narratives and for bridging findings at the single word level with macroscale discourse analyses.",
+    "year": 2023,
+    "citationCount": 9,
+    "venue": "Journal of experimental psychology. General",
+    "doi": "10.1037/xge0001389"
+  },
+  {
+    "paperId": "f41156f975a98066c086a17de7cf3aef1b87fe54",
+    "title": "The role of asking more complex questions in creative thinking.",
+    "abstract": "",
+    "year": 2023,
+    "citationCount": 29,
+    "venue": "Psychology of Aesthetics, Creativity, and the Arts",
+    "doi": "10.1037/aca0000658"
+  },
+  {
+    "paperId": "fa7abd23466e0d5fbae96e4ea31e369df9566cd4",
+    "title": "The Process Definition of Creativity",
+    "abstract": "ABSTRACT The \u201cstandard\u201d definition of creativity as novel and useful describes creative products, but creativity is constituted by processes. This misalignment contributes to the oft-noted challenges of operationalizing creativity. Here, we distinguish creativity as a process from creativity as an attribute (i.e. \u201ccreative-ness\u201d). Operating from a priori premises of creativity theory, we develop a process definition of creativity. Specifically, creativity is defined as internal attention constrained by a generative goal. This definition comprises three criteria: 1) attention is directed internally (toward mental representations); 2) attentional operations (e.g. search, manipulation) are constrained to fit parameters of a to-be-achieved goal state (whether or not a goal is actually achieved); and 3) the goal state is generative (not already precisely held in memory). We illustrate how these three definitional process elements align with insights yielded by creativity neuroscience, clarify ontological distinctions (e.g. from mind-wandering and retrieval), and relate the process definition to process-based models. The process definition provides minimal necessity and sufficiency criteria for whether a process should be considered creativity, but does not exclude the many other perceptual, emotional, etc. elements that can contribute to creativity processes. Researchers should specify whether they are studying creativity-as-process vs. \u201ccreative-ness,\u201d and consider including process-focused assessments.",
+    "year": 2023,
+    "citationCount": 140,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2023.2254573"
+  },
+  {
+    "paperId": "1569211dbc71fe8a6de588ad80dde0e085af76c2",
+    "title": "Creative problem solving in knowledge-rich contexts.",
+    "abstract": "Creative problem solving (CPS) in real-world contexts often relies on reorganization of existing knowledge to serve new, problem-relevant functions. However, classic creativity paradigms that minimize knowledge content are generally used to investigate creativity, including CPS. We argue that CPS research should expand consideration of knowledge-rich problem contexts, both in novices and experts within specific domains. In particular, paradigms focusing on creative analogical transfer of knowledge may reflect CPS skills that are applicable to real-world problem solving. Such paradigms have begun to provide process-level insights into cognitive and neural characteristics of knowledge-rich CPS and point to multiple avenues for fruitfully expanding inquiry into the role of crystalized knowledge in creativity.",
+    "year": 2022,
+    "citationCount": 42,
+    "venue": "Trends in Cognitive Sciences",
+    "doi": "10.1016/j.tics.2022.06.012"
+  },
+  {
+    "paperId": "1df93d546a10c7441dd74636d30d098a3846b36f",
+    "title": "Restructuring problem-related semantic associations promotes solving success",
+    "abstract": "",
+    "year": 2022,
+    "citationCount": 0,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "4b0574f04505d8e6f91796db3431e26e56742591",
+    "title": "Semantic flow and its relation to controlled semantic retrieval deficits in the narrative production of people with aphasia",
+    "abstract": "Aphasia has had a profound influence on our understanding of how language is instantiated within the human brain. Historically, aphasia has yielded an in vivo model for elucidating the effects of impaired lexical-semantic access on language comprehension and production. Aphasiology has focused intensively on single word dissociations. Yet, less is known about the integrity of combinatorial semantic processes required to construct well-formed narratives. Here we addressed the question of how controlled lexical-semantic retrieval deficits (a hallmark of aphasia) might compound over the course of longer narratives. We specifically examined word-by- word flow of taxonomic vs. thematic semantic distance in the storytelling narratives of individuals with chronic post-stroke aphasia (n = 259) relative to age-matched controls (n = 203). We first parsed raw transcribed narratives into content words and computed inter-word semantic distances for every running pair of words in each narrative (N = 232,490 word transitions). The narratives of people with aphasia showed significant reductions in taxonomic and thematic semantic distance relative to controls. Both distance metrics were strongly predictive of offline measures of semantic impairment and aphasia severity. Since individuals with aphasia often exhibit perseverative language output (i.e., repetitions), we performed additional analyses with repetitions excluded. When repetitions were excluded, group differences in semantic distances persisted and thematic distance was still predictive of semantic impairment, although some findings changed. These results demonstrate the cumulative impact of deficits in controlled word retrieval over the course of narrative production. We discuss the nature of semantic flow between words as a novel metric of characterizing discourse and elucidating the nature of lexical-semantic access impairment in aphasia at multiword levels.",
+    "year": 2022,
+    "citationCount": 10,
+    "venue": "Neuropsychologia",
+    "doi": "10.1016/j.neuropsychologia.2022.108235"
+  },
+  {
+    "paperId": "61a757a2deb1fa4681c0418ea590ddbdcf4a1eed",
+    "title": "Knowledge Modelling and Learning through Cognitive Networks",
+    "abstract": "Knowledge modelling is a growing field at the fringe of computer science, psychology and network science [...]",
+    "year": 2022,
+    "citationCount": 1,
+    "venue": "Big Data and Cognitive Computing",
+    "doi": "10.3390/bdcc6020053"
+  },
+  {
+    "paperId": "afc2d7008eeaab80add334f35f770a3f9fa94380",
+    "title": "Editors' Introduction to Networks of the Mind: How Can Network Science Elucidate Our Understanding of Cognition?",
+    "abstract": "Thinking is complex. Over the years, several types of methods and paradigms have developed across the psychological, cognitive, and neural sciences to study such complexity. A rapidly growing multidisciplinary quantitative field of network science offers quantitative methods to represent complex systems as networks, or graphs, and study the network properties of these systems. While the application of network science to study the brain has greatly advanced our understanding of the brains structure and function, the application of these tools to study cognition has been done to a much lesser account. This topic is a collection of papers that discuss the fruitfulness of applying network science to study cognition across a wide scope of research areas from generalist accounts of memory and encoding, to individual differences, to communities, and finally to cultural and individual change.",
+    "year": 2022,
+    "citationCount": 14,
+    "venue": "Topics in Cognitive Science",
+    "doi": "10.1111/tops.12598"
+  },
+  {
+    "paperId": "b7f045e32a7c19a68996537921bade4d49eb6b17",
+    "title": "Semantic Memory and Creativity: The Costs and Benefits of Semantic Memory Structure in Generating Original Ideas",
+    "abstract": "Abstract Despite its theoretical importance, little is known about how semantic memory structure facilitates and constrains creative idea generation. We examine whether the semantic richness of a concept has both benefits and costs to creative idea generation. Specifically, we tested whether cue set size\u2014an index of semantic richness reflecting the average number of elements associated with a given concept\u2014impacts the quantity (fluency) and quality (originality) of responses generated during the Alternate Uses Task (AUT). Across four studies, we show that low-association, sparse, AUT cues benefit originality at the cost of fluency compared to high-association, rich, AUT cues. Furthermore, we found an interaction with individual differences in fluid intelligence in the low-association AUT cues, suggesting that constraints of sparse semantic knowledge can be overcome with top-down intervention. Our findings indicate that semantic richness differentially impacts the quality and quantity of generated ideas, and that cognitive control processes can facilitate idea production when conceptual knowledge is limited.",
+    "year": 2022,
+    "citationCount": 55,
+    "venue": "Thinking and Reasoning",
+    "doi": "10.1080/13546783.2022.2076742"
+  },
+  {
+    "paperId": "c3557c2692181eea072f2a7995882dab98986ef7",
+    "title": "Brain connectivity\u2013based prediction of real-life creativity is mediated by semantic memory structure",
+    "abstract": "Associative theories of creativity argue that creative cognition involves the abilities to generate remote associations and make useful connections between unrelated concepts in one\u2019s semantic memory. Yet, whether and how real-life creative behavior relies on semantic memory structure and its neural substrates remains unclear. We acquired multi-echo functional magnetic resonance imaging data while participants underwent a semantic relatedness judgment task. These ratings were used to estimate their individual semantic memory networks, whose properties significantly predicted their real-life creativity. Using a connectome predictive modeling approach, we identified patterns of task-based functional connectivity that predicted creativity-related semantic memory network properties. Furthermore, these properties mediated the relationship between functional connectivity and real-life creativity. These results provide new insights into how brain connectivity patterns support real-life creative behavior via the structure of semantic memory. We also show how computational network science can be used to couple behavioral, cognitive, and neural levels of analysis.",
+    "year": 2022,
+    "citationCount": 68,
+    "venue": "Science Advances",
+    "doi": "10.1126/sciadv.abl4294"
+  },
+  {
+    "paperId": "ca91b2795f3a03fadef52cccc2cdb715e24eec34",
+    "title": "An investigation of the cognitive and neural correlates of semantic memory search related to creative ability",
+    "abstract": "Creative ideas likely result from searching and combining semantic memory knowledge, yet the mechanisms acting on memory to yield creative ideas remain unclear. Here, we identified the neurocognitive correlates of semantic search components related to creative abilities. We designed an associative fluency task based on polysemous words and distinguished two search components related to clustering and switching between the different meanings of the polysemous words. Clustering correlated with divergent thinking, while switching correlated with the ability to combine remote associates. Furthermore, switching correlated with semantic memory structure and executive abilities, and was predicted by connectivity between the default, control, and salience neural networks. In contrast, clustering relied on interactions between control, salience, and attentional neural networks. Our results suggest that switching captures interactions between memory structure and control processes guiding the search whereas clustering may capture attentional controlled processes for persistent search, and that alternations between exploratory search and focused attention support creativity. Switching and clustering in semantic memory search in the context of a novel polysemous word association task are related to creativity in terms of cognitive and neural processing.",
+    "year": 2022,
+    "citationCount": 74,
+    "venue": "Communications Biology",
+    "doi": "10.1038/s42003-022-03547-x"
+  },
+  {
+    "paperId": "d8d38edec5bee2dc56818554f97e6a33a28dfc54",
+    "title": "Cognitive modelling with multilayer networks: Insights, advancements and future challenges",
+    "abstract": "The mental lexicon is a complex cognitive system representing information about the words/concepts that one knows. Decades of psychological experiments have shown that conceptual associations across multiple, interactive cognitive levels can greatly influence word acquisition, storage, and processing. How can semantic, phonological, syntactic, and other types of conceptual associations be mapped within a coherent mathematical framework to study how the mental lexicon works? We here review cognitive multilayer networks as a promising quantitative and interpretative framework for investigating the mental lexicon. Cognitive multilayer networks can map multiple types of information at once, thus capturing how different layers of associations might co-exist within the mental lexicon and influence cognitive processing. This review starts with a gentle introduction to the structure and formalism of multilayer networks. We then discuss quantitative mechanisms of psychological phenomena that could not be observed in single-layer networks and were only unveiled by combining multiple layers of the lexicon: (i) multiplex viability highlights language kernels and facilitative effects of knowledge processing in healthy and clinical populations; (ii) multilayer community detection enables contextual meaning reconstruction depending on psycholinguistic features; (iii) layer analysis can mediate latent interactions of mediation, suppression and facilitation for lexical access. By outlining novel quantitative perspectives where multilayer networks can shed light on cognitive knowledge representations, also in next-generation brain/mind models, we discuss key limitations and promising directions for cutting-edge future research.",
+    "year": 2022,
+    "citationCount": 1,
+    "venue": "arXiv.org",
+    "doi": "10.48550/arXiv.2210.00500"
+  },
+  {
+    "paperId": "03e734974311669bf9012753d8e16e13a52f4d4d",
+    "title": "Beauty and Wellness in the Semantic Memory of the Beholder",
+    "abstract": "Beauty and wellness are terms used often in common parlance, however their meaning and relation to each other is unclear. To probe their meaning, we applied network science methods to estimate and compare the semantic networks associated with beauty and wellness in different age generation cohorts (Generation Z, Millennials, Generation X, and Baby Boomers) and in women and men. These mappings were achieved by estimating group-based semantic networks from free association responses to a list of 47 words, either related to Beauty, Wellness, or Beauty + Wellness. Beauty was consistently related to Elegance, Feminine, Gorgeous, Lovely, Sexy, and Stylish. Wellness was consistently related Aerobics, Fitness, Health, Holistic, Lifestyle, Medical, Nutrition, and Thrive. In addition, older cohorts had semantic networks that were less connected and more segregated from each other. Finally, we found that women compared to men had more segregated and organized concepts of Beauty and Wellness. In contemporary societies that are pre-occupied by the pursuit of beauty and a healthy lifestyle, our findings shed novel light on how people think about beauty and wellness and how they are related across different age generations and by sex.",
+    "year": 2021,
+    "citationCount": 13,
+    "venue": "Frontiers in Psychology",
+    "doi": "10.3389/fpsyg.2021.696507"
+  },
+  {
+    "paperId": "22230bdaf33a2081e8bcc6139fb6d73d03cd077e",
+    "title": "Education shapes the structure of semantic memory and impacts creative thinking",
+    "abstract": "Education is central to the acquisition of knowledge, such as when children learn new concepts. It is unknown, however, whether educational differences impact not only what concepts children learn, but how those concepts come to be represented in semantic memory\u2014a system that supports higher cognitive functions, such as creative thinking. Here we leverage computational network science tools to study hidden knowledge structures of 67 Swiss schoolchildren from two distinct educational backgrounds\u2014Montessori and traditional, matched on socioeconomic factors and nonverbal intelligence\u2014to examine how educational experience shape semantic memory and creative thinking. We find that children experiencing Montessori education show a more flexible semantic network structure (high connectivity/short paths between concepts, less modularity) alongside higher scores on creative thinking tests. The findings indicate that education impacts how children represent concepts in semantic memory and suggest that different educational experiences can affect higher cognitive functions, including creative thinking.",
+    "year": 2021,
+    "citationCount": 51,
+    "venue": "npj Science of Learning",
+    "doi": "10.1038/s41539-021-00113-8"
+  },
+  {
+    "paperId": "297cb2d8d58f149408b0bc2e532dfdfc4f5ebdd4",
+    "title": "Creative Foraging: Examining Relations Between Foraging Styles, Semantic Memory Structure, and Creative Thinking",
+    "abstract": "",
+    "year": 2021,
+    "citationCount": 2,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "3ddae90814581a8f5f0f668f50c619a6d00ffd98",
+    "title": "Is the Mind a Network? Maps, Vehicles, and Skyhooks in Cognitive Network Science",
+    "abstract": "Cognitive researchers often carve cognition up into structures and processes. Cognitive processes operate on structures, like vehicles driving over a map. Language alongside semantic and episodic memory are proposed to have structure, as are perceptual systems. Over these structures, processes operate to construct memory and solve problems by retrieving and manipulating information. Network science offers an approach to representing cognitive structures and has made tremendous inroads into understanding the nature of cognitive structure and process. But is the mind a network? If so, what kind? In this article, we briefly review the main metaphors, assumptions, and pitfalls prevalent in cognitive network science (maps and vehicles; one network/process to rule them all), highlight the need for new metaphors that elaborate on the map-and-vehicle framework (wormholes, skyhooks, and generators), and present open questions in studying the mind as a network (the challenge of capturing network change, what should the edges of cognitive networks be made of, and aggregated vs. individual-based networks). One critical lesson of this exercise is that the richness of the mind as network approach makes it a powerful tool in its own right; it has helped to make our assumptions more visible, generating new and fascinating questions, and enriching the prospects for future research. A second lesson is that the mind as a network-though useful-is incomplete. The mind is not a network, but it may contain them.",
+    "year": 2021,
+    "citationCount": 57,
+    "venue": "Topics in Cognitive Science",
+    "doi": "10.1111/tops.12570"
+  },
+  {
+    "paperId": "492fa086d7a122ffc5c5bd322cd26b7e49697d92",
+    "title": "The effect of aging on facial attractiveness: An empirical and computational investigation",
+    "abstract": "How does aging affect facial attractiveness? We tested the hypothesis that people find older faces less attractive than younger faces, and furthermore, that these aging effects are modulated by the age and sex of the perceiver and by the specific kind of attractiveness judgment being made. Using empirical and computational network science methods, we confirmed that with increasing age, faces are perceived as less attractive. This effect was less pronounced in judgments made by older than younger and middle-aged perceivers, and more pronounced by men (especially for female faces) than women. Attractive older faces were perceived as elegant more than beautiful or gorgeous. Furthermore, network analyses revealed that older faces were more similar in attractiveness and were segregated from younger faces. These results indicate that perceivers tend to process older faces categorically when making attractiveness judgments. Attractiveness is not a monolithic construct. It varies by age, sex, and the dimensions of attractiveness being judged.",
+    "year": 2021,
+    "citationCount": 45,
+    "venue": "Acta Psychologica",
+    "doi": "10.1016/j.actpsy.2021.103385"
+  },
+  {
+    "paperId": "6c14635bc99edf17a4aa90788ac2034dd14b6e38",
+    "title": "Brain Connectivity-Based Prediction of Semantic Network Properties Related to Creativity",
+    "abstract": "",
+    "year": 2021,
+    "citationCount": 0,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "8ba566419ac3f29fc8e1d198458800a824428a02",
+    "title": "Forward flow and creative thought: Assessing associative cognition and its role in divergent thinking",
+    "abstract": "",
+    "year": 2021,
+    "citationCount": 80,
+    "venue": "",
+    "doi": "10.1016/J.TSC.2021.100859"
+  },
+  {
+    "paperId": "9fa82bafe8efc6b3bab14f5fd99a4336953de001",
+    "title": "Noninvasive brain stimulation to lateral prefrontal cortex alters the novelty of creative idea generation",
+    "abstract": "Theories of the processes involved in creative cognition posit that cognitive control has a negative effect on creative idea generation but a positive effect on creative idea evaluation. Brain stimulation research has started to examine empirically the effects of cognitive control, with several reports of decreased cognitive control facilitating creative ideation. Such studies have shown how decreased cognitive control mechanisms facilitate creative idea generation, potentially by allowing participants access to less inhibited weaker-related associations, thereby increasing novelty. In the current study, we advance this line of work by investigating how cognitive control affects creative thinking, potentially inhibiting or facilitating novel idea generation based on task demands. Participants read sentences with the final word missing and were instructed to complete the sentence with an uncommon (but appropriate) ending. Participants performed this task while undergoing either anodal (excitatory), cathodal (inhibitory), or sham (control) transcranial direct current stimulation over their left prefrontal cortex. These responses were then rated for their novelty and appropriateness by an independent sample of raters. We found that anodal stimulation increased the appropriateness and decreased the novelty of participants\u2019 responses. Contrary to previous studies, we did not find that cathodal stimulation increased the novelty of participants\u2019 responses, which may be due to the nature of our task. Overall, we demonstrate how cognitive control mechanisms may inhibit novel idea generation.",
+    "year": 2021,
+    "citationCount": 17,
+    "venue": "Cognitive, Affective, & Behavioral Neuroscience",
+    "doi": "10.3758/s13415-021-00869-x"
+  },
+  {
+    "paperId": "a190119417db02417add17a84ff7c6489052a5e2",
+    "title": "Cognitive Properties of Norm Representations",
+    "abstract": "",
+    "year": 2021,
+    "citationCount": 7,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "ae8a7f4aceadcfb229a948a3c78d0994d5129c76",
+    "title": "Simulated visual hallucinations in virtual reality enhance cognitive flexibility",
+    "abstract": "Historically, psychedelic drugs are known to modulate cognitive flexibility, a central aspect of cognition permitting adaptation to changing environmental demands. Despite proof suggesting phenomenological similarities between artificially-induced and actual psychedelic altered perception, experimental evidence is still lacking about whether the former is also able to modulate cognitive flexibility. To address this, we measure participants\u2019 cognitive flexibility through behavioral tasks after the exposure to virtual reality panoramic videos and their hallucinatory-like counterparts generated by the DeepDream algorithm. Results show that the estimated semantic network has a flexible structure when preceded by altered videos. Crucially, following the simulated psychedelic exposure, individuals also show an attenuated contribution of the automatic process and chaotic dynamics underlying the decision process. This suggests that simulated altered perceptual phenomenology enhances cognitive flexibility, presumably due to a reorganization in the cognitive dynamics that facilitates the exploration of uncommon decision strategies and inhibits automated choices.",
+    "year": 2021,
+    "citationCount": 49,
+    "venue": "Scientific Reports",
+    "doi": "10.1038/s41598-022-08047-w"
+  },
+  {
+    "paperId": "b0e61376f6f317cf66b11260a569491735a6f7b3",
+    "title": "Flexible Semantic Network Structure Supports the Production of Creative Metaphor",
+    "abstract": "ABSTRACT Metaphors are a common way to express creative language, yet the cognitive basis of figurative language production remains poorly understood. Previous studies found that higher creative individuals can better comprehend novel metaphors, potentially due to a more flexible semantic memory network structure conducive to remote conceptual combination. The present study extends this domain to creative metaphor production and examined whether the ability to produce creative metaphors is related to variation in the structure of semantic memory. Participants completed a creative metaphor production task and two verbal fluency tasks. They were divided into two equal groups based on their creative metaphor production score. The semantic networks of these two groups were estimated and analyzed based on their verbal fluency responses using a computational network science approach. Results revealed that the semantic networks of high-metaphor producing individuals were more flexible, clustered, and less rigid than that of the low-metaphor producing individuals. Importantly, these results replicated across both semantic categories. The findings provide the first evidence that a flexible, clustered, and less rigid semantic memory structure relates to people\u2019s ability to produce figurative language, extending the growing literature on the role of semantic networks in creativity to the domain of metaphor production.",
+    "year": 2021,
+    "citationCount": 45,
+    "venue": "Creativity Research Journal",
+    "doi": "10.1080/10400419.2021.1879508"
+  },
+  {
+    "paperId": "ba0ba5969c8a0d6e0db1a18040aedea43eec2c44",
+    "title": "Brain connectivity-based prediction of real-life creativity is mediated by semantic memory structure",
+    "abstract": "Creative cognition relies on the ability to form remote associations between concepts, which allows to generate novel ideas or solve new problems. Such an ability is related to the organization of semantic memory; yet whether real-life creative behavior relies on semantic memory organization and its neural substrates remains unclear. Therefore, this study explored associations between brain functional connectivity patterns, network properties of individual semantic memory, and real-life creativity. We acquired multi-echo functional MRI data while participants underwent a semantic relatedness judgment task. These ratings were used to estimate their individual semantic memory networks, whose properties significantly predicted their real-life creativity. Using a connectome-based predictive modeling approach, we identified patterns of task-based functional connectivity that predicted creativity-related semantic memory network properties. Furthermore, these properties mediated the relationship between functional connectivity and real-life creativity. These results provide new insights into how brain connectivity supports the associative mechanisms of creativity.",
+    "year": 2021,
+    "citationCount": 25,
+    "venue": "bioRxiv",
+    "doi": "10.1101/2021.07.28.453991"
+  },
+  {
+    "paperId": "c11623ad9e97311f507aa1f73967bdcfbec36c8a",
+    "title": "Quantifying Flexibility in Thought: The Resiliency of Semantic Networks Differs Across the Lifespan",
+    "abstract": "Older adults tend to have a broader vocabulary compared to younger adults \u2013 indicating a richer storage of semantic knowledge \u2013 but their retrieval abilities decline with age. Recent advances in quantitative methods based on network science have investigated the effect of aging on semantic memory structure. However, it is yet to be determined how this aging effect on semantic memory structure relates to its overall flexibility. Percolation analysis provides a quantitative measure of the flexibility of a semantic network, by examining how a semantic memory network is resistant to \u201cattacks\u201d or breaking apart. In this study, we incorporated percolation analyses to examine how semantic networks of younger and older adults break apart to investigate potential age-related differences in language production. We applied the percolation analysis to 3 independent sets of data (total N = 78 younger, 78 older adults) from which we generated semantic networks based on verbal fluency performance. Across all 3 datasets, the percolation integrals of the younger adults were larger than older adults, indicating that older adults\u2019 semantic networks were less flexible and broke down faster than the younger adults\u2019. Our findings provide quantitative evidence for diminished flexibility in older adults\u2019 semantic networks, despite the stability of semantic knowledge across the lifespan. This may be one contributing factor to age-related differences in language production.",
+    "year": 2021,
+    "citationCount": 80,
+    "venue": "Cognition",
+    "doi": "10.1016/j.cognition.2021.104631"
+  },
+  {
+    "paperId": "c6a5476d9887b90da17be484f19f909963e23159",
+    "title": "Dynamic changes in semantic memory structure support successful problem-solving",
+    "abstract": "While problem-solving is central in our daily life, its underlying mechanisms remain largely unknown. Restructuration (i.e., reinterpretation and reorganization of problem-related representations) is theoretically considered as one such mechanism, yet empirical evidence supporting it is scarce. We investigated restructuration as a mechanism underlying problem-solving, using network science methodology. We estimated the structure of participant\u2019s individual semantic memory network before and after they attempted to solve a riddle. These networks represent the organization of solution-relevant and irrelevant terms as nodes, with edges representing the strength of relationship between them based on participants\u2019 relatedness judgments. The difference in semantic network metrics between pre- and post-solving phases was used to quantify restructuration and predict successful problem-solving. Problem-solving was predicted by local restructuration of semantic network, only in edges and nodes that had been assessed as helpful to solve the problem. These results shed new light on the mental restructuring associated with problem-solving and provide a new method to quantify this restructuring.",
+    "year": 2021,
+    "citationCount": 11,
+    "venue": "",
+    "doi": "10.31234/osf.io/38b4w"
+  },
+  {
+    "paperId": "f2ace825128d13953a08d495e8b402a8a2898eb8",
+    "title": "Unveiling the nature of interaction between semantics and phonology in lexical access based on multilayer networks",
+    "abstract": "An essential aspect of human communication is the ability to access and retrieve information from ones\u2019 \u2018mental lexicon\u2019. This lexical access activates phonological and semantic components of concepts, yet the question whether and how these two components relate to each other remains widely debated. We harness tools from network science to construct a large-scale linguistic multilayer network comprising of phonological and semantic layers. We find that the links in the two layers are highly similar to each other and that adding information from one layer to the other increases efficiency by decreasing the network overall distances, but specifically affecting shorter distances. Finally, we show how a multilayer architecture demonstrates the highest efficiency, and how this efficiency relates to weak semantic relations between cue words in the network. Thus, investigating the interaction between the layers and the unique benefit of a linguistic multilayer architecture allows us to quantify theoretical cognitive models of lexical access.",
+    "year": 2021,
+    "citationCount": 38,
+    "venue": "Scientific Reports",
+    "doi": "10.1038/s41598-021-93925-y"
+  },
+  {
+    "paperId": "32cff3fd7e878eec3f42c7abbe017a9b5e98b5f6",
+    "title": "Methods and Measures for Semantic Network Analysis [R package SemNeT version 1.4.0]",
+    "abstract": "",
+    "year": 2020,
+    "citationCount": 0,
+    "venue": "",
+    "doi": null
+  },
+  {
+    "paperId": "589ad71cde78aa3362d86948c47615ae5487cf44",
+    "title": "Novel conceptual combination can dynamically reconfigure semantic memory networks",
+    "abstract": "We do not simply have concepts; we use concepts. And, the way in which we use concepts can dynamically change the relations among them. One way to shed light on this dynamic nature is to examine how the novel processing of concepts\u2014in our case, interpreting unfamiliar nominal compounds\u2014might reconfigure semantic memory networks. We used network science tools to characterize properties of participants\u2019 semantic networks (e.g., connectivity), and we compared these networks before and after participants constructed novel conceptual combinations. Furthermore, we contrasted combinations in which one attribute of one concept is used to describe another (attributive) with those in which a relation is identified to link two concepts (relational). We found that relational, but not attributive, combinations increased connectivity and lowered structure in the network. We suggest that constructing relational interpretations of compounds requires the generation of novel contexts, thus leading to greater restructuring of the semantic network.",
+    "year": 2020,
+    "citationCount": 21,
+    "venue": "",
+    "doi": "10.31234/osf.io/crp47"
+  },
+  {
+    "paperId": "5a2f32538610951b1e16e84d5f5ce3f1260e8c04",
+    "title": "A novel coding scheme for assessing responses in divergent thinking: An embodied approach",
+    "abstract": "In the present study we devised a novel coding scheme for responses generated in a divergent thinking task. Based on considerations from behavioural and neurocognitive research from an embodied perspective, our scheme aims to capture dimensions of simulations of action or the body. In an exploratory investigation, we applied our novel coding scheme to analyze responses from a previously published dataset of divergent thinking responses. We show that a) these dimensions are reliably coded by na\u00efve raters, and that b) individual differences in creativity influences the way in which different dimensions are used over time. Overall, our results provide new hypotheses about the generation of creative response in the divergent thinking task and should serve to characterize the cognitive strategies used in creative endeavors.",
+    "year": 2020,
+    "citationCount": 21,
+    "venue": "Psychology of Aesthetics, Creativity, and the Arts",
+    "doi": "10.1037/aca0000297"
+  },
+  {
+    "paperId": "5a8437e6d46db2f634901c3c0c24a2cf098a7d38",
+    "title": "The effect of semantic memory degeneration on creative thinking: A voxel-based morphometry analysis",
+    "abstract": "Increasing attention is being directed towards explicating the neurocognitive mechanisms of divergent thinking. While neuroimaging studies have tended to dominate the contemporary creativity literature, lesion studies provide important converging evidence by revealing the regions that are not only implicated in, but essential for, task performance. Here we explored the capacity for divergent thinking in semantic dementia (SD), a neurodegenerative disorder characterised by the progressive degeneration of the conceptual knowledge base. The performance of 10 SD patients on a divergent thinking task was contrasted with that of 15 patients with the behavioural variant of frontotemporal dementia (bvFTD) and 20 healthy control participants. In addition, all participants underwent neuropsychological testing and structural MRI. Relative to controls, both patient groups generated significantly fewer responses on the divergent thinking task, with disproportionate impairment in the SD group. Further, the responses generated by patient groups were less original and reflected less flexible thinking when compared with controls. For SD patients, fluency of responses correlated with performance on a measure of semantic association, and originality of responses correlated with semantic naming and comprehension ability. In bvFTD, originality of ideas correlated with letter fluency and response inhibition. Voxel-based morphometry analyses revealed two grey matter clusters consistently associated with diminished Fluency of ideas, namely a left medial temporal lobe cluster centred on the left anterior hippocampus, and a left middle frontal gyrus cluster. Our study highlights the importance of distinct temporal and prefrontal contributions to divergent thinking via a lesion approach, and underscores the pivotal role of semantic processes in creative cognition.",
+    "year": 2020,
+    "citationCount": 22,
+    "venue": "NeuroImage",
+    "doi": "10.1016/j.neuroimage.2020.117073"
+  },
+  {
+    "paperId": "739ed68836b77f294533fced46ee1e3e437fca5e",
+    "title": "The role of the motor system in generating creative thoughts",
+    "abstract": "Neurocognitive research is pertinent to developing mechanistic models of how humans generate creative thoughts. Such models usually overlook the role of the motor cortex in creative thinking. The framework of embodied or grounded cognition suggests that creative thoughts (e.g. using a shoe as a hammer, improvising a piano solo) are partially served by simulations of motor activity associated with tools and their use. The major hypothesis stemming from the embodied or grounded account is that, while the motor system is used to execute actions, simulations within this system also support higher-order cognition, creativity included. That is, the cognitive process of generating creative output, not just executing it, is deeply embedded in motor processes. Here, we highlight a collection of neuroimaging research that implicates the motor system in generating creative thoughts, including some evidence for its functionally necessary role in generating creative output. Specifically, the grounded or embodied framework suggests that generating creative output may, in part, rely on motor simulations of possible actions, and that these simulations may by partially implemented in the motor regions themselves. In such cases, action simulations (i.e. reactivating or re-using the motor system), do not result in overt action but instead are used to support higher-order cognitive goals like generating creative uses or improvising.",
+    "year": 2020,
+    "citationCount": 64,
+    "venue": "NeuroImage",
+    "doi": "10.1016/j.neuroimage.2020.116697"
+  },
+  {
+    "paperId": "84a1c7e83f60624d26cd81f100309ef71d160a36",
+    "title": "Mapping the Creative Mind",
+    "abstract": "",
+    "year": 2020,
+    "citationCount": 13,
+    "venue": "",
+    "doi": "10.1511/2020.108.4.218"
+  },
+  {
+    "paperId": "9347e093416825cf8bdf99fa136ca9cadc35f33f",
+    "title": "Divergent Thinking Coding Scheme",
+    "abstract": "",
+    "year": 2020,
+    "citationCount": 0,
+    "venue": "PsycTESTS Dataset",
+    "doi": "10.1037/t76175-000"
+  },
+  {
+    "paperId": "9ca21e18a613b271325089279933629775cd3e95",
+    "title": "Clarifying what forward flow is (and isn't): Reply to Rossiter (2020).",
+    "abstract": "Forward flow is a new measure that quantifies free thought and predicts creativity (Gray et al., 2019). In his comment, Rossiter (2020) raises some conceptual and measurement concerns about this measure. We believe these concerns are specious, resting on fundamental misunderstandings about our aim and approach. This reply clarifies the nature of forward flow and dispels these concerns. (PsycInfo Database Record (c) 2020 APA, all rights reserved).",
+    "year": 2020,
+    "citationCount": 6,
+    "venue": "American Psychologist",
+    "doi": "10.1037/amp0000700"
+  },
+  {
+    "paperId": "a17b1e74abb8bb1613b57710152a983aec48ba88",
+    "title": "Community structure of the creative brain at rest",
+    "abstract": "Recent studies have provided insight into inter-individual differences in creative thinking, focusing on characterizations of distributed large-scale brain networks both at the local level of regions and their pairwise interactions and at the global level of the brain as a whole. However, it remains unclear how creative thinking relates to mesoscale network features, e.g. community and hub organization. We applied a data-driven approach to examine community and hub structure in resting-state functional imaging data from a large sample of participants, and how they relate to individual differences in creative thinking. First, we computed for every participant the co-assignment probability of brain regions to the same community. We found that greater capacity for creative thinking was related to increased and decreased co-assignment of medial-temporal and subcortical regions to the same community, respectively, suggesting that creative capacity may be reflected in inter-individual differences in the meso-scale organization of brain networks. We then used participant-specific communities to identify network hubs-nodes whose connections form bridges across the boundaries of different communities-quantified based on their participation coefficients. We found that increased hubness of DMN and medial-temporal regions were positively and negatively related with creative ability, respectively. These findings suggest that creative capacity may be reflected in inter-individual differences in community interactions of DMN and medial-temporal structures. Collectively, these results demonstrate the fruitfulness of investigating mesoscale brain network features in relation to creative thinking.",
+    "year": 2020,
+    "citationCount": 35,
+    "venue": "NeuroImage",
+    "doi": "10.1016/j.neuroimage.2020.116578"
+  },
+  {
+    "paperId": "a834bbde6c38a525869093d8ea89765bbe7c201c",
+    "title": "Context matters: Novel metaphors in supportive and non-supportive contexts",
+    "abstract": "Creative language is defined as linguistic output that is both novel and appropriate. Metaphors are one such example of creative language in which one concept is used to express another by highlighting relevant semantic features. While novelty is an inherent property of unfamiliar metaphors, appropriateness depends on the context. The current study tests the hypothesis that the context in which metaphors are encountered affects their processing. We examined the neural effects of comprehending metaphors in context by comparing neural activations in response to novel metaphors and literal sentences that were either embedded in a meaningful narrative or in matched jabberwocky contexts. We found that the neural correlates of processing metaphoric sentences and their literal counterparts are indistinguishable when embedded in a narrative: both conditions activate bilateral areas along the anterior temporal poles, middle temporal gyri, superior temporal sulci, and the angular gyri. Metaphors embedded in a narrative as compared to their identical counterparts embedded in jabberwocky show increased responses in sensorimotor areas that correspond to the modality of the literal meaning of the target word, perhaps reflecting deeper semantic processing. Our results confirm that context affects neural mechanisms for understanding creative ideas.",
+    "year": 2020,
+    "citationCount": 18,
+    "venue": "NeuroImage",
+    "doi": "10.1016/j.neuroimage.2020.116645"
+  },
+  {
+    "paperId": "b3eed15b5cca512c4378c9c84a956b795312f565",
+    "title": "The relation between semantic memory structure, associative abilities, and verbal and figural creativity",
+    "abstract": "Abstract Research has independently highlighted the roles of semantic memory and associative abilities in creative thinking. However, it remains unclear how these two capacities relate to each other, nor how they facilitate different creative thinking modalities, such as verbal and figural creativity. This study employed multiple cognitive tests and network science methodologies to shed light on the relationship between them. We constructed individual-based semantic networks and assessed associative abilities, verbal and figural creative thinking. In line with previous studies, we found a relation between verbal creativity and more flexible semantic memory structure (higher connectivity, shorter distances between concepts, and lower modularity). However, we did not find any such relation between figural creativity and semantic memory structure. Associative abilities mediated the relationship between semantic memory structure and verbal creativity, implying the efficient spread of information in semantic memory may facilitate verbal creative thinking via associative abilities. These findings support and extend the associative theory of creativity and shed novel light on the relationship between semantic memory structure, associative abilities, and creativity.",
+    "year": 2020,
+    "citationCount": 89,
+    "venue": "",
+    "doi": "10.1080/13546783.2020.1819415"
+  },
+  {
+    "paperId": "c633abedb79cb1266e5819c8bc856e6492395d97",
+    "title": "Psychological and neural responses to architectural interiors.",
+    "abstract": "People spend considerable time within built environments. In this study, we tested two hypotheses about the relationship between people and built environments. First, aesthetic responses to architectural interiors reduce to a few key psychological dimensions that are sensitive to design features. Second, these psychological dimensions evoke specific neural signatures. In Experiment 1, participants (n\u00a0=\u00a0798) rated 200 images of architectural interiors on 16 aesthetic response measures. Using Psychometric Network Analysis (PNA) and Principal Components Analysis (PCA), we identified three components that explained 90% of the variance in ratings: coherence (ease with which one organizes and comprehends a scene), fascination (a scene's informational richness and generated interest), and hominess (extent to which a scene reflects a personal space). Whereas coherence and fascination are well-established dimensions in response to natural scenes and visual art, hominess emerged as a new dimension related to architectural interiors. In Experiment 2 (n\u00a0=\u00a0614), the PCA results were replicated in an independent sample, indicating the robustness of these three dimensions. In Experiment 3, we reanalyzed data from an fMRI study in which participants (n\u00a0=\u00a018) made beauty judgments and approach-avoidance decisions when viewing the same images. Parametric analyses demonstrated that, regardless of task, the degree of fascination covaried with neural activity in the right lingual gyrus. In contrast, coherence covaried with neural activity in the left inferior occipital gyrus only when participants judged beauty, whereas hominess covaried with neural activity in the left cuneus only when they made approach-avoidance decisions. Importantly, this neural activation did not covary in relation to global image properties including self-similarity and complexity scores. These results suggest that the visual brain harbors sensitivities to psychological dimensions of coherence, fascination, and hominess in the context of architectural interiors. Furthermore, valuation of architectural processing in visual cortices varies by dimension and task.",
+    "year": 2020,
+    "citationCount": 137,
+    "venue": "Cortex; a journal devoted to the study of the nervous system and behavior",
+    "doi": "10.1016/j.cortex.2020.01.009"
+  },
+  {
+    "paperId": "dcd05ff95a1c8310c4d0fd65bb7177267f566da7",
+    "title": "Developing a neurally informed ontology of creativity measurement",
+    "abstract": "A central challenge for creativity research-as for all areas of experimental psychology and cognitive neuroscience-is to establish a mapping between constructs and measures (i.e., identifying a set of tasks that best captures a set of creative abilities). A related challenge is to achieve greater consistency in the measures used by different researchers; inconsistent measurement hinders progress toward shared understanding of cognitive and neural components of creativity. New resources for aggregating neuroimaging data, and the emergence of methods for identifying structure in multivariate data, present the potential for new approaches to address these challenges. Identifying meta-analytic structure (i.e., similarity) in neural activity associated with creativity tasks might help identify subsets of these tasks that best reflect the similarity structure of creativity-relevant constructs. Here, we demonstrated initial proof-of-concept for such an approach. To build a model of similarity between creativity-relevant constructs, we first surveyed creativity researchers. Next, we used NeuroSynth meta-analytic software to generate maps of neural activity robustly associated with tasks intended to measure the same set of creativity-relevant constructs. A representational similarity analysis-based approach identified particular constructs-and particular tasks intended to measure those constructs-that positively or negatively impacted the model fit. This approach points the way to identifying optimal sets of tasks to capture elements of creativity (i.e., dimensions of similarity space among creativity constructs), and has long-term potential to meaningfully advance the ontological development of creativity research with the rapid growth of creativity neuroscience. Because it relies on neuroimaging meta-analysis, this approach has more immediate potential to inform longer-established fields for which more extensive sets of neuroimaging data are already available.",
+    "year": 2020,
+    "citationCount": 26,
+    "venue": "NeuroImage",
+    "doi": "10.1016/j.neuroimage.2020.117166"
+  },
+  {
+    "paperId": "ffc5739ac91266655a94bf3c540580d863387bab",
+    "title": "Cognitive Network Science: A New Frontier",
+    "abstract": "",
+    "year": 2020,
+    "citationCount": 13,
+    "venue": "Complex",
+    "doi": "10.1155/2020/6870278"
+  },
+  {
+    "paperId": "11293264dccfb28efac734ad7c3fb4b1979437c9",
+    "title": "Abstract art paintings, global image properties, and verbal descriptions: An empirical and computational investigation.",
+    "abstract": "While global image properties (GIPs) relate to preference ratings in many categories of visual stimuli, this relationship is typically not seen for abstract art paintings. Using computational network science and empirical methods, we further investigated GIPs and subjective preferences. First, we replicated the earlier observation that GIPs do not relate to preferences for abstract art. Next, we estimated the network structure of abstract art paintings using two approaches: the first was based on verbal descriptions and the second on GIPs. We examined the extent to which network measures computed from these two networks (1) related to preference for abstract art paintings and (2) determined affiliation of images to specific art styles. Only semantic-based network predicted the subjective preference ratings and art style. Finally, preference and GIPs differed for sub-groups of abstract art paintings. Our results demonstrate the importance of verbal descriptors in evaluating abstract art, and that it is not useful in empirical aesthetics to treat abstract art paintings as a single category.",
+    "year": 2019,
+    "citationCount": 23,
+    "venue": "Acta Psychologica",
+    "doi": "10.1016/j.actpsy.2019.102936"
+  },
+  {
+    "paperId": "2523c20b3e675f6e83b47ae5e78d80f3d880a7c5",
+    "title": "How the Organization of Autobiographical Memories Changes Over Time",
+    "abstract": "",
+    "year": 2019,
+    "citationCount": 0,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "31069f34da187590fd38d555b4dbb7e8bc1ccccf",
+    "title": "What can quantitative measures of semantic distance tell us about creativity?",
+    "abstract": "Semantic distance plays an important role in the creative process: The farther one `moves away\u2019 from a conventional idea, the more creative the new idea will likely be. Although intuitive, the role of semantic distance in creativity has been only indirectly examined due to the challenge of its measurement. Recent studies have started applying quantitative measures of semantic distance in creativity research. Such studies complement standard subjective measures of creativity; provide objective measures of the creative output; and also allow to more directly examine the role of semantic memory, and distance, in creativity. An overview of the main approaches that are being used will be described and the advantages of using such quantitative measures in creativity will be discussed.",
+    "year": 2019,
+    "citationCount": 140,
+    "venue": "Current Opinion in Behavioral Sciences",
+    "doi": "10.1016/J.COBEHA.2018.08.010"
+  },
+  {
+    "paperId": "46c1d5ed7957784aa935bfc215a15629fe0e7918",
+    "title": "Fanning Creative Thought: Semantic Richness Impacts Divergent Thinking",
+    "abstract": "",
+    "year": 2019,
+    "citationCount": 2,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "48685f9e4e0b2e0091e872079362fb9e87e94bb0",
+    "title": "Context matters: Novel metaphors in supportive and non-supportive contexts (Preprint)",
+    "abstract": "Creative language is defined as linguistic output that is both novel and appropriate. Metaphors are one such example of creative language in which one concept is used to express another by highlighting certain semantic features. While novelty is an inherent property of unfamiliar metaphors, appropriateness depends on the context. The current study tests the hypothesis that the context in which metaphors are encountered affects its processing. We examined the neural effects of comprehending metaphors in context by comparing neural activations in response to novel metaphors and literal sentences that were either embedded in a meaningful narrative or in matched jabberwocky contexts. We found that the neural correlates of processing metaphoric sentences and their literal counterparts are indistinguishable when embedded in a narrative: both conditions activate bilateral areas along the anterior temporal poles, middle temporal gyri, superior temporal sulci, and the angular gyri. Metaphors embedded in a narrative as compared to their identical counterparts embedded in jabberwocky show increased responses in sensorimotor areas that correspond to the modality of the literal meaning of the target word, perhaps reflecting deeper semantic processing. Our results confirm that context affects neural mechanisms for understanding creative ideas.",
+    "year": 2019,
+    "citationCount": 0,
+    "venue": "",
+    "doi": "10.31219/osf.io/s6j3x"
+  },
+  {
+    "paperId": "5902a008bc0a1631180fdea4911419a1199cf4b9",
+    "title": "Building individual semantic networks and exploring their relationships with creativity",
+    "abstract": "",
+    "year": 2019,
+    "citationCount": 24,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "59e77f10e65a79b8f3ecafe6c10c8eb19ecb33f4",
+    "title": "Cognitive Network Science: Quantitatively Investigating the Complexity of Cognition",
+    "abstract": "",
+    "year": 2019,
+    "citationCount": 1,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "6403264aa084668d2068d582541585120c660054",
+    "title": "The role of environment and body in divergent thinking tasks",
+    "abstract": "",
+    "year": 2019,
+    "citationCount": 0,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "661fe307d8f876df631f932ad8e1dbf2750f26f1",
+    "title": "Default Network Contributions to Episodic and Semantic Processing During Divergent Creative Thinking: A Representational Similarity Analysis",
+    "abstract": "Cognitive and neuroimaging evidence suggests that episodic and semantic memory\u2014memory for autobiographical events and conceptual meaning, respectively\u2014support different facets of creative thinking, with a growing number of studies reporting activation of brain regions within the default network during performance on creative thinking tasks. The present research sought to dissociate neural contributions of these memory processes by inducing episodic or semantic retrieval orientations prior to performance on a divergent thinking task during fMRI. We conducted a representational similarity analysis (RSA) to identify multivoxel patterns of neural activity that were similar across induction (episodic and semantic) and idea generation. At the behavioral level, we found that semantic induction was associated with increased idea originality, assessed via computational estimates of semantic distance between concepts. RSA revealed that multivoxel patterns during semantic induction and subsequent idea generation were more similar (compared to episodic induction) within the left angular gyrus (AG), posterior cingulate cortex (PCC), and left anterior inferior parietal lobe (IPL). Conversely, activity patterns during episodic induction and subsequent generation were more similar within left parahippocampal gyrus and right anterior IPL. Together, the findings point to dissociable contributions of episodic and semantic memory processes to creative cognition and suggest that distinct regions within the default network support specific memory-related processes during divergent thinking.",
+    "year": 2019,
+    "citationCount": 83,
+    "venue": "NeuroImage",
+    "doi": "10.1016/j.neuroimage.2019.116499"
+  },
+  {
+    "paperId": "6c730fcb195447668c57b75dff25f09d56e9b3fa",
+    "title": "\"Forward flow\": A new measure to quantify free thought and predict creativity.",
+    "abstract": "When the human mind is free to roam, its subjective experience is characterized by a continuously evolving stream of thought. Although there is a technique that captures people's streams of free thought-free association-its utility for scientific research is undermined by two open questions: (a) How can streams of thought be quantified? (b) Do such streams predict psychological phenomena? We resolve the first issue-quantification-by presenting a new metric, \"forward flow,\" that uses latent semantic analysis to capture the semantic evolution of thoughts over time (i.e., how much present thoughts diverge from past thoughts). We resolve the second issue-prediction-by examining whether forward flow predicts creativity in the lab and the real world. Our studies reveal that forward flow predicts creativity in college students (Study 1) and a representative sample of Americans (Study 2), even when controlling for intelligence. Studies also reveal that membership in real-world creative groups-performance majors (Study 3), professional actors (Study 4) and entrepreneurs (Study 5)-is predicted by forward flow, even when controlling for performance on divergent thinking tasks. Study 6 reveals that forward flow in celebrities' social media posts (i.e., on Twitter) predicts their creative achievement. In addition to creativity, forward flow may also help predict mental illness, emotional experience, leadership ability, adaptability, neural dynamics, group productivity, and cultural success. We present open-access online tools for assessing and visualizing forward flow for both illustrative and large-scale data analytic purposes. (PsycINFO Database Record (c) 2019 APA, all rights reserved).",
+    "year": 2019,
+    "citationCount": 151,
+    "venue": "American Psychologist",
+    "doi": "10.1037/amp0000391"
+  },
+  {
+    "paperId": "7779a2c260dfd437c71c7efcaf37153f9f30df6e",
+    "title": "Semantic network analysis (SemNA): A tutorial on preprocessing, estimating, and analyzing semantic networks.",
+    "abstract": "To date, the application of semantic network methodologies to study cognitive processes in psychological phenomena has been limited in scope. One barrier to broader application is the lack of resources for researchers unfamiliar with the approach. Another barrier, for both the unfamiliar and knowledgeable researcher, is the tedious and laborious preprocessing of semantic data. We aim to minimize these barriers by offering a comprehensive semantic network analysis pipeline (preprocessing, estimating, and analyzing networks), and an associated R tutorial that uses a suite of R packages to accommodate the pipeline. Two of these packages, SemNetDictionaries and SemNetCleaner, promote an efficient, reproducible, and transparent approach to preprocessing linguistic data. The third package, SemNeT, provides methods and measures for estimating and statistically comparing semantic networks via a point-and-click graphical user interface. Using real-world data, we present a start-to-finish pipeline from raw data to semantic network analysis results. This article aims to provide resources for researchers, both the unfamiliar and knowledgeable, that reduce some of the barriers for conducting semantic network analysis. (PsycInfo Database Record (c) 2021 APA, all rights reserved).",
+    "year": 2019,
+    "citationCount": 82,
+    "venue": "Psychological methods",
+    "doi": "10.31234/osf.io/eht87"
+  },
+  {
+    "paperId": "7df2aaf0ec703e66984b16d5837a54c230a504ef",
+    "title": "A Fan Effect for Creative Thought: Semantic Richness Facilitates Idea Quantity but Constrains Idea Quality",
+    "abstract": "Creative thinking has long been associated with spreading of activation through concepts within semantic memory. Despite its theoretical importance, little is yet known about how semantic memory structure facilitates and constrains idea production. We examine one potential influence on spreading activation during divergent thinking known as the fan effect: increasing knowledge about a concept leads to increasing interference from conceptually related information. Specifically, we tested whether cue association size\u2014an index of semantic richness reflecting the average number of elements associated with a given concept\u2014impacts the quantity (fluency) and quality (originality) of responses generated during the alternate uses task (AUT). We hypothesized that low-association AUT cues should benefit originality at the cost of fluency because such cues are embedded within a semantic network with fewer conceptual elements, thus yielding lesser interference from closely-related concepts. This hypothesis was confirmed in three experiments. Furthermore, we found an interaction with individual differences in fluid intelligence in the low-association AUT cues, suggesting that constraints of sparse semantic knowledge can be overcome with top-down intervention. The findings indicate that semantic richness differentially impacts the quality and quantity of generated ideas, and that cognitive control processes can facilitate idea production when conceptual knowledge is limited.",
+    "year": 2019,
+    "citationCount": 13,
+    "venue": "",
+    "doi": "10.31234/osf.io/pfz2g"
+  },
+  {
+    "paperId": "bc8189d4b7b5d8b2a43b306ce931a288fae21a34",
+    "title": "Clinical Cognitive Networks",
+    "abstract": "",
+    "year": 2019,
+    "citationCount": 2,
+    "venue": "",
+    "doi": "10.4324/9780367853259-8"
+  },
+  {
+    "paperId": "dfa16b88b9dc1a37ca33cf1753e3d440e0ef3227",
+    "title": "Viability in Multiplex Lexical Networks and Machine Learning Characterizes Human Creativity",
+    "abstract": "Previous studies have shown how individual differences in creativity relate to differences in the structure of semantic memory. However, the latter is only one aspect of the whole mental lexicon, a repository of conceptual knowledge that is considered to simultaneously include multiple types of conceptual similarities. In the current study, we apply a multiplex network approach to compute a representation of the mental lexicon combining semantics and phonology and examine how it relates to individual differences in creativity. This multiplex combination of 150,000 phonological and semantic associations identifies a core of words in the mental lexicon known as viable cluster, a kernel containing simpler to parse, more general, concrete words acquired early during language learning. We focus on low (N = 47) and high (N = 47) creative individuals\u2019 performance in generating animal names during a semantic fluency task. We model this performance as the outcome of a mental navigation on the multiplex lexical network, going within, outside, and in-between the viable cluster. We find that low and high creative individuals differ substantially in their access to the viable cluster during the semantic fluency task. Higher creative individuals tend to access the viable cluster less frequently, with a lower uncertainty/entropy, reaching out to more peripheral words and covering longer multiplex network distances between concepts in comparison to lower creative individuals. We use these differences for constructing a machine learning classifier of creativity levels, which leads to an accuracy of 65 . 0 \u00b1 0 . 9 % and an area under the curve of 68 . 0 \u00b1 0 . 8 % , which are both higher than the random expectation of 50%. These results highlight the potential relevance of combining psycholinguistic measures with multiplex network models of the mental lexicon for modelling mental navigation and, consequently, classifying people automatically according to their creativity levels.",
+    "year": 2019,
+    "citationCount": 42,
+    "venue": "Big Data and Cognitive Computing",
+    "doi": "10.3390/BDCC3030045"
+  },
+  {
+    "paperId": "ef5ef2aa0e2b9750b31158572e6f1e73f6381d33",
+    "title": "A Semantic Network Cartography of the Creative Mind.",
+    "abstract": "The role of semantic memory in creativity is theoretically assumed, but far from understood. In recent years, computational network science tools have been applied to investigate this role. These studies shed unique quantitative insights on the role of semantic memory structure in creativity, via measures of connectivity, distance, and structure.",
+    "year": 2019,
+    "citationCount": 231,
+    "venue": "Trends in Cognitive Sciences",
+    "doi": "10.1016/j.tics.2019.01.007"
+  },
+  {
+    "paperId": "090e9fc2ccdf009857691e75a86db3e3d4591457",
+    "title": "Network structure of the Wisconsin Schizotypy Scales \u2014 Short Forms : Examining psychometric filtering approaches By :",
+    "abstract": "",
+    "year": 2018,
+    "citationCount": 3,
+    "venue": "",
+    "doi": null
+  },
+  {
+    "paperId": "2258887129979ce33c76b9d7b799b1b97db6b8ea",
+    "title": "Flexibility of thought in high creative individuals represented by percolation analysis",
+    "abstract": "",
+    "year": 2018,
+    "citationCount": 183,
+    "venue": "Proceedings of the National Academy of Sciences of the United States of America",
+    "doi": "10.1073/pnas.1717362115"
+  },
+  {
+    "paperId": "5e44c38def3d27680201310e9d97a71dd2f1c37e",
+    "title": "Robust prediction of individual creative ability from brain functional connectivity",
+    "abstract": "",
+    "year": 2018,
+    "citationCount": 671,
+    "venue": "Proceedings of the National Academy of Sciences of the United States of America",
+    "doi": "10.1073/pnas.1713532115"
+  },
+  {
+    "paperId": "5fa1e2a13ac1a0f3be8a3f62502166bce43b6fe1",
+    "title": "Metaphor Comprehension in Low and High Creative Individuals",
+    "abstract": "The comprehension of metaphors involves the ability to activate a broader, more flexible set of semantic associations in order to integrate the meanings of the weakly related parts of the metaphor into a meaningful linguistic expression. Previous findings point to a relation between levels of creativity and efficiency in processing metaphoric expressions, as measured by reaction times (RTs) and error rates. Furthermore, recent studies have found that more creative individuals exhibit a relatively more flexible semantic memory structure compared to less creative individuals, which may facilitate their comprehension of novel metaphors. In the present study, lower and higher creative individuals performed a semantic relatedness judgment task on word pairs. These word pairs comprised four types of semantic relations: novel metaphors, conventional metaphors, literal word pairs, and meaningless word pairs. We hypothesized that the two groups will perform similarly in comprehending the literal, unrelated, and the conventional metaphoric word pairs. However, with respect to novel metaphors, we predicted that higher creative individuals will demonstrate better performance compared to lower creative individuals, as indicated by smaller RTs and more accurate responses. Our main finding shows that higher creative individuals were faster in comprehending both types of metaphors, conventional and novel, compared to lower creative individuals. Furthermore, higher creative individuals were significantly more accurate than lower creative individual only in comprehending novel metaphors. The findings are discussed in light of previous findings regarding the relation between metaphor comprehension, semantic memory, and creativity.",
+    "year": 2018,
+    "citationCount": 42,
+    "venue": "Frontiers in Psychology",
+    "doi": "10.3389/fpsyg.2018.00482"
+  },
+  {
+    "paperId": "6596c9c29a81fd91342d118d3e7a883f4a71cc19",
+    "title": "Cognitive Network Science: A Review of Research on Cognition through the Lens of Network Representations, Processes, and Dynamics",
+    "abstract": "Network science provides a set of quantitative methods to investigate complex systems, including human cognition. Although cognitive theories in different domains are strongly based on a network perspective, the application of network science methodologies to quantitatively study cognition has so far been limited in scope. This review demonstrates how network science approaches have been applied to the study of human cognition and how network science can uniquely address and provide novel insight on important questions related to the complexity of cognitive systems and the processes that occur within those systems. Drawing on the literature in cognitive network science, with a focus on semantic and lexical networks, we argue three key points. (i) Network science provides a powerful quantitative approach to represent cognitive systems. (ii) The network science approach enables cognitive scientists to achieve a deeper understanding of human cognition by capturing how the structure, i.e., the underlying network, and processes operating on a network structure interact to produce behavioral phenomena. (iii) Network science provides a quantitative framework to model the dynamics of cognitive systems, operationalized as structural changes in cognitive systems on different timescales and resolutions. Finally, we highlight key milestones that the field of cognitive network science needs to achieve as it matures in order to provide continued insights into the nature of cognitive structures and processes.",
+    "year": 2018,
+    "citationCount": 263,
+    "venue": "Complex",
+    "doi": "10.1155/2019/2108423"
+  },
+  {
+    "paperId": "95e08bec7a5aae8c568f932f0fd68e20920a3d4f",
+    "title": "Network structure of the Wisconsin Schizotypy Scales\u2013Short Forms: Examining psychometric network filtering approaches",
+    "abstract": "",
+    "year": 2018,
+    "citationCount": 88,
+    "venue": "Behavior Research Methods",
+    "doi": "10.3758/s13428-018-1032-9"
+  },
+  {
+    "paperId": "972d38f58353193f933020a1da2a66fbd581a315",
+    "title": "A computational network control theory analysis of depression symptoms",
+    "abstract": "Abstract Rumination and impaired inhibition are considered core characteristics of depression. However, the neurocognitive mechanisms that contribute to these atypical cognitive processes remain unclear. To address this question, we apply a computational network control theory approach to structural brain imaging data acquired via diffusion tensor imaging in a large sample of participants, to examine how network control theory relates to individual differences in subclinical depression. Recent application of this theory at the neural level is built on a model of brain dynamics, which mathematically models patterns of inter-region activity propagated along the structure of an underlying network. The strength of this approach is its ability to characterize the potential role of each brain region in regulating whole-brain network function based on its anatomical fingerprint and a simplified model of node dynamics. We find that subclinical depression is negatively related to higher integration abilities in the right anterior insula, replicating and extending previous studies implicating atypical switching between the default mode and Executive Control Networks in depression. We also find that subclinical depression is related to the ability to \u201cdrive\u201d the brain system into easy to reach neural states in several brain regions, including the bilateral lingual gyrus and lateral occipital gyrus. These findings highlight brain regions less known in their role in depression, and clarify their roles in driving the brain into different neural states related to depression symptoms.",
+    "year": 2018,
+    "citationCount": 17,
+    "venue": "Personality Neuroscience",
+    "doi": "10.1017/pen.2018.15"
+  },
+  {
+    "paperId": "9938128bf31d76e177152610e2da30ca31fc112f",
+    "title": "Network structure of the Wisconsin Schizotypy Scales\u2013Short Forms: Examining psychometric network filtering approaches",
+    "abstract": "",
+    "year": 2018,
+    "citationCount": 0,
+    "venue": "Behavior Research Methods",
+    "doi": "10.3758/s13428-018-1032-9"
+  },
+  {
+    "paperId": "9ef9be1586f743990093bf8f2aa26d86548e3a01",
+    "title": "Investigating Creativity from a Semantic Network Perspective",
+    "abstract": "",
+    "year": 2018,
+    "citationCount": 42,
+    "venue": "",
+    "doi": "10.1007/978-3-319-76054-4_3"
+  },
+  {
+    "paperId": "b0c3135c976831aa534f0d0cff4ecdb39bc519fb",
+    "title": "Driving the brain towards creativity and intelligence: A network control theory analysis",
+    "abstract": "ABSTRACT High\u2010level cognitive constructs, such as creativity and intelligence, entail complex and multiple processes, including cognitive control processes. Recent neurocognitive research on these constructs highlight the importance of dynamic interaction across neural network systems and the role of cognitive control processes in guiding such a dynamic interaction. How can we quantitatively examine the extent and ways in which cognitive control contributes to creativity and intelligence? To address this question, we apply a computational network control theory (NCT) approach to structural brain imaging data acquired via diffusion tensor imaging in a large sample of participants, to examine how NCT relates to individual differences in distinct measures of creative ability and intelligence. Recent application of this theory at the neural level is built on a model of brain dynamics, which mathematically models patterns of inter\u2010region activity propagated along the structure of an underlying network. The strength of this approach is its ability to characterize the potential role of each brain region in regulating whole\u2010brain network function based on its anatomical fingerprint and a simplified model of node dynamics. We find that intelligence is related to the ability to \u201cdrive\u201d the brain system into easy to reach neural states by the right inferior parietal lobe and lower integration abilities in the left retrosplenial cortex. We also find that creativity is related to the ability to \u201cdrive\u201d the brain system into difficult to reach states by the right dorsolateral prefrontal cortex (inferior frontal junction) and higher integration abilities in sensorimotor areas. Furthermore, we found that different facets of creativity\u2014fluency, flexibility, and originality\u2014relate to generally similar but not identical network controllability processes. We relate our findings to general theories on intelligence and creativity. HighlightsWe apply network control theory to examine control processes in creativity and intelligence.Intelligence relates to rIPL driving the brain to easy\u2010to\u2010reach states and lower integration in lRSC.Creativity relates to rDLPFC driving the brain to difficult\u2010to\u2010reach states.Creativity relates to higher integration in sensorimotor areas.Fluency, flexibility, and originality relate to similar network controllability processes.",
+    "year": 2018,
+    "citationCount": 106,
+    "venue": "Neuropsychologia",
+    "doi": "10.1016/j.neuropsychologia.2018.01.001"
+  },
+  {
+    "paperId": "f0716e95f3fef30c9213f9d69a29c8e3784dd312",
+    "title": "Going the Extra Creative Mile: The Role of Semantic Distance in Creativity \u2013 Theory, Research, and Measurement",
+    "abstract": "",
+    "year": 2018,
+    "citationCount": 42,
+    "venue": "",
+    "doi": "10.1017/9781316556238.014"
+  },
+  {
+    "paperId": "247b5a8db8f6e5e65bc7f39970c9d96c909de954",
+    "title": "Large-Scale Network Representations of Semantics in the Mental Lexicon",
+    "abstract": "",
+    "year": 2017,
+    "citationCount": 64,
+    "venue": "",
+    "doi": "10.4324/9781315413570-18"
+  },
+  {
+    "paperId": "3a11fc6cec1f7559a22f3593e9a6080696418cb2",
+    "title": "Dynamic Effects of Conceptual Combination on Semantic Network Structure",
+    "abstract": "",
+    "year": 2017,
+    "citationCount": 3,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "6c9659ff83d5ceff0ada28bc7e58e05c7184863a",
+    "title": "Mental Representations and Computational Modeling of Context-Specific Human Norm Systems",
+    "abstract": "",
+    "year": 2017,
+    "citationCount": 22,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "bba3536f4b852aaa990141445d70e3b304f6818f",
+    "title": "The Semantic Distance Task: Quantifying Semantic Distance With Semantic Network Path Length",
+    "abstract": "",
+    "year": 2017,
+    "citationCount": 148,
+    "venue": "Journal of Experimental Psychology. Learning, Memory and Cognition",
+    "doi": "10.1037/xlm0000391"
+  },
+  {
+    "paperId": "cd42885c6118c59e3689420920d987f32373a82d",
+    "title": "How semantic memory structure and intelligence contribute to creative thought: a network science approach",
+    "abstract": "",
+    "year": 2017,
+    "citationCount": 201,
+    "venue": "",
+    "doi": "10.1080/13546783.2016.1278034"
+  },
+  {
+    "paperId": "01214ff4308068a1b3381924c2d7b1020d2906ef",
+    "title": "When pumpkin is closer to onion than to squash: The structure of the second language lexicon.",
+    "abstract": "",
+    "year": 2016,
+    "citationCount": 95,
+    "venue": "Cognition",
+    "doi": "10.1016/j.cognition.2016.07.014"
+  },
+  {
+    "paperId": "3798312aae109d47be582d9970775d2646fbcc9e",
+    "title": "The Hyper-Modular Associative Mind: A Computational Analysis of Associative Responses of Persons with Asperger Syndrome",
+    "abstract": "",
+    "year": 2016,
+    "citationCount": 43,
+    "venue": "Language and Speech",
+    "doi": "10.1177/0023830915589397"
+  },
+  {
+    "paperId": "5726ff56ce3d862dd45b2a40e5fb6d29bf2d99fc",
+    "title": "Examining Search Processes in Low and High Creative Individuals with Random Walks",
+    "abstract": "",
+    "year": 2016,
+    "citationCount": 49,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "a84156a122787a8e0f88f984552efe1c8bd1ceb3",
+    "title": "Structure and flexibility: Investigating the relation between the structure of the mental lexicon, fluid intelligence, and creative achievement.",
+    "abstract": "",
+    "year": 2016,
+    "citationCount": 128,
+    "venue": "",
+    "doi": "10.1037/ACA0000056"
+  },
+  {
+    "paperId": "e7e02d96b23b70cd982a71e743f0892d012aed3c",
+    "title": "U-INVITE: Estimating Individual Semantic Networks from Fluency Data",
+    "abstract": "",
+    "year": 2016,
+    "citationCount": 19,
+    "venue": "Annual Meeting of the Cognitive Science Society",
+    "doi": null
+  },
+  {
+    "paperId": "1d895780bf20679899676f92fc361e63a4e9956e",
+    "title": "Critical tipping point distinguishing two types of transitions in modular network structures.",
+    "abstract": "",
+    "year": 2015,
+    "citationCount": 45,
+    "venue": "Physical review. E, Statistical, nonlinear, and soft matter physics",
+    "doi": "10.1103/PhysRevE.92.062805"
+  },
+  {
+    "paperId": "52801759923388946641490847a53ebb71d8a47f",
+    "title": "Personality and complex brain networks: The role of openness to experience in default network efficiency",
+    "abstract": "The brain's default network (DN) has been a topic of considerable empirical interest. In fMRI research, DN activity is associated with spontaneous and self\u2010generated cognition, such as mind\u2010wandering, episodic memory retrieval, future thinking, mental simulation, theory of mind reasoning, and creative cognition. Despite large literatures on developmental and disease\u2010related influences on the DN, surprisingly little is known about the factors that impact normal variation in DN functioning. Using structural equation modeling and graph theoretical analysis of resting\u2010state fMRI data, we provide evidence that Openness to Experience\u2014a normally distributed personality trait reflecting a tendency to engage in imaginative, creative, and abstract cognitive processes\u2014underlies efficiency of information processing within the DN. Across two studies, Openness predicted the global efficiency of a functional network comprised of DN nodes and corresponding edges. In Study 2, Openness remained a robust predictor\u2014even after controlling for intelligence, age, gender, and other personality variables\u2014explaining 18% of the variance in DN functioning. These findings point to a biological basis of Openness to Experience, and suggest that normally distributed personality traits affect the intrinsic architecture of large\u2010scale brain systems. Hum Brain Mapp 37:773\u2013779, 2016. \u00a9 2015 Wiley Periodicals, Inc.",
+    "year": 2015,
+    "citationCount": 180,
+    "venue": "Human Brain Mapping",
+    "doi": "10.1002/hbm.23065"
+  },
+  {
+    "paperId": "753d151752aed13df5cdb9d70fea2dfcbb3f6849",
+    "title": "Processing of unconventional stimuli requires the recruitment of the non-specialized hemisphere",
+    "abstract": "In the present study we investigate hemispheric processing of conventional and unconventional visual stimuli in the context of visual and verbal creative ability. In Experiment 1, we studied two unconventional visual recognition tasks\u2014Mooney face and objects\u2019 silhouette recognition\u2014and found a significant relationship between measures of verbal creativity and unconventional face recognition. In Experiment 2 we used the split visual field (SVF) paradigm to investigate hemispheric processing of conventional and unconventional faces and its relation to verbal and visual characteristics of creativity. Results showed that while conventional faces were better processed by the specialized right hemisphere (RH), unconventional faces were better processed by the non-specialized left hemisphere (LH). In addition, only unconventional face processing by the non-specialized LH was related to verbal and visual measures of creative ability. Our findings demonstrate the role of the non-specialized hemisphere in processing unconventional stimuli and how it relates to creativity.",
+    "year": 2015,
+    "citationCount": 12,
+    "venue": "Frontiers in Human Neuroscience",
+    "doi": "10.3389/fnhum.2015.00032"
+  },
+  {
+    "paperId": "a6f68181f21e8e771b7543e5ac0932cf4fbac0c0",
+    "title": "Resilience of modular complex networks",
+    "abstract": "Complex networks often have a modular structure, where a number of tightly- connected groups of nodes (modules) have relatively few interconnections. Modularity had been shown to have an important effect on the evolution and stability of biological networks, on the scalability and efficiency of large-scale infrastructure, and the development of economic and social systems. An analytical framework for understanding modularity and its effects on network vulnerability is still missing. Through recent advances in the understanding of multilayer networks, however, it is now possible to develop a theoretical framework to systematically study this critical issue. Here we study, analytically and numerically, the resilience of modular networks under attacks on interconnected nodes, which exhibit high betweenness values and are often more exposed to failure. Our model provides new understandings into the feedback between structure and function in real world systems, and consequently has important implications as diverse as developing efficient immunization strategies, designing robust large-scale infrastructure, and understanding brain function.",
+    "year": 2014,
+    "citationCount": 13,
+    "venue": "arXiv.org",
+    "doi": null
+  },
+  {
+    "paperId": "b26e13b04512e66d16ac8df56a1ac7c19f7fe4b6",
+    "title": "Enhanced creative thinking under dopaminergic therapy in Parkinson disease",
+    "abstract": "",
+    "year": 2014,
+    "citationCount": 73,
+    "venue": "Annals of Neurology",
+    "doi": "10.1002/ana.24181"
+  },
+  {
+    "paperId": "bd98b4c28a6ea2a15b8e8c2bd3ed5576a41a85a6",
+    "title": "Investigating the structure of semantic networks in low and high creative persons",
+    "abstract": "According to Mednick's (1962) theory of individual differences in creativity, creative individuals appear to have a richer and more flexible associative network than less creative individuals. Thus, creative individuals are characterized by \u201cflat\u201d (broader associations) instead of \u201csteep\u201d (few, common associations) associational hierarchies. To study these differences, we implement a novel computational approach to the study of semantic networks, through the analysis of free associations. The core notion of our method is that concepts in the network are related to each other by their association correlations\u2014overlap of similar associative responses (\u201cassociation clouds\u201d). We began by collecting a large sample of participants who underwent several creativity measurements and used a decision tree approach to divide the sample into low and high creative groups. Next, each group underwent a free association generation paradigm which allowed us to construct and analyze the semantic networks of both groups. Comparison of the semantic memory networks of persons with low creative ability and persons with high creative ability revealed differences between the two networks. The semantic memory network of persons with low creative ability seems to be more rigid, compared to the network of persons with high creative ability, in the sense that it is more spread out and breaks apart into more sub-parts. We discuss how our findings are in accord and extend Mednick's (1962) theory and the feasibility of using network science paradigms to investigate high level cognition.",
+    "year": 2014,
+    "citationCount": 355,
+    "venue": "Frontiers in Human Neuroscience",
+    "doi": "10.3389/fnhum.2014.00407"
+  },
+  {
+    "paperId": "047405b0f5d5dce2041c10dec99e1ecf94f16a56",
+    "title": "Semantic organization in children with cochlear implants: computational analysis of verbal fluency",
+    "abstract": "Purpose: Cochlear implants (CIs) enable children with severe and profound hearing impairments to perceive the sensation of sound sufficiently to permit oral language acquisition. So far, studies have focused mainly on technological improvements and general outcomes of implantation for speech perception and spoken language development. This study quantitatively explored the organization of the semantic networks of children with CIs in comparison to those of age-matched normal hearing (NH) peers. Method: Twenty seven children with CIs and twenty seven age- and IQ-matched NH children ages 7\u201310 were tested on a timed animal verbal fluency task (Name as many animals as you can). The responses were analyzed using correlation and network methodologies. The structure of the animal category semantic network for both groups were extracted and compared. Results: Children with CIs appeared to have a less-developed semantic network structure compared to age-matched NH peers. The average shortest path length (ASPL) and the network diameter measures were larger for the NH group compared to the CIs group. This difference was consistent for the analysis of networks derived from animal names generated by each group [sample-matched correlation networks (SMCN)] and for the networks derived from the common animal names generated by both groups [word-matched correlation networks (WMCN)]. Conclusions: The main difference between the semantic networks of children with CIs and NH lies in the network structure. The semantic network of children with CIs is under-developed compared to the semantic network of the age-matched NH children. We discuss the practical and clinical implications of our findings.",
+    "year": 2013,
+    "citationCount": 94,
+    "venue": "Frontiers in Psychology",
+    "doi": "10.3389/fpsyg.2013.00543"
+  },
+  {
+    "paperId": "d17a9830f58dbefbc7a85eee4b1a8d184e1bc5f2",
+    "title": "Global and Local Features of Semantic Networks: Evidence from the Hebrew Mental Lexicon",
+    "abstract": "Background Semantic memory has generated much research. As such, the majority of investigations have focused on the English language, and much less on other languages, such as Hebrew. Furthermore, little research has been done on search processes within the semantic network, even though they are abundant within cognitive semantic phenomena. Methodology/Principal Findings We examine a unique dataset of free association norms to a set of target words and make use of correlation and network theory methodologies to investigate the global and local features of the Hebrew lexicon. The global features of the lexicon are investigated through the use of association correlations \u2013 correlations between target words, based on their association responses similarity; the local features of the lexicon are investigated through the use of association dependencies \u2013 the influence words have in the network on other words. Conclusions/Significance Our investigation uncovered Small-World Network features of the Hebrew lexicon, specifically a high clustering coefficient and a scale-free distribution, and provides means to examine how words group together into semantically related \u2018free categories\u2019. Our novel approach enables us to identify how words facilitate or inhibit the spread of activation within the network, and how these words influence each other. We discuss how these properties relate to classical research on spreading activation and suggest that these properties influence cognitive semantic search processes. A semantic search task, the Remote Association Test is discussed in light of our findings.",
+    "year": 2011,
+    "citationCount": 113,
+    "venue": "PLoS ONE",
+    "doi": "10.1371/journal.pone.0023912"
+  },
+  {
+    "paperId": "387f89352d4e7f9484a4ea5c22d47da88eebf7e7",
+    "title": "Human Neuroscience Hypothesis and Theory Article Rigidity, Chaos and Integration: Hemispheric Interaction and Individual Differences in Metaphor Comprehension",
+    "abstract": "",
+    "year": null,
+    "citationCount": 74,
+    "venue": "",
+    "doi": null
+  },
+  {
+    "paperId": "a2bfaceef068f7983e42e812784a2516a75c8027",
+    "title": "Psychological Methods Semantic Network Analysis (SemNA): A Tutorial on Preprocessing, Estimating, and Analyzing Semantic Networks",
+    "abstract": "",
+    "year": null,
+    "citationCount": 0,
+    "venue": "",
+    "doi": null
+  },
+  {
+    "paperId": "a3553827aca44f69048fe78c8aaa36398f6f750e",
+    "title": "THEORETICAL NOTE An Entropy Modulation Theory of Creative Exploration",
+    "abstract": "",
+    "year": null,
+    "citationCount": 0,
+    "venue": "",
+    "doi": null
+  }
+]

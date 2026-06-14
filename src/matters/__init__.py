@@ -22,6 +22,16 @@ from .extraction import (
     propose_dependency_candidates,
     slugify,
 )
+from .identity import (
+    EmbeddingStore,
+    FakeEmbedder,
+    LocalEmbedder,
+    classify_relationship,
+    get_embedder,
+    ingest_candidates,
+    match_candidate,
+    reconcile_candidates,
+)
 from .llm_extraction import (
     build_extraction_proposal,
     llm_extraction_proposal,
@@ -43,16 +53,24 @@ from .storage import (
 
 __all__ = [
     "DEFAULT_STATE_PATH",
+    "EmbeddingStore",
+    "FakeEmbedder",
+    "LocalEmbedder",
     "PUBLIC",
     "as_condition_list",
     "build_extraction_proposal",
+    "classify_relationship",
     "condition_label",
     "create_condition",
     "dependents",
     "descendants",
     "extract_candidate_matters",
     "extraction_proposal",
+    "get_embedder",
+    "ingest_candidates",
     "llm_extraction_proposal",
+    "match_candidate",
+    "reconcile_candidates",
     "frontier",
     "false_condition_labels",
     "format_unlock_report",

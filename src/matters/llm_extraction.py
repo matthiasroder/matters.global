@@ -23,43 +23,81 @@ MATTER_KINDS = (
     "claim",
     "finding",
     "contribution",
-    "problem",
-    "goal",
-    "decision",
-    "risk",
     "method",
+    "goal",
+    "problem",
+    "risk",
+    "decision",
     "question",
+    "concern",
 )
 
 SYSTEM_PROMPT = """\
-You extract "matters" from source text to seed a matters graph.
+You read source text and extract the "matters" it bears — the things worth
+tracking — to build a matters graph.
 
-A matter is a concern, goal, claim, finding, contribution, decision, risk,
-problem, method, or open question worth tracking. For scientific papers, prefer
-the paper's concrete claims, contributions, and findings over vague topic
-labels.
+A matter is anything worth tracking: a concern, goal, decision, responsibility,
+risk, question, claim, or finding. In research literature, a matter is anything
+the work establishes about its subject, or leaves open about it.
+
+For every matter, your most important judgment is its RESOLUTION STATUS:
+
+- resolved — the source treats this as settled, as far as the source itself
+  establishes it: a demonstrated finding, a validated method, a delivered
+  contribution, an achieved goal, an answered question. These are the
+  established backdrop — what the field now takes as known.
+- open — the source treats this as unresolved: an open question, an unmet goal,
+  an unaddressed limitation or risk, a gap, an unresolved tension between
+  results, or a stated aspiration. These are the live matters the work points
+  toward but has not closed.
+
+Judge status from MEANING, not wording. Do not rely on specific cue phrases (do
+not key on "future work," "open question," "we propose," "limitation," or any
+fixed signal). Infer status from how the authors frame each matter: something
+asserted as demonstrated is resolved; something hedged, aimed at, questioned,
+acknowledged as missing, or left in tension is open. You SHOULD infer open
+matters that the framing implies even when the authors never label them as open
+— but ground every matter in the text, and never invent one.
+
+A good extraction contains BOTH the settled results and the open matters the
+work raises. Do not return only the headline findings; surface the genuine open
+questions, gaps, and aspirations too. Often the richest open matters are the
+unmet criteria behind a resolved finding — the replication, mechanism,
+generalization, or application it has not yet achieved.
 
 For each matter produce:
-- name: a concise, specific title (not a whole sentence; no trailing period).
-- kind: one of claim, finding, contribution, problem, goal, decision, risk,
-  method, question.
+- name: a concise, specific title (not a full sentence; no trailing period).
+- kind: one of claim, finding, contribution, method, goal, problem, risk,
+  decision, question, concern.
 - description: 1-2 sentences grounding the matter in the source.
-- conditions: 2-4 observable truth criteria that would make the matter
-  resolved. Make them concrete and evidence-grounded. For empirical claims,
-  reference what must be true about the evidence: population or sample, effect
-  direction or size, replication, and stated limits or transfer conditions.
-  Avoid generic placeholders like "Resolved outcome is defined".
+- status: "resolved" or "open".
+- conditions: 2-4 observable, checkable criteria that define what it means for
+  this matter to be resolved, each with truth = true (met by the source) or
+  false (not met).
+  * For a RESOLVED matter, list only criteria the source has actually
+    established — ALL of them must be true. Do NOT attach stronger criteria the
+    source did not meet (replication, external validation, generalization, a
+    mechanism, application) as false conditions here.
+  * When such a stronger, still-unmet criterion is worth tracking, capture it as
+    its OWN separate OPEN matter (e.g., "Replicate the rigidity finding across
+    independent samples") rather than as a false condition on the resolved
+    matter.
+  * For an OPEN matter, list the criteria that would close it — at least one
+    must be false; any already-met sub-criteria may be true.
+  Keep conditions concrete and evidence-grounded; avoid generic placeholders.
+  Status and truths must agree: a resolved matter has all conditions true; an
+  open matter has at least one condition false.
 
 Also propose dependency_candidates between matters where one must be resolved or
-established before another: {prerequisite, dependent, reason}. Endpoints may be a
+established before another: {prerequisite, dependent, reason} — a method before
+the findings that use it, an established result before the open question that
+builds on it, evidence before the claim that rests on it. Endpoints may be a
 matter you are extracting (use its name) or one of the provided existing matter
-ids. Give a short human-readable reason (for example, "the intervention claim
-depends on credible repeatable evidence"). Only include dependencies that
-reflect a real prerequisite relationship.
+ids. Give a short human-readable reason. Only include genuine prerequisite
+relationships, not topical similarity.
 
 Extract every distinct matter the source supports — do not collapse the whole
-text into one matter. Ground everything in the source; do not invent findings,
-numbers, attendees, or citations.
+text into one matter, and do not duplicate. Ground everything in the source.
 """
 
 EXTRACTION_SCHEMA = {
@@ -73,17 +111,21 @@ EXTRACTION_SCHEMA = {
                     "name": {"type": "string"},
                     "kind": {"type": "string", "enum": list(MATTER_KINDS)},
                     "description": {"type": "string"},
+                    "status": {"type": "string", "enum": ["resolved", "open"]},
                     "conditions": {
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "properties": {"label": {"type": "string"}},
-                            "required": ["label"],
+                            "properties": {
+                                "label": {"type": "string"},
+                                "truth": {"type": "boolean"},
+                            },
+                            "required": ["label", "truth"],
                             "additionalProperties": False,
                         },
                     },
                 },
-                "required": ["name", "kind", "description", "conditions"],
+                "required": ["name", "kind", "description", "status", "conditions"],
                 "additionalProperties": False,
             },
         },
@@ -205,11 +247,15 @@ def _candidates_from_llm(data, source_type):
             continue
         kind = str(item.get("kind") or "").strip()
         description = str(item.get("description") or "").strip()
+        status = str(item.get("status") or "").strip().lower()
+        status = status if status in ("resolved", "open") else "open"
         candidates.append(
             {
                 "id": slugify(name),
                 "name": name,
                 "description": description or _default_description(kind),
+                "kind": kind,
+                "status": status,
                 "source_type": source_type,
                 "conditions": _conditions_from_llm(item.get("conditions"), name),
             }
@@ -222,10 +268,12 @@ def _conditions_from_llm(raw_conditions, name):
     for entry in raw_conditions or []:
         if isinstance(entry, dict):
             label = str(entry.get("label") or "").strip()
+            truth = bool(entry.get("truth", False))
         else:
             label = str(entry).strip()
+            truth = False
         if label:
-            conditions.append({"label": label, "truth": False})
+            conditions.append({"label": label, "truth": truth})
 
     if conditions:
         return conditions

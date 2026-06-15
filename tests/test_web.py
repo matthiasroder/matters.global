@@ -138,6 +138,65 @@ def test_api_accepts_same_origin_json_mutation(tmp_path):
     assert json.loads(state_path.read_text())["matters"] == ["same_origin_write"]
 
 
+def test_api_rejects_forged_host_and_origin_mutation(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path, {"matters": [], "conditions": {}, "dependencies": []})
+
+    status, body = api_request(
+        state_path,
+        "POST",
+        "/api/matters",
+        body=json.dumps({"title": "Rebound write", "conditions": ["done"]}),
+        headers=lambda port: {
+            "Host": f"attacker.test:{port}",
+            "Origin": f"http://attacker.test:{port}",
+            "Content-Type": "application/json",
+        },
+    )
+
+    assert status == HTTPStatus.FORBIDDEN
+    assert b"invalid API request host" in body
+    assert json.loads(state_path.read_text())["matters"] == []
+
+
+def test_api_rejects_forged_host_and_origin_terminal_start(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path, {"matters": [], "conditions": {}, "dependencies": []})
+
+    status, body = api_request(
+        state_path,
+        "POST",
+        "/api/terminal/sessions",
+        body=json.dumps({"rows": 24, "cols": 100}),
+        headers=lambda port: {
+            "Host": f"attacker.test:{port}",
+            "Origin": f"http://attacker.test:{port}",
+            "Content-Type": "application/json",
+        },
+    )
+
+    assert status == HTTPStatus.FORBIDDEN
+    assert b"invalid API request host" in body
+
+
+def test_api_rejects_forged_host_and_origin_terminal_output(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path, {"matters": [], "conditions": {}, "dependencies": []})
+
+    status, body = api_request(
+        state_path,
+        "GET",
+        "/api/terminal/sessions/missing/output?seq=0",
+        headers=lambda port: {
+            "Host": f"attacker.test:{port}",
+            "Origin": f"http://attacker.test:{port}",
+        },
+    )
+
+    assert status == HTTPStatus.FORBIDDEN
+    assert b"invalid API request host" in body
+
+
 def test_api_rejects_non_json_mutation(tmp_path):
     state_path = tmp_path / "matters.json"
     write_state(state_path, {"matters": [], "conditions": {}, "dependencies": []})

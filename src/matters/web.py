@@ -1,6 +1,7 @@
 """Local web UI server for matters graphs."""
 
 import fcntl
+import ipaddress
 import json
 import mimetypes
 import os
@@ -45,6 +46,8 @@ DEFAULT_WEB_PORT = 8765
 DEFAULT_TERMINAL_SHELL = os.environ.get("SHELL") or "/bin/sh"
 TERMINAL_WORKSPACE_ENV = "MATTERS_TERMINAL_WORKSPACE"
 MAX_TERMINAL_CHUNKS = 1000
+LOCAL_API_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
+WILDCARD_API_HOSTS = frozenset({"0.0.0.0", "::", ""})
 
 
 class ApiError(ValueError):
@@ -469,6 +472,65 @@ def resolve_terminal_workspace(state_path=None, terminal_workspace=None):
     return Path.cwd()
 
 
+def api_host_allowlist(configured_host, bound_host):
+    hosts = {
+        normalized
+        for host in (configured_host, bound_host)
+        if (normalized := normalize_http_host(host)) not in WILDCARD_API_HOSTS
+    }
+    if any(is_local_api_host(host) for host in hosts) or not hosts:
+        hosts.update(LOCAL_API_HOSTS)
+    return frozenset(hosts)
+
+
+def browser_host_for_bind(host):
+    normalized = normalize_http_host(host)
+    if normalized in WILDCARD_API_HOSTS:
+        return "127.0.0.1"
+    if ":" in normalized:
+        return f"[{normalized}]"
+    return normalized
+
+
+def parse_http_host(value):
+    if not value:
+        return None, None
+    parsed = urlparse(f"//{value.strip()}")
+    if (
+        not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        return None, None
+    try:
+        port = parsed.port
+    except ValueError:
+        return None, None
+    return normalize_http_host(parsed.hostname), port
+
+
+def normalize_http_host(value):
+    if value is None:
+        return ""
+    host = str(value).strip().lower().rstrip(".")
+    try:
+        return ipaddress.ip_address(host).compressed
+    except ValueError:
+        return host
+
+
+def is_local_api_host(host):
+    if host in LOCAL_API_HOSTS:
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 def serve(
     state_path=None,
     host=DEFAULT_WEB_HOST,
@@ -493,7 +555,8 @@ def serve(
         terminal_manager=terminal_manager,
     )
     server = ThreadingHTTPServer((host, port), handler)
-    url = f"http://{host}:{server.server_port}/"
+    server.api_host_allowlist = api_host_allowlist(host, server.server_address[0])
+    url = f"http://{browser_host_for_bind(host)}:{server.server_port}/"
     print(f"Serving matters web UI at {url}")
     print(f"State file: {resolved_state_path}")
     print(f"Terminal workspace: {terminal_workspace}")
@@ -519,18 +582,21 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path == "/api/state":
-            self.write_json(graph_payload(self.current_state_path()))
-            return
-        match = re.fullmatch(r"/api/terminal/sessions/([^/]+)/output", parsed.path)
-        if match:
-            query = parse_qs(parsed.query)
-            seq = query.get("seq", ["0"])[0]
-            try:
+        try:
+            if parsed.path.startswith("/api/"):
+                self.require_same_origin_request()
+            if parsed.path == "/api/state":
+                self.write_json(graph_payload(self.current_state_path()))
+                return
+            match = re.fullmatch(r"/api/terminal/sessions/([^/]+)/output", parsed.path)
+            if match:
+                query = parse_qs(parsed.query)
+                seq = query.get("seq", ["0"])[0]
                 session = self.terminal_manager.get(unquote(match.group(1)))
                 self.write_json(session.output_since(seq))
-            except ApiError as error:
-                self.write_error(error)
+                return
+        except ApiError as error:
+            self.write_error(error)
             return
         if parsed.path == "/":
             self.path = "/index.html"
@@ -616,15 +682,41 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
         self.require_json_content_type()
 
     def require_same_origin_request(self):
+        request_origin = self.request_origin()
+        if request_origin is None:
+            raise ApiError("invalid API request host", HTTPStatus.FORBIDDEN)
+        if request_origin[0] not in self.allowed_api_hosts():
+            raise ApiError("invalid API request host", HTTPStatus.FORBIDDEN)
+
         for header in ("Origin", "Referer"):
             value = self.headers.get(header)
-            if value and not self.is_same_origin(value):
+            if value and self.http_url_origin(value) != request_origin:
                 raise ApiError("cross-origin API request rejected", HTTPStatus.FORBIDDEN)
 
-    def is_same_origin(self, value):
+    def request_origin(self):
+        host, port = parse_http_host(self.headers.get("Host"))
+        if host is None:
+            return None
+        port = port or 80
+        if port != self.server.server_port:
+            return None
+        return host, port
+
+    def http_url_origin(self, value):
         parsed = urlparse(value)
-        host = (self.headers.get("Host") or "").lower()
-        return parsed.scheme == "http" and parsed.netloc.lower() == host
+        if parsed.scheme != "http" or not parsed.hostname or parsed.username or parsed.password:
+            return None
+        try:
+            port = parsed.port or 80
+        except ValueError:
+            return None
+        return normalize_http_host(parsed.hostname), port
+
+    def allowed_api_hosts(self):
+        configured_hosts = getattr(self.server, "api_host_allowlist", None)
+        if configured_hosts is not None:
+            return configured_hosts
+        return api_host_allowlist(self.server.server_address[0], self.server.server_address[0])
 
     def require_json_content_type(self):
         content_type = self.headers.get("Content-Type", "")

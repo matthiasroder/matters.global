@@ -170,17 +170,23 @@ Use `-` to read from stdin:
 pbpaste | matters extract - --source-type conversation
 ```
 
-Every proposal includes candidate matter ids, descriptions, initial false
-resolution conditions, dependency candidates against existing matters,
+Every proposal includes candidate matter ids, names, descriptions, resolution
+conditions, dependency candidates against existing matters,
 `requires_confirmation: true`, and an `engine` field naming which extractor
-produced it.
+produced it. LLM-engine candidates also carry a resolution `status`
+(`resolved` or `open`) and a truth value per condition; marker-engine
+candidates are always unresolved.
 
 ### Two extraction engines
 
 - **LLM engine** (default when an API key is available): reads prose — paper
   abstracts, sections, blog posts — and extracts the source's actual claims,
-  contributions, and findings as matters, with evidence-grounded conditions and
-  semantic dependency candidates. This is the right engine for scientific
+  contributions, findings, and open questions as matters. Each matter is judged
+  **status-aware**: settled results come back `resolved` (their conditions
+  marked true), while gaps, unmet goals, and open questions come back `open`
+  (at least one condition false) — so a graph captures both what a field has
+  established and what it leaves open. Conditions are evidence-grounded and
+  dependency candidates are semantic. This is the right engine for scientific
   papers, which rarely contain explicit markers. It calls the Anthropic API, so
   it needs `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) in the environment.
   The model defaults to `claude-sonnet-4-6` and can be overridden with `--model`
@@ -203,6 +209,35 @@ matters extract notes.txt --no-llm   # deterministic, offline
 For PDFs and documents, extract the readable text first (v1 is text-only), then
 pipe it in. See `examples/creativity_research/` for a small corpus and expected
 extraction-quality notes.
+
+## Matter Identity and Reconciliation
+
+When matters from many sources are merged into one graph (for example, extracting
+across a whole corpus of papers), matters.global recognizes when a new matter is
+the *same* as an existing one by **meaning**, not just by a matching slug — and
+lets later evidence resolve earlier open matters. This is a reusable library
+layer (`src/matters/identity.py`), used by ingestion pipelines rather than the
+`matters extract` CLI.
+
+- **Embedding identity.** Each matter is embedded with a local `model2vec`
+  model by default (no API key; a small model downloads on first use; override
+  with `MATTERS_EMBED_MODEL`). Candidates are matched by cosine similarity over
+  a persisted `.npz` sidecar store kept next to the state file, so reworded
+  duplicates collapse into one matter instead of piling up.
+- **Relationship-aware reconciliation.** For each new matter and its nearest
+  existing neighbours, an LLM classifies the relationship as one of: **same**
+  (merge the duplicate), **resolves** (the new matter satisfies an existing
+  *open* matter's conditions, so those conditions flip to true — cross-source
+  resolution), **link** (complementary, e.g. a problem and its solution — add a
+  directed dependency edge), or **distinct**.
+- **Role/status guard.** A deterministic check never merges a `resolved` matter
+  with an `open` one, a problem with its solution, or a method with a finding
+  that uses it — regardless of what the classifier proposes.
+- Without an embedding backend or API key, identity degrades safely to slug
+  matching, and reconciliation merges only on very high similarity.
+
+Reusable APIs: `get_embedder`, `EmbeddingStore`, `match_candidate`,
+`ingest_candidates`, and `reconcile_candidates`.
 
 ## Public Sharing
 

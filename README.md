@@ -130,15 +130,15 @@ Run a local web UI to inspect and edit the real matters graph in a browser:
 matters web --state examples/matters.example.json
 ```
 
-The UI shows matters in an organic force-directed 3D layout with dependency
-edges as directional arrows. Link distance, charge, collision, and gentle
-status drift keep related matters readable without forcing them into a rigid
-grid. It supports rotate, pan, zoom, text search, status filtering, node
-inspection, condition toggles, matter creation, and dependency creation/removal.
-Selecting a node keeps directly connected matters prominent while unrelated
-nodes and edges fade into the visual background. Node dragging is disabled as
-graph editing state, so grabbing a node rotates/orbits the graph instead of
-moving only that matter. Use the reset button to restore the camera.
+The UI shows matters in a Cytoscape.js-powered directed graph, with dependency
+edges drawn as arrows from prerequisite matters to dependent matters. Focused
+views use a Dagre hierarchical layout for dependency readability; dense
+overviews switch to Cytoscape's CoSE force layout so large graphs remain
+inspectable. It supports pan, zoom, text search, status filtering, node
+inspection, condition toggles, matter creation, and dependency
+creation/removal. Selecting a node keeps directly connected matters prominent
+while unrelated nodes and edges fade into the visual background. Use the reset
+button to fit the visible graph back into the viewport.
 
 The top toolbar and the chat-style command panel both expose common graph
 operations:

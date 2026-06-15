@@ -1,36 +1,31 @@
-import ForceGraph3D from "https://cdn.jsdelivr.net/npm/3d-force-graph@1.78.0/+esm";
+import cytoscape from "https://cdn.jsdelivr.net/npm/cytoscape@3.34.0/+esm";
+import dagre from "https://cdn.jsdelivr.net/npm/cytoscape-dagre@4.0.0/+esm";
 import { FitAddon } from "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/+esm";
 import { Terminal } from "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm";
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.178.0/+esm";
+
+cytoscape.use(dagre);
 
 const STATUS_COLORS = {
   actionable: "#27835b",
   blocked: "#cc654c",
   resolved: "#687985",
   selected: "#2f68c5",
-  edge: "#9aa4aa",
+  edge: "#8c9aa0",
   faded: "#d8d5ca"
 };
 
-const ORGANIC_LAYOUT = {
-  chargeStrength: -46,
-  linkDistance: 28,
-  linkStrength: 0.34,
-  statusDriftStrength: 0.012,
-  gravityStrength: 0.032,
-  collisionPadding: 4.2,
-  velocityDecay: 0.26,
-  warmupTicks: 90,
-  cooldownTicks: 420
+const GRAPH_VIEW = {
+  fitPadding: 42,
+  maxAnimatedNodes: 220,
+  minZoom: 0.08,
+  maxZoom: 2.8
 };
 
 const state = {
   graph: null,
-  forceGraph: null,
+  cy: null,
   selectedId: null,
   visibleIds: new Set(),
-  nodeObjects: new Map(),
-  webgl: false,
   terminal: null,
   fitAddon: null,
   terminalSessionId: null,
@@ -44,7 +39,6 @@ const inspector = document.querySelector("#inspector");
 const operationOutput = document.querySelector("#operation-output");
 const statePath = document.querySelector("#state-path");
 const emptyState = document.querySelector("#empty-state");
-const webglFallback = document.querySelector("#webgl-fallback");
 const searchInput = document.querySelector("#search");
 const statusFilter = document.querySelector("#status-filter");
 const stateForm = document.querySelector("#state-form");
@@ -95,176 +89,154 @@ async function loadGraph() {
 }
 
 function initGraph() {
-  if (!hasWebGL()) {
-    webglFallback.hidden = false;
-    graphElement.hidden = true;
-    return;
-  }
-
-  state.webgl = true;
-  state.forceGraph = ForceGraph3D()(graphElement)
-    .backgroundColor("#fbfaf4")
-    .showNavInfo(false)
-    .enableNodeDrag(false)
-    .warmupTicks(ORGANIC_LAYOUT.warmupTicks)
-    .cooldownTicks(ORGANIC_LAYOUT.cooldownTicks)
-    .nodeThreeObject(createNodeObject)
-    .nodeVisibility((node) => nodeVisible(node.id))
-    .linkVisibility((link) => linkVisible(link))
-    .linkMaterial(createLinkMaterial)
-    .linkDirectionalArrowLength(1.7)
-    .linkDirectionalArrowRelPos(0.92)
-    .linkDirectionalArrowColor((link) => linkColor(link))
-    .linkDirectionalParticles(0)
-    .onNodeClick((node) => {
-      state.selectedId = node.id;
-      renderInspector();
-      updateOperationButtons();
-      refreshGraphStyles();
-    })
-    .onBackgroundClick(() => {
-      state.selectedId = null;
-      renderInspector();
-      updateOperationButtons();
-      refreshGraphStyles();
+  state.cy = cytoscape({
+    container: graphElement,
+    elements: [],
+    minZoom: GRAPH_VIEW.minZoom,
+    maxZoom: GRAPH_VIEW.maxZoom,
+    boxSelectionEnabled: false,
+    autoungrabify: false,
+    style: graphStyles()
   });
 
-  configureOrganicLayout();
-  resizeGraph();
+  state.cy.on("tap", "node", (event) => {
+    state.selectedId = event.target.id();
+    renderInspector();
+    updateOperationButtons();
+    refreshGraphStyles();
+  });
+
+  state.cy.on("tap", (event) => {
+    if (event.target !== state.cy) return;
+    state.selectedId = null;
+    renderInspector();
+    updateOperationButtons();
+    refreshGraphStyles();
+  });
+
   window.addEventListener("resize", resizeGraph);
 }
 
-function configureOrganicLayout() {
-  const chargeForce = state.forceGraph.d3Force("charge");
-  if (chargeForce) {
-    chargeForce
-      .strength(ORGANIC_LAYOUT.chargeStrength)
-      .distanceMin(5)
-      .distanceMax(260);
-  }
-
-  const linkForce = state.forceGraph.d3Force("link");
-  if (linkForce) {
-    linkForce
-      .distance(organicLinkDistance)
-      .strength(organicLinkStrength)
-      .iterations(2);
-  }
-
-  state.forceGraph.d3Force("organicGravity", organicGravityForce(ORGANIC_LAYOUT.gravityStrength));
-  state.forceGraph.d3Force("statusDrift", statusDriftForce(ORGANIC_LAYOUT.statusDriftStrength));
-  state.forceGraph.d3Force("nodeCollision", nodeCollisionForce(ORGANIC_LAYOUT.collisionPadding));
-  state.forceGraph.d3VelocityDecay(ORGANIC_LAYOUT.velocityDecay);
-}
-
-function hasWebGL() {
-  try {
-    const probe = document.createElement("canvas");
-    return Boolean(
-      window.WebGLRenderingContext &&
-        (probe.getContext("webgl2") || probe.getContext("webgl"))
-    );
-  } catch {
-    return false;
-  }
-}
-
-function organicGravityForce(strength) {
-  let nodes = [];
-
-  function force(alpha) {
-    for (const node of nodes) {
-      node.vx = (node.vx || 0) - (node.x || 0) * strength * alpha;
-      node.vy = (node.vy || 0) - (node.y || 0) * strength * alpha;
-      node.vz = (node.vz || 0) - (node.z || 0) * strength * alpha;
-    }
-  }
-
-  force.initialize = (nextNodes) => {
-    nodes = nextNodes;
-  };
-
-  return force;
-}
-
-function statusDriftForce(strength) {
-  let nodes = [];
-
-  function force(alpha) {
-    for (const node of nodes) {
-      const anchor = statusAnchor(node);
-      node.vx = (node.vx || 0) + (anchor.x - (node.x || 0)) * strength * alpha;
-      node.vy = (node.vy || 0) + (anchor.y - (node.y || 0)) * strength * alpha;
-      node.vz = (node.vz || 0) + (anchor.z - (node.z || 0)) * strength * alpha;
-    }
-  }
-
-  force.initialize = (nextNodes) => {
-    nodes = nextNodes;
-  };
-
-  return force;
-}
-
-function nodeCollisionForce(padding) {
-  let nodes = [];
-
-  function force(alpha) {
-    for (let i = 0; i < nodes.length; i += 1) {
-      for (let j = i + 1; j < nodes.length; j += 1) {
-        const a = nodes[i];
-        const b = nodes[j];
-        const minDistance = nodeRadius(a) + nodeRadius(b) + padding;
-        const dx = ((b.x || 0) - (a.x || 0)) || 0.01;
-        const dy = ((b.y || 0) - (a.y || 0)) || -0.01;
-        const dz = ((b.z || 0) - (a.z || 0)) || 0.01;
-        const distance = Math.hypot(dx, dy, dz);
-
-        if (distance >= minDistance) continue;
-
-        const push = ((minDistance - distance) / distance) * alpha * 0.48;
-        const x = dx * push;
-        const y = dy * push;
-        const z = dz * push;
-        a.vx = (a.vx || 0) - x;
-        a.vy = (a.vy || 0) - y;
-        a.vz = (a.vz || 0) - z;
-        b.vx = (b.vx || 0) + x;
-        b.vy = (b.vy || 0) + y;
-        b.vz = (b.vz || 0) + z;
+function graphStyles() {
+  return [
+    {
+      selector: "node",
+      style: {
+        "background-color": STATUS_COLORS.blocked,
+        "border-color": "#fffef9",
+        "border-opacity": 0.96,
+        "border-width": 2,
+        color: "#24292f",
+        "font-family": "Inter, system-ui, sans-serif",
+        "font-size": 11,
+        "font-weight": 700,
+        height: "data(size)",
+        label: "data(labelText)",
+        "min-zoomed-font-size": 7,
+        opacity: 0.96,
+        "overlay-opacity": 0,
+        shape: "ellipse",
+        "text-background-color": "#fffdf8",
+        "text-background-opacity": 0.86,
+        "text-background-padding": 3,
+        "text-border-color": "#e8dfd0",
+        "text-border-opacity": 0.9,
+        "text-border-width": 1,
+        "text-halign": "right",
+        "text-margin-x": 7,
+        "text-max-width": 150,
+        "text-wrap": "wrap",
+        "text-valign": "center",
+        width: "data(size)",
+        "z-index": 10
+      }
+    },
+    {
+      selector: "node.actionable",
+      style: {
+        "background-color": STATUS_COLORS.actionable
+      }
+    },
+    {
+      selector: "node.resolved",
+      style: {
+        "background-color": STATUS_COLORS.resolved
+      }
+    },
+    {
+      selector: "node.blocked",
+      style: {
+        "background-color": STATUS_COLORS.blocked
+      }
+    },
+    {
+      selector: "node.selected",
+      style: {
+        "background-color": STATUS_COLORS.selected,
+        "border-color": "#153f91",
+        "border-width": 4,
+        "font-size": 12,
+        height: "data(selectedSize)",
+        "text-background-color": "#eef6ff",
+        "text-border-color": "#bdd3f7",
+        width: "data(selectedSize)",
+        "z-index": 40
+      }
+    },
+    {
+      selector: "node.dimmed",
+      style: {
+        opacity: 0.16,
+        "text-opacity": 0.18
+      }
+    },
+    {
+      selector: "edge",
+      style: {
+        "curve-style": "bezier",
+        "line-color": STATUS_COLORS.edge,
+        opacity: 0.58,
+        "overlay-opacity": 0,
+        "target-arrow-color": STATUS_COLORS.edge,
+        "target-arrow-shape": "triangle",
+        "target-distance-from-node": 2,
+        width: 1.35,
+        "z-index": 1
+      }
+    },
+    {
+      selector: "edge.focused",
+      style: {
+        "line-color": STATUS_COLORS.selected,
+        opacity: 0.92,
+        "target-arrow-color": STATUS_COLORS.selected,
+        width: 2.25,
+        "z-index": 30
+      }
+    },
+    {
+      selector: "edge.dimmed",
+      style: {
+        "line-color": STATUS_COLORS.faded,
+        opacity: 0.1,
+        "target-arrow-color": STATUS_COLORS.faded
+      }
+    },
+    {
+      selector: ".filtered",
+      style: {
+        display: "none"
       }
     }
-  }
-
-  force.initialize = (nextNodes) => {
-    nodes = nextNodes;
-  };
-
-  return force;
-}
-
-function organicLinkDistance(link) {
-  const sourceId = linkId(link.source);
-  const targetId = linkId(link.target);
-  const degreeSpread = Math.min(22, (graphDegree(sourceId) + graphDegree(targetId)) * 1.7);
-  const statusSpread = sameStatus(link) ? -4 : 8;
-  return ORGANIC_LAYOUT.linkDistance + degreeSpread + statusSpread;
-}
-
-function organicLinkStrength(link) {
-  return sameStatus(link) ? ORGANIC_LAYOUT.linkStrength + 0.08 : ORGANIC_LAYOUT.linkStrength;
+  ];
 }
 
 function resizeGraph() {
-  if (!state.forceGraph) return;
-  const viewport = graphViewportRect();
-  state.forceGraph
-    .width(Math.max(Math.floor(viewport.width), 1))
-    .height(Math.max(Math.floor(viewport.height), 1));
-}
-
-function graphViewportRect() {
-  return graphElement.parentElement?.getBoundingClientRect() || graphElement.getBoundingClientRect();
+  if (!state.cy) return;
+  state.cy.resize();
+  window.requestAnimationFrame(() => {
+    fitGraphToVisible();
+  });
 }
 
 function render() {
@@ -286,162 +258,148 @@ function syncStatePathControl() {
 }
 
 function renderGraph() {
-  if (!state.forceGraph) return;
-  state.nodeObjects.clear();
-  state.forceGraph.graphData(toForceGraphData());
-  refreshGraphStyles();
-  state.forceGraph.d3ReheatSimulation?.();
-  window.setTimeout(() => {
-    resetCamera();
-  }, 550);
-}
-
-function toForceGraphData() {
-  const previousNodes = currentGraphNodesById();
-  const total = state.graph.nodes.length || 1;
-  const nodes = state.graph.nodes.map((node, index) => {
-    const previous = previousNodes.get(node.id);
-    return {
-      ...node,
-      ...organicSeedPosition(node, index, total, previous),
-      name: node.label,
-      val: nodeRadius(node)
-    };
+  if (!state.cy) return;
+  state.cy.batch(() => {
+    state.cy.elements().remove();
+    state.cy.add(toCytoscapeElements());
   });
-  const links = state.graph.edges.map((edge) => ({
-    source: edge.source,
-    target: edge.target
+  refreshGraphStyles({ layout: true });
+}
+
+function toCytoscapeElements() {
+  const nodes = state.graph.nodes.map((node) => ({
+    data: nodeData(node),
+    classes: statusClass(node)
   }));
-  return { nodes, links };
+  const edges = state.graph.edges.map((edge, index) => ({
+    data: {
+      id: `edge-${index}`,
+      source: edge.source,
+      target: edge.target
+    }
+  }));
+  return [...nodes, ...edges];
 }
 
-function createNodeObject(node) {
-  const group = new THREE.Group();
-  const selected = node.id === state.selectedId;
-  const radius = nodeRadius(node);
-  const color = selected ? STATUS_COLORS.selected : statusColor(node);
-
-  const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(radius, 28, 18),
-    new THREE.MeshStandardMaterial({
-      color,
-      roughness: 0.46,
-      metalness: 0.07,
-      transparent: true
-    })
-  );
-  group.add(sphere);
-
-  const label = makeLabelSprite(displayLabel(node), selected);
-  label.position.set(radius + 1.4, radius + 0.7, 0);
-  group.add(label);
-
-  group.userData = { id: node.id };
-  state.nodeObjects.set(node.id, group);
-  applyNodeObjectStyle(group, node);
-  return group;
-}
-
-function currentGraphNodesById() {
-  const graphData = state.forceGraph?.graphData?.();
-  if (!graphData?.nodes) return new Map();
-  return new Map(graphData.nodes.map((node) => [node.id, node]));
-}
-
-function organicSeedPosition(node, index, total, previous) {
-  if (
-    Number.isFinite(previous?.x) &&
-    Number.isFinite(previous?.y) &&
-    Number.isFinite(previous?.z)
-  ) {
-    return {
-      x: previous.x,
-      y: previous.y,
-      z: previous.z,
-      vx: previous.vx || 0,
-      vy: previous.vy || 0,
-      vz: previous.vz || 0
-    };
-  }
-
-  const radius = Math.min(130, Math.max(28, 18 + Math.sqrt(total) * 11 + graphDegree(node.id) * 1.5));
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-  const denominator = Math.max(total - 1, 1);
-  const y = 1 - (index / denominator) * 2;
-  const spread = Math.sqrt(Math.max(0, 1 - y * y));
-  const theta = index * goldenAngle;
-  const anchor = statusAnchor(node);
-
+function nodeData(node) {
+  const size = nodeSize(node);
   return {
-    x: Math.cos(theta) * spread * radius + anchor.x * 0.26,
-    y: y * radius * 0.72 + anchor.y * 0.26,
-    z: Math.sin(theta) * spread * radius + anchor.z * 0.26
+    ...node,
+    degree: graphDegree(node.id),
+    falseConditions: node.conditions.filter((condition) => !condition.truth).length,
+    labelText: graphLabelForNode(node),
+    selectedSize: Math.max(size + 10, 30),
+    size
   };
 }
 
-function nodeRadius(node) {
-  if (node.id === state.selectedId) return 1.85;
-  if (node.actionable) return 1.55;
-  return 1.38;
-}
+function refreshGraphStyles(options = {}) {
+  if (!state.cy || !state.graph) return;
+  const connected = connectedSet();
+  const selected = Boolean(state.selectedId);
 
-function createLinkMaterial(link) {
-  return new THREE.LineBasicMaterial({
-    color: linkColor(link),
-    transparent: true,
-    opacity: linkOpacity(link)
+  state.cy.batch(() => {
+    state.cy.nodes().forEach((element) => {
+      const node = nodeById(element.id());
+      if (!node) return;
+      const visible = nodeVisible(node.id);
+      element.data(nodeData(node));
+      element.toggleClass("filtered", !visible);
+      element.toggleClass("selected", node.id === state.selectedId);
+      element.toggleClass("dimmed", selected && !connected.has(node.id));
+      element.toggleClass("actionable", statusClass(node) === "actionable");
+      element.toggleClass("blocked", statusClass(node) === "blocked");
+      element.toggleClass("resolved", statusClass(node) === "resolved");
+    });
+
+    state.cy.edges().forEach((element) => {
+      const link = { source: element.data("source"), target: element.data("target") };
+      const visible = linkVisible(link);
+      const focused = linkTouchesSelection(link);
+      element.toggleClass("filtered", !visible);
+      element.toggleClass("focused", selected && focused);
+      element.toggleClass("dimmed", selected && !focused);
+    });
   });
+
+  if (options.layout) {
+    runGraphLayout();
+  }
 }
 
-function refreshGraphStyles() {
-  if (!state.forceGraph) return;
-  state.forceGraph
-    .nodeVisibility((node) => nodeVisible(node.id))
-    .linkVisibility((link) => linkVisible(link))
-    .linkMaterial(createLinkMaterial)
-    .linkDirectionalArrowColor((link) => linkColor(link))
-    .nodeThreeObject(createNodeObject);
-  state.forceGraph.refresh();
+function runGraphLayout() {
+  if (!state.cy) return;
+  const visible = state.cy.elements(":visible");
+  if (!visible.length) return;
+  const layout = visible.layout(graphLayoutOptions());
+  layout.run();
 }
 
-function applyNodeObjectStyle(group, node) {
-  const opacity = nodeOpacity(node);
-  group.traverse((child) => {
-    if (!child.material) return;
-    child.material.transparent = true;
-    child.material.opacity = opacity;
-  });
+function graphLayoutOptions() {
+  const visibleNodeCount = state.cy.nodes(":visible").length;
+  if (visibleNodeCount > 260) {
+    return {
+      name: "cose",
+      animate: false,
+      componentSpacing: 56,
+      coolingFactor: 0.96,
+      edgeElasticity: 88,
+      fit: true,
+      gravity: 0.42,
+      idealEdgeLength: 46,
+      initialTemp: 180,
+      minTemp: 1,
+      nestingFactor: 1.15,
+      nodeOverlap: 10,
+      nodeRepulsion: 5200,
+      numIter: 900,
+      padding: GRAPH_VIEW.fitPadding,
+      randomize: true
+    };
+  }
+
+  return {
+    name: "dagre",
+    rankDir: "LR",
+    ranker: "network-simplex",
+    nodeSep: visibleNodeCount > 260 ? 16 : 44,
+    edgeSep: visibleNodeCount > 260 ? 6 : 12,
+    rankSep: visibleNodeCount > 260 ? 40 : 86,
+    avoidOverlap: true,
+    nodeDimensionsIncludeLabels: true,
+    animate: visibleNodeCount > 0 && visibleNodeCount <= GRAPH_VIEW.maxAnimatedNodes,
+    animationDuration: 240,
+    fit: true,
+    padding: GRAPH_VIEW.fitPadding
+  };
 }
 
-function makeLabelSprite(text, selected) {
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  canvas.width = 512;
-  canvas.height = 128;
-  context.font = "700 34px Inter, system-ui, sans-serif";
-  context.textBaseline = "middle";
-  context.fillStyle = selected ? "rgba(238, 246, 255, 0.96)" : "rgba(255, 253, 248, 0.88)";
-  roundRect(context, 8, 22, 496, 82, 18);
-  context.fill();
-  context.fillStyle = selected ? STATUS_COLORS.selected : "#24292f";
-  context.fillText(text, 28, 64, 456);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
-  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
-  const sprite = new THREE.Sprite(material);
-  sprite.scale.set(14, 3.5, 1);
-  return sprite;
+function fitGraphToVisible() {
+  if (!state.cy) return;
+  const visible = state.cy.elements(":visible");
+  if (visible.length) {
+    state.cy.fit(visible, GRAPH_VIEW.fitPadding);
+  }
 }
 
-function roundRect(context, x, y, width, height, radius) {
-  context.beginPath();
-  context.moveTo(x + radius, y);
-  context.arcTo(x + width, y, x + width, y + height, radius);
-  context.arcTo(x + width, y + height, x, y + height, radius);
-  context.arcTo(x, y + height, x, y, radius);
-  context.arcTo(x, y, x + width, y, radius);
-  context.closePath();
+function resetGraphView() {
+  fitGraphToVisible();
+}
+
+function zoomGraph(factor) {
+  if (!state.cy) return;
+  const rect = graphElement.getBoundingClientRect();
+  const renderedPosition = { x: rect.width / 2, y: rect.height / 2 };
+  const level = Math.min(
+    GRAPH_VIEW.maxZoom,
+    Math.max(GRAPH_VIEW.minZoom, state.cy.zoom() * factor)
+  );
+  state.cy.animate(
+    {
+      zoom: { level, renderedPosition }
+    },
+    { duration: 140 }
+  );
 }
 
 function nodeVisible(id) {
@@ -449,36 +407,11 @@ function nodeVisible(id) {
 }
 
 function linkVisible(link) {
-  return state.visibleIds.has(linkId(link.source)) && state.visibleIds.has(linkId(link.target));
-}
-
-function nodeOpacity(node) {
-  if (!state.selectedId) return 1;
-  return connectedSet().has(node.id) ? 1 : 0.14;
-}
-
-function linkOpacity(link) {
-  if (!state.selectedId) return 0.62;
-  return linkTouchesSelection(link) ? 0.92 : 0.08;
-}
-
-function linkColor(link) {
-  if (!state.selectedId) return STATUS_COLORS.edge;
-  return linkTouchesSelection(link) ? STATUS_COLORS.selected : STATUS_COLORS.faded;
+  return state.visibleIds.has(link.source) && state.visibleIds.has(link.target);
 }
 
 function linkTouchesSelection(link) {
-  return linkId(link.source) === state.selectedId || linkId(link.target) === state.selectedId;
-}
-
-function linkId(endpoint) {
-  return typeof endpoint === "object" ? endpoint.id : endpoint;
-}
-
-function sameStatus(link) {
-  const source = nodeById(linkId(link.source));
-  const target = nodeById(linkId(link.target));
-  return source && target && statusClass(source) === statusClass(target);
+  return link.source === state.selectedId || link.target === state.selectedId;
 }
 
 function renderFiltersAndSelectors() {
@@ -626,16 +559,11 @@ function nodeById(id) {
   return state.graph?.nodes.find((node) => node.id === id);
 }
 
-function statusColor(node) {
-  if (node.resolved) return STATUS_COLORS.resolved;
-  if (node.actionable) return STATUS_COLORS.actionable;
-  return STATUS_COLORS.blocked;
-}
-
-function statusAnchor(node) {
-  if (node.resolved) return { x: 14, y: -10, z: 16 };
-  if (node.actionable) return { x: -18, y: 12, z: 4 };
-  return { x: 8, y: 4, z: -14 };
+function nodeSize(node) {
+  const base = node.resolved ? 16 : 18;
+  const actionableBoost = node.actionable ? 3 : 0;
+  const degreeBoost = Math.min(11, Math.sqrt(graphDegree(node.id)) * 3.2);
+  return Math.round(base + actionableBoost + degreeBoost);
 }
 
 function graphDegree(id) {
@@ -657,8 +585,19 @@ function statusLabel(node) {
   return "blocked";
 }
 
-function displayLabel(node) {
-  return node.label.length > 34 ? `${node.label.slice(0, 31)}...` : node.label;
+function graphLabelForNode(node) {
+  if (!node) return "";
+  const connected = connectedSet();
+  if (node.id === state.selectedId) return truncateLabel(node.label, 68);
+  if (state.selectedId && connected.has(node.id)) return truncateLabel(node.label, 48);
+  if (searchInput.value.trim()) return truncateLabel(node.label, 48);
+  if (state.visibleIds.size <= 160) return truncateLabel(node.label, 42);
+  if (node.actionable || graphDegree(node.id) >= 10) return truncateLabel(node.label, 36);
+  return "";
+}
+
+function truncateLabel(label, maxLength) {
+  return label.length > maxLength ? `${label.slice(0, maxLength - 3)}...` : label;
 }
 
 function updateOperationButtons() {
@@ -893,38 +832,18 @@ async function resizeTerminal(rows, cols) {
   }).catch(() => {});
 }
 
-function resetCamera() {
-  if (!state.forceGraph) return;
-  const distance = graphViewportRect().width < 600 ? 82 : 92;
-  state.forceGraph.cameraPosition({ x: 0, y: 0, z: distance }, { x: 0, y: 0, z: 0 }, 700);
-}
-
-function zoomCamera(factor) {
-  if (!state.forceGraph) return;
-  const camera = state.forceGraph.camera();
-  const { x, y, z } = camera.position;
-  const currentDistance = Math.hypot(x, y, z) || 1;
-  const nextDistance = Math.min(600, Math.max(12, currentDistance * factor));
-  const scale = nextDistance / currentDistance;
-  state.forceGraph.cameraPosition(
-    { x: x * scale, y: y * scale, z: z * scale },
-    { x: 0, y: 0, z: 0 },
-    260
-  );
-}
-
 searchInput.addEventListener("input", () => {
   state.visibleIds = new Set(filteredNodes().map((node) => node.id));
-  refreshGraphStyles();
+  refreshGraphStyles({ layout: true });
 });
 statusFilter.addEventListener("change", () => {
   state.visibleIds = new Set(filteredNodes().map((node) => node.id));
-  refreshGraphStyles();
+  refreshGraphStyles({ layout: true });
 });
 window.addEventListener("resize", fitTerminal);
-document.querySelector("#zoom-in").addEventListener("click", () => zoomCamera(0.72));
-document.querySelector("#zoom-out").addEventListener("click", () => zoomCamera(1.38));
-document.querySelector("#reset-view").addEventListener("click", resetCamera);
+document.querySelector("#zoom-in").addEventListener("click", () => zoomGraph(1.22));
+document.querySelector("#zoom-out").addEventListener("click", () => zoomGraph(0.82));
+document.querySelector("#reset-view").addEventListener("click", resetGraphView);
 document.querySelector("#toggle-terminal").addEventListener("click", () => {
   if (terminalDrawer.hidden) {
     openTerminal().catch((error) => {

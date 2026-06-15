@@ -218,8 +218,7 @@ textarea {
   display: block;
 }
 
-.empty-state,
-.webgl-fallback {
+.empty-state {
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -233,14 +232,12 @@ textarea {
   transform: translate(-50%, -50%);
 }
 
-.empty-state h2,
-.webgl-fallback h2 {
+.empty-state h2 {
   font-size: 24px;
   margin: 0 0 8px;
 }
 
-.empty-state p,
-.webgl-fallback p {
+.empty-state p {
   color: var(--muted);
   margin: 0;
 }

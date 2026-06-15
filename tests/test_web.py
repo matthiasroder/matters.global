@@ -422,12 +422,12 @@ def test_terminal_manager_rejects_missing_workspace(tmp_path):
         manager.create(workspace=tmp_path / "missing")
 
 
-def test_web_assets_use_three_dimensional_canvas():
+def test_web_assets_use_cytoscape_graph():
     html = (ASSETS / "index.html").read_text()
     app = (ASSETS / "app.js").read_text()
 
     assert '<div id="graph"' in html
-    assert '<script type="module" src="app.js?v=api-hardening"></script>' in html
+    assert '<script type="module" src="app.js?v=cytoscape-graph"></script>' in html
     assert '<details class="panel-section disclosure">' in html
     assert "<summary>Create Matter</summary>" in html
     assert "<summary>Dependencies</summary>" in html
@@ -441,27 +441,23 @@ def test_web_assets_use_three_dimensional_canvas():
     assert "@xterm/xterm@5.5.0" in html
     assert 'api("/api/terminal/sessions"' in app
     assert "new Terminal" in app
-    assert "3d-force-graph@1.78.0" in app
-    assert 'href="styles.css?v=switch-graph"' in html
+    assert "cytoscape@3.34.0" in app
+    assert "cytoscape-dagre@4.0.0" in app
+    assert "3d-force-graph" not in app
+    assert "three@" not in app
+    assert 'href="styles.css?v=cytoscape-graph"' in html
     assert "[hidden]" in (ASSETS / "styles.css").read_text()
-    assert "ForceGraph3D()(graphElement)" in app
-    assert ".enableNodeDrag(false)" in app
+    assert "cytoscape({" in app
+    assert "cytoscape.use(dagre)" in app
+    assert 'name: "cose"' in app
+    assert 'name: "dagre"' in app
+    assert 'rankDir: "LR"' in app
     assert 'id="zoom-in"' in html
     assert 'id="zoom-out"' in html
-    assert "function zoomCamera(factor)" in app
-    assert "TorusGeometry" not in app
-    assert "linkDirectionalArrowLength(1.7)" in app
-    assert "d3Force(\"charge\")" in app
-    assert "ORGANIC_LAYOUT" in app
-    assert "function configureOrganicLayout()" in app
-    assert "function graphViewportRect()" in app
+    assert "function zoomGraph(factor)" in app
+    assert '"target-arrow-shape": "triangle"' in app
+    assert "function runGraphLayout()" in app
     assert "async function responsePayload(response)" in app
     assert "function switchGraphStateErrorMessage(error)" in app
     assert "Restart the matters web server" in app
-    assert "chargeForce" in app
-    assert ".strength(ORGANIC_LAYOUT.chargeStrength)" in app
-    assert 'd3Force("organicGravity", organicGravityForce(ORGANIC_LAYOUT.gravityStrength))' in app
-    assert 'd3Force("statusDrift", statusDriftForce(ORGANIC_LAYOUT.statusDriftStrength))' in app
-    assert 'd3Force("nodeCollision", nodeCollisionForce(ORGANIC_LAYOUT.collisionPadding))' in app
-    assert "function organicSeedPosition" in app
-    assert "webgl-fallback" in html
+    assert "webgl-fallback" not in html

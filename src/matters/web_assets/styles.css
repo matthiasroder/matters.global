@@ -149,7 +149,7 @@ textarea {
   align-items: center;
   display: grid;
   gap: 7px;
-  grid-template-columns: minmax(190px, 280px) 140px repeat(8, auto);
+  grid-template-columns: minmax(190px, 280px) 132px 132px repeat(8, auto);
 }
 
 .toolbar button {

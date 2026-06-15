@@ -131,14 +131,15 @@ matters web --state examples/matters.example.json
 ```
 
 The UI shows matters in a Cytoscape.js-powered directed graph, with dependency
-edges drawn as arrows from prerequisite matters to dependent matters. Focused
-views use a Dagre hierarchical layout for dependency readability; dense
-overviews switch to Cytoscape's CoSE force layout so large graphs remain
-inspectable. It supports pan, zoom, text search, status filtering, node
-inspection, condition toggles, matter creation, and dependency
-creation/removal. Selecting a node keeps directly connected matters prominent
-while unrelated nodes and edges fade into the visual background. Use the reset
-button to fit the visible graph back into the viewport.
+edges drawn as arrows from prerequisite matters to dependent matters. Large
+graphs open in an Attention scope: high-impact actionable matters and the
+matters they unlock, rather than an unreadable all-node hairball. The graph
+scope menu can switch between Attention, Universe, and All graph. Selecting a
+node focuses the graph on that node's prerequisites and dependents. Focused
+views use a Dagre hierarchical layout for dependency readability; explicit
+all-graph overviews use Cytoscape's CoSE force layout. The UI supports pan,
+zoom, text search, status filtering, node inspection, condition toggles, matter
+creation, and dependency creation/removal.
 
 The top toolbar and the chat-style command panel both expose common graph
 operations:

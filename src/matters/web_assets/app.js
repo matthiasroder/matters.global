@@ -15,15 +15,20 @@ const STATUS_COLORS = {
 };
 
 const GRAPH_VIEW = {
+  attentionMaxNodes: 150,
+  attentionSeeds: 18,
   fitPadding: 42,
+  largeGraphThreshold: 220,
   maxAnimatedNodes: 220,
   minZoom: 0.08,
-  maxZoom: 2.8
+  maxZoom: 1.35
 };
 
 const state = {
   graph: null,
   cy: null,
+  scope: "attention",
+  scopeIds: null,
   selectedId: null,
   visibleIds: new Set(),
   terminal: null,
@@ -41,6 +46,7 @@ const statePath = document.querySelector("#state-path");
 const emptyState = document.querySelector("#empty-state");
 const searchInput = document.querySelector("#search");
 const statusFilter = document.querySelector("#status-filter");
+const scopeFilter = document.querySelector("#scope-filter");
 const stateForm = document.querySelector("#state-form");
 const dependencyForm = document.querySelector("#dependency-form");
 const terminalDrawer = document.querySelector("#terminal-drawer");
@@ -100,18 +106,17 @@ function initGraph() {
   });
 
   state.cy.on("tap", "node", (event) => {
-    state.selectedId = event.target.id();
+    focusNode(event.target.id());
     renderInspector();
     updateOperationButtons();
-    refreshGraphStyles();
   });
 
   state.cy.on("tap", (event) => {
     if (event.target !== state.cy) return;
     state.selectedId = null;
+    setScope("attention");
     renderInspector();
     updateOperationButtons();
-    refreshGraphStyles();
   });
 
   window.addEventListener("resize", resizeGraph);
@@ -241,7 +246,11 @@ function resizeGraph() {
 
 function render() {
   syncStatePathControl();
-  state.visibleIds = new Set(filteredNodes().map((node) => node.id));
+  if (state.graph.nodes.length <= GRAPH_VIEW.largeGraphThreshold && state.scope === "attention") {
+    state.scope = "all";
+  }
+  syncScopeControl();
+  recomputeVisibleIds();
   renderFiltersAndSelectors();
   renderGraph();
   renderInspector();
@@ -255,6 +264,31 @@ function syncStatePathControl() {
   if (document.activeElement !== pathInput) {
     pathInput.value = state.graph.state_path;
   }
+}
+
+function syncScopeControl() {
+  if (document.activeElement !== scopeFilter) {
+    scopeFilter.value = state.scope;
+  }
+}
+
+function setScope(scope, ids = null) {
+  state.scope = normalizedScope(scope);
+  state.scopeIds = ids ? new Set(ids) : null;
+  syncScopeControl();
+  recomputeVisibleIds();
+  refreshGraphStyles({ layout: true });
+}
+
+function normalizedScope(scope) {
+  if (scope === "attention" && state.graph?.nodes.length <= GRAPH_VIEW.largeGraphThreshold) {
+    return "all";
+  }
+  return scope;
+}
+
+function recomputeVisibleIds() {
+  state.visibleIds = new Set(filteredNodes().map((node) => node.id));
 }
 
 function renderGraph() {
@@ -337,7 +371,7 @@ function runGraphLayout() {
 
 function graphLayoutOptions() {
   const visibleNodeCount = state.cy.nodes(":visible").length;
-  if (visibleNodeCount > 260) {
+  if (shouldUseOverviewLayout(visibleNodeCount)) {
     return {
       name: "cose",
       animate: false,
@@ -374,16 +408,18 @@ function graphLayoutOptions() {
   };
 }
 
+function shouldUseOverviewLayout(visibleNodeCount) {
+  if (visibleNodeCount > 260) return true;
+  if (state.scope === "custom" && visibleNodeCount > 8) return true;
+  return state.scope !== "custom" && visibleNodeCount > 48;
+}
+
 function fitGraphToVisible() {
   if (!state.cy) return;
   const visible = state.cy.elements(":visible");
   if (visible.length) {
     state.cy.fit(visible, GRAPH_VIEW.fitPadding);
   }
-}
-
-function resetGraphView() {
-  fitGraphToVisible();
 }
 
 function zoomGraph(factor) {
@@ -526,7 +562,9 @@ function linkSpans(ids) {
 function filteredNodes() {
   const query = searchInput.value.trim().toLowerCase();
   const status = statusFilter.value;
+  const scopedIds = baseScopeIds();
   return state.graph.nodes.filter((node) => {
+    const matchesScope = scopedIds.has(node.id);
     const matchesText =
       !query ||
       node.id.toLowerCase().includes(query) ||
@@ -537,8 +575,78 @@ function filteredNodes() {
       (status === "blocked" && node.blocked) ||
       (status === "resolved" && node.resolved) ||
       (status === "unresolved" && !node.resolved);
-    return matchesText && matchesStatus;
+    return matchesScope && matchesText && matchesStatus;
   });
+}
+
+function baseScopeIds() {
+  if (!state.graph) return new Set();
+  if (state.scope === "custom" && state.scopeIds) return new Set(state.scopeIds);
+  if (state.scope === "all") return allMatterIds();
+  if (state.scope === "universe") return universeContextIds();
+  return attentionScopeIds();
+}
+
+function allMatterIds() {
+  return new Set(state.graph.nodes.map((node) => node.id));
+}
+
+function attentionScopeIds() {
+  if (state.graph.nodes.length <= GRAPH_VIEW.largeGraphThreshold) return allMatterIds();
+
+  const ids = new Set();
+  const seeds = state.graph.nodes
+    .filter((node) => node.actionable)
+    .sort((a, b) => downstreamCount(b.id) - downstreamCount(a.id) || a.id.localeCompare(b.id))
+    .slice(0, GRAPH_VIEW.attentionSeeds);
+
+  seeds.forEach((node) => {
+    ids.add(node.id);
+    sortedDependents(node.id).forEach((id) => {
+      if (ids.size < GRAPH_VIEW.attentionMaxNodes) ids.add(id);
+    });
+  });
+
+  if (!ids.size) {
+    state.graph.nodes
+      .slice(0, Math.min(GRAPH_VIEW.attentionMaxNodes, state.graph.nodes.length))
+      .forEach((node) => ids.add(node.id));
+  }
+
+  return ids;
+}
+
+function universeContextIds() {
+  const ids = new Set(state.graph.universe || []);
+  (state.graph.universe || []).forEach((id) => {
+    sortedDependents(id).forEach((dependent) => ids.add(dependent));
+  });
+  return ids.size ? ids : attentionScopeIds();
+}
+
+function focusContextIds(id) {
+  const ids = new Set([id]);
+  const node = nodeById(id);
+  if (!node) return ids;
+  node.prerequisites.forEach((matterId) => ids.add(matterId));
+  sortedDependents(id).forEach((matterId) => ids.add(matterId));
+  return ids;
+}
+
+function downstreamCount(id) {
+  const node = nodeById(id);
+  return node ? node.dependents.length : 0;
+}
+
+function sortedDependents(id) {
+  const node = nodeById(id);
+  if (!node) return [];
+  return [...node.dependents].sort((a, b) => downstreamCount(b) - downstreamCount(a) || a.localeCompare(b));
+}
+
+function focusNode(id) {
+  state.selectedId = id;
+  setScope("custom", focusContextIds(id));
 }
 
 function connectedSet() {
@@ -591,7 +699,7 @@ function graphLabelForNode(node) {
   if (node.id === state.selectedId) return truncateLabel(node.label, 68);
   if (state.selectedId && connected.has(node.id)) return truncateLabel(node.label, 48);
   if (searchInput.value.trim()) return truncateLabel(node.label, 48);
-  if (state.visibleIds.size <= 160) return truncateLabel(node.label, 42);
+  if (state.visibleIds.size <= 80) return truncateLabel(node.label, 42);
   if (node.actionable || graphDegree(node.id) >= 10) return truncateLabel(node.label, 36);
   return "";
 }
@@ -649,6 +757,42 @@ async function runCommand(text) {
   }
 }
 
+async function showDerivedScope(kind, matterId) {
+  try {
+    const result = await api("/api/command", {
+      method: "POST",
+      body: JSON.stringify({ text: `${kind} ${matterId}` })
+    });
+    const ids = kind === "horizon"
+      ? downstreamContextIds(matterId, result.items)
+      : new Set([matterId, ...result.items]);
+    state.selectedId = matterId;
+    setScope("custom", ids);
+    renderInspector();
+    updateOperationButtons();
+    setOperationOutput(result.type || kind, formatCommandResult(result));
+  } catch (error) {
+    setOperationOutput("error", error.message);
+  }
+}
+
+function downstreamContextIds(rootId, targetIds) {
+  const targets = new Set(targetIds);
+  const ids = new Set([rootId, ...targetIds]);
+  const queue = [rootId];
+  const seen = new Set([rootId]);
+  while (queue.length && ids.size < GRAPH_VIEW.attentionMaxNodes) {
+    const current = queue.shift();
+    sortedDependents(current).forEach((id) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      ids.add(id);
+      if (!targets.has(id)) queue.push(id);
+    });
+  }
+  return ids;
+}
+
 async function switchGraphState(statePathValue) {
   const nextStatePath = statePathValue.trim();
   if (!nextStatePath) return;
@@ -658,6 +802,8 @@ async function switchGraphState(statePathValue) {
       body: JSON.stringify({ state_path: nextStatePath })
     });
     state.selectedId = null;
+    state.scope = "attention";
+    state.scopeIds = null;
     searchInput.value = "";
     statusFilter.value = "all";
     render();
@@ -833,17 +979,30 @@ async function resizeTerminal(rows, cols) {
 }
 
 searchInput.addEventListener("input", () => {
-  state.visibleIds = new Set(filteredNodes().map((node) => node.id));
+  recomputeVisibleIds();
   refreshGraphStyles({ layout: true });
 });
 statusFilter.addEventListener("change", () => {
-  state.visibleIds = new Set(filteredNodes().map((node) => node.id));
+  recomputeVisibleIds();
   refreshGraphStyles({ layout: true });
+});
+scopeFilter.addEventListener("change", () => {
+  state.selectedId = null;
+  setScope(scopeFilter.value);
+  renderInspector();
+  updateOperationButtons();
 });
 window.addEventListener("resize", fitTerminal);
 document.querySelector("#zoom-in").addEventListener("click", () => zoomGraph(1.22));
 document.querySelector("#zoom-out").addEventListener("click", () => zoomGraph(0.82));
-document.querySelector("#reset-view").addEventListener("click", resetGraphView);
+document.querySelector("#reset-view").addEventListener("click", () => {
+  state.selectedId = null;
+  searchInput.value = "";
+  statusFilter.value = "all";
+  setScope("attention");
+  renderInspector();
+  updateOperationButtons();
+});
 document.querySelector("#toggle-terminal").addEventListener("click", () => {
   if (terminalDrawer.hidden) {
     openTerminal().catch((error) => {
@@ -860,13 +1019,25 @@ document.querySelector("#restart-terminal").addEventListener("click", () => {
     terminalStatus.textContent = error.message;
   });
 });
-document.querySelector("#show-universe").addEventListener("click", () => runCommand("universe"));
-document.querySelector("#show-unlock").addEventListener("click", () => runCommand("unlock"));
+document.querySelector("#show-universe").addEventListener("click", () => {
+  state.selectedId = null;
+  setScope("universe");
+  renderInspector();
+  updateOperationButtons();
+  setOperationOutput("universe", (state.graph.universe || []).join("\n") || "none");
+});
+document.querySelector("#show-unlock").addEventListener("click", () => {
+  state.selectedId = null;
+  setScope("universe");
+  renderInspector();
+  updateOperationButtons();
+  runCommand("unlock");
+});
 document.querySelector("#show-frontier").addEventListener("click", () => {
-  if (state.selectedId) runCommand(`frontier ${state.selectedId}`);
+  if (state.selectedId) showDerivedScope("frontier", state.selectedId);
 });
 document.querySelector("#show-horizon").addEventListener("click", () => {
-  if (state.selectedId) runCommand(`horizon ${state.selectedId}`);
+  if (state.selectedId) showDerivedScope("horizon", state.selectedId);
 });
 
 stateForm.addEventListener("submit", (event) => {
@@ -894,6 +1065,8 @@ document.querySelector("#create-matter-form").addEventListener("submit", async (
       body: JSON.stringify(payload)
     });
     state.selectedId = state.graph.nodes.find((node) => node.id === createdId)?.id || state.graph.nodes.at(-1)?.id;
+    state.scope = "custom";
+    state.scopeIds = focusContextIds(state.selectedId);
     form.reset();
     render();
     setOperationOutput("matters", "Matter created.");

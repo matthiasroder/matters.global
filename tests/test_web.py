@@ -431,6 +431,10 @@ def test_web_assets_use_cytoscape_graph():
     assert '<details class="panel-section disclosure">' in html
     assert "<summary>Create Matter</summary>" in html
     assert "<summary>Dependencies</summary>" in html
+    assert 'id="scope-filter"' in html
+    assert '<option value="attention">Attention</option>' in html
+    assert '<option value="universe">Universe</option>' in html
+    assert '<option value="all">All graph</option>' in html
     assert "Chat / Commands" not in html
     assert 'id="terminal-drawer"' in html
     assert 'id="toggle-terminal"' in html
@@ -449,6 +453,12 @@ def test_web_assets_use_cytoscape_graph():
     assert "[hidden]" in (ASSETS / "styles.css").read_text()
     assert "cytoscape({" in app
     assert "cytoscape.use(dagre)" in app
+    assert "attentionMaxNodes" in app
+    assert 'scope: "attention"' in app
+    assert "function attentionScopeIds()" in app
+    assert "function universeContextIds()" in app
+    assert "function focusNode(id)" in app
+    assert "function showDerivedScope(kind, matterId)" in app
     assert 'name: "cose"' in app
     assert 'name: "dagre"' in app
     assert 'rankDir: "LR"' in app

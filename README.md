@@ -49,7 +49,7 @@ The skill is intentionally thin. Shared behavior belongs in `src/matters`, not i
 ## Local Development
 
 ```sh
-python -m pip install -e .
+python -m pip install -e '.[test]'
 python -m pytest
 ```
 

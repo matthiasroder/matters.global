@@ -24,7 +24,16 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .cli import create_matters_from_expression
-from .engine import dependents, frontier, horizon, prerequisites, resolved, truth, universe
+from .engine import (
+    dependents,
+    frontier,
+    has_dependency_cycle,
+    horizon,
+    prerequisites,
+    resolved,
+    truth,
+    universe,
+)
 from .extraction import slugify
 from .llm_extraction import build_extraction_proposal
 from .reports import unlock_report
@@ -704,27 +713,3 @@ def require_matter(matter_id, matters):
         raise ApiError("matter id is required")
     if matter_id not in matters:
         raise ApiError(f"unknown matter: {matter_id}", HTTPStatus.NOT_FOUND)
-
-
-def has_dependency_cycle(dependencies):
-    outgoing = {}
-    for source, target in dependencies:
-        outgoing.setdefault(source, set()).add(target)
-
-    visiting = set()
-    visited = set()
-
-    def visit(node):
-        if node in visiting:
-            return True
-        if node in visited:
-            return False
-        visiting.add(node)
-        for target in outgoing.get(node, ()):
-            if visit(target):
-                return True
-        visiting.remove(node)
-        visited.add(node)
-        return False
-
-    return any(visit(node) for node in outgoing)

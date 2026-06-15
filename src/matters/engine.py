@@ -83,6 +83,30 @@ def dependents(matter, dependencies):
     return {b for a, b in dependencies if a == matter}
 
 
+def has_dependency_cycle(dependencies):
+    outgoing = {}
+    for source, target in dependencies:
+        outgoing.setdefault(source, set()).add(target)
+
+    visiting = set()
+    visited = set()
+
+    def visit(node):
+        if node in visiting:
+            return True
+        if node in visited:
+            return False
+        visiting.add(node)
+        for target in outgoing.get(node, ()):
+            if visit(target):
+                return True
+        visiting.remove(node)
+        visited.add(node)
+        return False
+
+    return any(visit(node) for node in outgoing)
+
+
 def resolved(matter, conditions, dependencies, seen=None):
     if seen is None:
         seen = set()

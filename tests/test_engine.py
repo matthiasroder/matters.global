@@ -1,6 +1,6 @@
 import pytest
 
-from matters import frontier, horizon, resolved, universe
+from matters import frontier, has_dependency_cycle, horizon, resolved, universe
 
 
 def test_resolution_uses_conditions_and_prerequisites():
@@ -41,3 +41,8 @@ def test_frontier_and_horizon_are_computed_from_dependencies():
 def test_dependency_cycle_raises_value_error():
     with pytest.raises(ValueError, match="dependency cycle"):
         resolved("a", {}, {("a", "b"), ("b", "a")})
+
+
+def test_has_dependency_cycle_detects_cycles():
+    assert has_dependency_cycle({("a", "b"), ("b", "c"), ("c", "a")})
+    assert not has_dependency_cycle({("a", "b"), ("b", "c")})

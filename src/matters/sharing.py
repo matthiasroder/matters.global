@@ -1,6 +1,6 @@
 """Helpers for exporting shareable matter states."""
 
-from .engine import as_condition_list, serialize_condition
+from .engine import as_condition_list, has_dependency_cycle, serialize_condition
 from .storage import normalize_dependency_records
 
 
@@ -73,6 +73,8 @@ def merge_public_state(matters, conditions, dependencies, visibility, incoming_s
         context="incoming public state",
     )
     merged_dependencies = private_dependencies | incoming_dependencies
+    if has_dependency_cycle(merged_dependencies):
+        raise ValueError("incoming public state would create a dependency cycle")
 
     return {
         "schema_version": 2,

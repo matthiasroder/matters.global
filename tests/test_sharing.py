@@ -99,3 +99,27 @@ def test_merge_public_state_rejects_private_dependency_endpoint():
                 "dependencies": [["public_goal", "private_goal"]],
             },
         )
+
+
+def test_merge_public_state_rejects_dependency_cycle():
+    with pytest.raises(ValueError, match="dependency cycle"):
+        merge_public_state(
+            {"public_goal", "public_child"},
+            {
+                "public_goal": [{"label": "ready", "truth": True}],
+                "public_child": [{"label": "child ready", "truth": True}],
+            },
+            set(),
+            {"public_goal": "public", "public_child": "public"},
+            {
+                "matters": ["public_goal", "public_child"],
+                "conditions": {
+                    "public_goal": [{"label": "ready", "truth": True}],
+                    "public_child": [{"label": "child ready", "truth": True}],
+                },
+                "dependencies": [
+                    ["public_goal", "public_child"],
+                    ["public_child", "public_goal"],
+                ],
+            },
+        )

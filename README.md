@@ -69,12 +69,15 @@ matters web --state examples/matters.example.json
 
 ## State Files
 
-Runtime state should live outside installed skill directories. Use one of:
+Runtime state should live outside installed skill directories. By default,
+`matters` uses `~/.local/share/matters/matters.json`. Override that with:
 
 - an explicit `--state` path
 - the `MATTERS_STATE` environment variable
-- project-local `.matters/matters.json`
-- `~/.local/share/matters/matters.json`
+
+Project-local files such as `.matters/matters.json` are supported when selected
+explicitly with `--state` or `MATTERS_STATE`; they are not auto-selected by
+default.
 
 ## Creating Matters
 

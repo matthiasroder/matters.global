@@ -19,11 +19,6 @@ def resolve_state_path(path=None, cwd=None):
     if env_path:
         return Path(env_path).expanduser()
 
-    base = Path(cwd) if cwd is not None else Path.cwd()
-    project_state = base / ".matters" / "matters.json"
-    if project_state.exists():
-        return project_state
-
     return DEFAULT_STATE_PATH
 
 

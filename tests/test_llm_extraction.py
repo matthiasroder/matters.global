@@ -40,6 +40,7 @@ PAPER_PAYLOAD = {
             "name": "Design-thinking training raises idea fluency",
             "kind": "finding",
             "description": "A four-week intervention increased fluency 23% vs controls.",
+            "status": "resolved",
             "conditions": [
                 {"label": "Effect replicates beyond the 120-student sample"},
                 {"label": "Fluency gain holds at p < 0.05 against a control group"},
@@ -49,6 +50,7 @@ PAPER_PAYLOAD = {
             "name": "Creativity gains do not transfer across domains",
             "kind": "risk",
             "description": "Gains did not carry to a domain-general insight task.",
+            "status": "open",
             "conditions": [
                 {"label": "Transfer is measured on an independent insight task"},
             ],
@@ -100,12 +102,12 @@ def test_llm_proposal_maps_structured_response():
     assert first["source_type"] == "paper"
     assert first["conditions"][0] == {
         "label": "Effect replicates beyond the 120-student sample",
-        "truth": False,
+        "truth": True,
     }
+    assert all(condition["truth"] is True for condition in first["conditions"])
     assert all(
         condition["truth"] is False
-        for candidate in proposal["candidates"]
-        for condition in candidate["conditions"]
+        for condition in proposal["candidates"][1]["conditions"]
     )
 
 
@@ -149,6 +151,7 @@ def test_llm_proposal_supplies_default_conditions_when_missing():
                 "name": "A bare matter",
                 "kind": "goal",
                 "description": "",
+                "status": "open",
                 "conditions": [],
             }
         ],
@@ -168,8 +171,20 @@ def test_llm_proposal_supplies_default_conditions_when_missing():
 def test_llm_proposal_dedupes_repeated_names():
     payload = {
         "candidates": [
-            {"name": "Same matter", "kind": "claim", "description": "x", "conditions": []},
-            {"name": "Same matter", "kind": "claim", "description": "y", "conditions": []},
+            {
+                "name": "Same matter",
+                "kind": "claim",
+                "description": "x",
+                "status": "resolved",
+                "conditions": [],
+            },
+            {
+                "name": "Same matter",
+                "kind": "claim",
+                "description": "y",
+                "status": "resolved",
+                "conditions": [],
+            },
         ],
         "dependency_candidates": [],
     }
@@ -177,6 +192,51 @@ def test_llm_proposal_dedupes_repeated_names():
     proposal = llm_extraction_proposal("text", client=FakeClient(payload))
 
     assert [c["id"] for c in proposal["candidates"]] == ["same_matter", "same_matter_2"]
+
+
+def test_llm_condition_defaults_follow_candidate_status():
+    payload = {
+        "candidates": [
+            {
+                "name": "Resolved finding",
+                "kind": "finding",
+                "description": "The paper establishes the finding.",
+                "status": "resolved",
+                "conditions": [{"label": "Finding is established by the source"}],
+            },
+            {
+                "name": "Open limitation",
+                "kind": "problem",
+                "description": "The paper leaves this unresolved.",
+                "status": "open",
+                "conditions": [{"label": "Limitation is resolved in follow-up work"}],
+            },
+            {
+                "name": "Mixed explicit truth",
+                "kind": "question",
+                "description": "Some sub-criteria are already met.",
+                "status": "open",
+                "conditions": [
+                    {"label": "Question is identified", "truth": True},
+                    {"label": "Question is answered", "truth": False},
+                ],
+            },
+        ],
+        "dependency_candidates": [],
+    }
+
+    proposal = llm_extraction_proposal("text", client=FakeClient(payload))
+
+    assert proposal["candidates"][0]["conditions"] == [
+        {"label": "Finding is established by the source", "truth": True}
+    ]
+    assert proposal["candidates"][1]["conditions"] == [
+        {"label": "Limitation is resolved in follow-up work", "truth": False}
+    ]
+    assert proposal["candidates"][2]["conditions"] == [
+        {"label": "Question is identified", "truth": True},
+        {"label": "Question is answered", "truth": False},
+    ]
 
 
 def test_build_falls_back_to_marker_on_llm_error():

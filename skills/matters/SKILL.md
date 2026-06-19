@@ -59,7 +59,7 @@ Use this workflow when the user asks to extract matters from a PDF, AI conversat
 Extraction has two engines. The LLM engine (default when `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is set) reads prose and is the right choice for scientific papers and other unstructured text; it returns evidence-grounded conditions and semantic dependency candidates. The deterministic marker engine recognizes explicit `Goal:`/`Problem:`/`Decision:`/`Risk:`/`Responsibility:`/`Matter:` lines and runs offline. Selection is automatic with fallback to the marker engine when no key is present or the API call fails; the proposal's `engine` field records which one ran. Force the marker engine with `--no-llm`.
 
 1. Convert the source to readable text first. For PDFs or documents, use an available parser or export path before extraction.
-2. Extract candidate matters with stable ids, clear names, short descriptions, and observable false resolution conditions.
+2. Extract candidate matters with stable ids, clear names, short descriptions, and observable resolution conditions with truth states grounded in the source. Resolved findings or delivered methods may have true conditions; open questions, gaps, risks, or goals should retain false conditions for what remains unresolved.
 3. Compare candidates against existing matters in the selected state file.
 4. Propose possible dependencies where names, topics, or conditions overlap, but do not silently add them.
 5. Show the proposed candidates, conditions, and dependency candidates to the user for confirmation.

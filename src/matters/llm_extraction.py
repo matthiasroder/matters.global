@@ -257,23 +257,26 @@ def _candidates_from_llm(data, source_type):
                 "kind": kind,
                 "status": status,
                 "source_type": source_type,
-                "conditions": _conditions_from_llm(item.get("conditions"), name),
+                "conditions": _conditions_from_llm(
+                    item.get("conditions"), name, status
+                ),
             }
         )
     return dedupe_candidates(candidates)
 
 
-def _conditions_from_llm(raw_conditions, name):
+def _conditions_from_llm(raw_conditions, name, status="open"):
     conditions = []
+    default_truth = status == "resolved"
     for entry in raw_conditions or []:
         if isinstance(entry, dict):
             label = str(entry.get("label") or "").strip()
-            truth = bool(entry.get("truth", False))
+            truth = entry.get("truth", default_truth)
         else:
             label = str(entry).strip()
-            truth = False
+            truth = default_truth
         if label:
-            conditions.append({"label": label, "truth": truth})
+            conditions.append({"label": label, "truth": bool(truth)})
 
     if conditions:
         return conditions

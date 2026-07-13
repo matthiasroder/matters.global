@@ -25,17 +25,10 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .cli import create_matters_from_expression
-from .engine import (
-    dependents,
-    frontier,
-    has_dependency_cycle,
-    horizon,
-    prerequisites,
-    resolved,
-    truth,
-    universe,
-)
+from .engine import truth
 from .extraction import slugify
+from .graph_index import DependencyCycleError, GraphIndex
+from .layout import build_overview_layout
 from .llm_extraction import build_extraction_proposal
 from .reports import unlock_report
 from .storage import load_state, resolve_state_path, save_state
@@ -77,22 +70,24 @@ state_mutation_locks = StateMutationLocks()
 
 def graph_payload(state_path=None):
     matters, conditions, dependencies = load_state(state_path)
-    actionable = universe(matters, conditions, dependencies)
+    index = graph_index_or_api_error(matters, conditions, dependencies)
+    overview_layout, overview_nodes = build_overview_layout(index)
 
     nodes = []
     for matter in sorted(matters):
-        is_resolved = resolved(matter, conditions, dependencies)
-        is_actionable = matter in actionable
+        is_resolved = index.resolved[matter]
+        is_actionable = matter in index.universe
         nodes.append(
             {
                 "id": matter,
                 "label": matter.replace("_", " "),
                 "conditions": conditions.get(matter, []),
-                "prerequisites": sorted(prerequisites(matter, dependencies)),
-                "dependents": sorted(dependents(matter, dependencies)),
+                "prerequisites": list(index.prerequisites[matter]),
+                "dependents": list(index.dependents[matter]),
                 "resolved": is_resolved,
                 "actionable": is_actionable,
                 "blocked": not is_resolved and not is_actionable,
+                "overview": overview_nodes[matter],
             }
         )
 
@@ -103,14 +98,28 @@ def graph_payload(state_path=None):
             {"source": prerequisite, "target": dependent}
             for prerequisite, dependent in sorted(dependencies)
         ],
-        "universe": sorted(actionable),
-        "unlock": unlock_report(matters, conditions, dependencies),
+        "universe": sorted(index.universe),
+        "unlock": unlock_report(
+            matters, conditions, dependencies, index=index
+        ),
+        "overview_layout": overview_layout,
     }
+
+
+def graph_index_or_api_error(matters, conditions, dependencies):
+    try:
+        return GraphIndex(matters, conditions, dependencies)
+    except DependencyCycleError as error:
+        raise ApiError(
+            "state dependency graph contains a cycle",
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+        ) from error
 
 
 def create_matter(state_path, payload):
     with state_mutation_locks.lock(state_path):
         matters, conditions, dependencies = load_state(state_path)
+        graph_index_or_api_error(matters, conditions, dependencies)
         matter_id = normalized_matter_id(payload)
         if matter_id in matters:
             raise ApiError(f"matter already exists: {matter_id}", HTTPStatus.CONFLICT)
@@ -132,6 +141,7 @@ def create_matter(state_path, payload):
 def update_conditions(state_path, matter_id, payload):
     with state_mutation_locks.lock(state_path):
         matters, conditions, dependencies = load_state(state_path)
+        graph_index_or_api_error(matters, conditions, dependencies)
         if matter_id not in matters:
             raise ApiError(f"unknown matter: {matter_id}", HTTPStatus.NOT_FOUND)
 
@@ -170,10 +180,13 @@ def update_conditions(state_path, matter_id, payload):
 def add_dependency(state_path, payload):
     with state_mutation_locks.lock(state_path):
         matters, conditions, dependencies = load_state(state_path)
+        graph_index_or_api_error(matters, conditions, dependencies)
         source, target = dependency_endpoints(payload, matters)
         next_dependencies = set(dependencies)
         next_dependencies.add((source, target))
-        if has_dependency_cycle(next_dependencies):
+        try:
+            GraphIndex(matters, conditions, next_dependencies)
+        except DependencyCycleError:
             raise ApiError("dependency would create a cycle")
 
         save_state(matters, conditions, next_dependencies, path=state_path)
@@ -183,6 +196,7 @@ def add_dependency(state_path, payload):
 def remove_dependency(state_path, payload):
     with state_mutation_locks.lock(state_path):
         matters, conditions, dependencies = load_state(state_path)
+        graph_index_or_api_error(matters, conditions, dependencies)
         source, target = dependency_endpoints(payload, matters)
         next_dependencies = set(dependencies)
         next_dependencies.discard((source, target))
@@ -204,29 +218,38 @@ def run_command(state_path, payload):
             raise ApiError("create requires an expression")
         with state_mutation_locks.lock(state_path):
             matters, conditions, dependencies = load_state(state_path)
+            graph_index_or_api_error(matters, conditions, dependencies)
             try:
                 created = create_matters_from_expression(
                     rest, matters, conditions, dependencies
                 )
             except ValueError as error:
                 raise ApiError(str(error)) from error
-            if has_dependency_cycle(dependencies):
+            try:
+                GraphIndex(matters, conditions, dependencies)
+            except DependencyCycleError:
                 raise ApiError("created expression would create a cycle")
             save_state(matters, conditions, dependencies, path=state_path)
             return {"type": "create", "created": created, "state": graph_payload(state_path)}
 
     matters, conditions, dependencies = load_state(state_path)
+    index = graph_index_or_api_error(matters, conditions, dependencies)
 
     if command == "universe":
-        return {"type": "universe", "items": sorted(universe(matters, conditions, dependencies))}
+        return {"type": "universe", "items": sorted(index.universe)}
     if command == "frontier":
         require_matter(rest, matters)
-        return {"type": "frontier", "matter": rest, "items": sorted(frontier(rest, conditions, dependencies))}
+        return {"type": "frontier", "matter": rest, "items": sorted(index.frontier(rest))}
     if command == "horizon":
         require_matter(rest, matters)
-        return {"type": "horizon", "matter": rest, "items": sorted(horizon(rest, conditions, dependencies))}
+        return {"type": "horizon", "matter": rest, "items": sorted(index.horizon(rest))}
     if command == "unlock":
-        return {"type": "unlock", "report": unlock_report(matters, conditions, dependencies)}
+        return {
+            "type": "unlock",
+            "report": unlock_report(
+                matters, conditions, dependencies, index=index
+            ),
+        }
     if command == "extract":
         if not rest:
             raise ApiError("extract requires source text")
@@ -432,9 +455,10 @@ class StatePathStore:
 
     def switch(self, state_path):
         next_path = validate_switch_state_path(state_path)
+        candidate_payload = graph_payload(next_path)
         with self._lock:
             self._path = next_path
-        return next_path
+        return candidate_payload
 
 
 def validate_switch_state_path(state_path):
@@ -447,16 +471,17 @@ def validate_switch_state_path(state_path):
         raise ApiError(f"state file does not exist: {next_path}", HTTPStatus.NOT_FOUND)
 
     try:
-        load_state(next_path)
+        matters, conditions, dependencies = load_state(next_path)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         raise ApiError(f"state file is not a valid matters graph: {next_path}") from error
+
+    graph_index_or_api_error(matters, conditions, dependencies)
 
     return next_path
 
 
 def switch_state_path(state_paths, payload):
-    next_path = state_paths.switch(payload.get("state_path") or payload.get("path"))
-    return graph_payload(next_path)
+    return state_paths.switch(payload.get("state_path") or payload.get("path"))
 
 
 def resolve_terminal_workspace(state_path=None, terminal_workspace=None):

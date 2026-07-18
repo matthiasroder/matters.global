@@ -1,3 +1,5 @@
+import math
+
 from matters.graph_index import GraphIndex
 from matters.layout import build_overview_layout
 
@@ -12,9 +14,10 @@ def test_empty_layout_has_zero_bounds():
     metadata, coordinates = layout(set(), set())
 
     assert metadata == {
-        "version": 1,
-        "algorithm": "dependency-cone-v1",
+        "version": 2,
+        "algorithm": "layered-archipelago-v1",
         "max_depth": 0,
+        "island_count": 0,
         "bounds": {
             "min_x": 0.0,
             "max_x": 0.0,
@@ -54,6 +57,37 @@ def test_every_dependency_moves_up_in_depth_and_y():
     for source, target in dependencies:
         assert coordinates[target]["depth"] > coordinates[source]["depth"]
         assert coordinates[target]["y"] > coordinates[source]["y"]
+
+
+def test_root_families_form_islands_and_join_between_them():
+    matters = {"root_a", "root_b", "branch_a", "branch_b", "join", "after_join"}
+    dependencies = {
+        ("root_a", "branch_a"),
+        ("root_b", "branch_b"),
+        ("branch_a", "join"),
+        ("branch_b", "join"),
+        ("join", "after_join"),
+    }
+    metadata, coordinates = layout(matters, dependencies)
+
+    assert metadata["island_count"] == 2
+    assert coordinates["root_a"]["island"] == "root_a"
+    assert coordinates["branch_a"]["island"] == "root_a"
+    assert coordinates["branch_a"]["root_count"] == 1
+    assert coordinates["join"]["island"] == "root_a"
+    assert coordinates["join"]["root_count"] == 2
+    assert coordinates["after_join"]["island"] == "root_a"
+    assert coordinates["after_join"]["root_count"] == 1
+
+    root_midpoint = {
+        axis: (coordinates["root_a"][axis] + coordinates["root_b"][axis]) / 2
+        for axis in ("x", "z")
+    }
+    join_offset = math.hypot(
+        coordinates["join"]["x"] - root_midpoint["x"],
+        coordinates["join"]["z"] - root_midpoint["z"],
+    )
+    assert join_offset <= 78.001
 
 
 def test_condition_changes_do_not_move_nodes():

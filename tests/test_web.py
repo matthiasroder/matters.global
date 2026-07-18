@@ -98,9 +98,10 @@ def test_graph_payload_includes_derived_status(tmp_path):
         "overview",
     }
     assert payload["overview_layout"] == {
-        "version": 1,
-        "algorithm": "dependency-cone-v1",
+        "version": 2,
+        "algorithm": "layered-archipelago-v1",
         "max_depth": 1,
+        "island_count": 1,
         "bounds": {
             "min_x": min(
                 nodes["a"]["overview"]["x"], nodes["b"]["overview"]["x"]
@@ -120,6 +121,8 @@ def test_graph_payload_includes_derived_status(tmp_path):
     }
     assert nodes["a"]["overview"]["depth"] == 0
     assert nodes["a"]["overview"]["downstream_impact"] == 1
+    assert nodes["a"]["overview"]["island"] == "a"
+    assert nodes["b"]["overview"]["root_count"] == 1
 
 
 def test_create_matter_persists_conditions(tmp_path):
@@ -567,8 +570,8 @@ def test_web_assets_offer_focus_and_deterministic_overview():
     renderer = (ASSETS / "map-renderer.js").read_text()
 
     assert '<div id="graph"' in html
-    assert '<script type="module" src="app.js?v=overview-v1"></script>' in html
-    assert 'from "./map-renderer.js?v=overview-v1"' in app
+    assert '<script type="module" src="app.js?v=overview-v2"></script>' in html
+    assert 'from "./map-renderer.js?v=overview-v2"' in app
     assert '<details class="panel-section disclosure">' in html
     assert "<summary>Create Matter</summary>" in html
     assert "<summary>Dependencies</summary>" in html
@@ -595,7 +598,7 @@ def test_web_assets_offer_focus_and_deterministic_overview():
     assert "cytoscape-dagre@4.0.0" in app
     assert "3d-force-graph" not in app + renderer
     assert "three@" not in app + renderer
-    assert 'href="styles.css?v=overview-v1"' in html
+    assert 'href="styles.css?v=overview-v2"' in html
     assert "[hidden]" in (ASSETS / "styles.css").read_text()
     assert "cytoscape({" in app
     assert "cytoscape.use(dagre)" in app

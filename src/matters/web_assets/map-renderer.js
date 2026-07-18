@@ -21,7 +21,7 @@ const CAMERA_LIMITS = {
 
 const DEFAULT_CAMERA = Object.freeze({
   yaw: -0.62,
-  pitch: -0.22,
+  pitch: -0.62,
   zoom: 1,
   panX: 0,
   panY: 0
@@ -39,8 +39,8 @@ const EMPTY_MODEL = Object.freeze({
 });
 
 const EDGE_STYLES = Object.freeze({
-  faded: { color: PALETTE.line, alpha: 0.055, width: 0.75, arrows: false, arrowSize: 0 },
-  normal: { color: PALETTE.line, alpha: 0.24, width: 0.75, arrows: true, arrowSize: 3.2 },
+  faded: { color: PALETTE.line, alpha: 0.035, width: 0.75, arrows: false, arrowSize: 0 },
+  normal: { color: PALETTE.line, alpha: 0.14, width: 0.75, arrows: true, arrowSize: 3.2 },
   focused: { color: PALETTE.gold, alpha: 0.76, width: 1.45, arrows: true, arrowSize: 4.5 },
   dependent: { color: PALETTE.actionable, alpha: 0.76, width: 1.45, arrows: true, arrowSize: 4.5 },
   derived: { color: PALETTE.derived, alpha: 0.76, width: 1.45, arrows: true, arrowSize: 4.5 }
@@ -302,15 +302,25 @@ export function createOverviewRenderer({
   }
 
   function drawDepthGuides(projected) {
-    const byLayer = new Map();
+    const byTerrace = new Map();
     projected.forEach((node) => {
+      if (node.node.rootCount !== 1) return;
       const layer = node.node.layer;
-      const current = byLayer.get(layer);
+      const key = `${node.node.islandId}\0${layer}`;
+      const current = byTerrace.get(key);
       if (!current) {
-        byLayer.set(layer, { minX: node.x, maxX: node.x, y: node.y, totalY: node.y, count: 1 });
+        byTerrace.set(key, {
+          layer,
+          minX: node.x,
+          maxX: node.x,
+          totalX: node.x,
+          totalY: node.y,
+          count: 1
+        });
       } else {
         current.minX = Math.min(current.minX, node.x);
         current.maxX = Math.max(current.maxX, node.x);
+        current.totalX += node.x;
         current.totalY += node.y;
         current.count += 1;
       }
@@ -320,11 +330,12 @@ export function createOverviewRenderer({
     context.setLineDash([2, 7]);
     context.lineWidth = 0.75;
     context.strokeStyle = "rgba(96, 91, 80, 0.16)";
-    [...byLayer.entries()].sort((a, b) => a[0] - b[0]).forEach(([, layer]) => {
-      const y = layer.totalY / layer.count;
+    [...byTerrace.values()].sort((a, b) => a.layer - b.layer).forEach((terrace) => {
+      const x = terrace.totalX / terrace.count;
+      const y = terrace.totalY / terrace.count;
+      const radiusX = Math.max(18, (terrace.maxX - terrace.minX) / 2 + 16);
       context.beginPath();
-      context.moveTo(Math.max(16, layer.minX - 28), y);
-      context.lineTo(Math.min(width - 16, layer.maxX + 28), y);
+      context.ellipse(x, y, radiusX, Math.max(3, radiusX * 0.12), 0, 0, Math.PI * 2);
       context.stroke();
     });
     context.restore();
@@ -632,8 +643,15 @@ export function createOverviewRenderer({
 
   function fitScale() {
     if (!nodes.length) return 1;
-    const horizontal = width / Math.max(1, world.spanX * 1.18);
-    const vertical = height / Math.max(1, world.spanY * 1.18);
+    const cosYaw = Math.abs(Math.cos(camera.yaw));
+    const sinYaw = Math.abs(Math.sin(camera.yaw));
+    const cosPitch = Math.abs(Math.cos(camera.pitch));
+    const sinPitch = Math.abs(Math.sin(camera.pitch));
+    const horizontalSpan = world.spanX * cosYaw + world.spanZ * sinYaw;
+    const yawDepthSpan = world.spanX * sinYaw + world.spanZ * cosYaw;
+    const verticalSpan = world.spanY * cosPitch + yawDepthSpan * sinPitch;
+    const horizontal = width / Math.max(1, horizontalSpan * 1.28);
+    const vertical = height / Math.max(1, verticalSpan * 1.28);
     return clamp(Math.min(horizontal, vertical), 0.035, 4.5);
   }
 
@@ -912,6 +930,8 @@ function normalizeNode(node, index, count) {
     z: finiteNumber(overview.z, Math.sin(fallbackAngle) * 100),
     layer: Math.max(0, Math.round(finiteNumber(overview.depth, 0))),
     impact: Math.max(0, Math.round(finiteNumber(overview.downstream_impact, 0))),
+    islandId: String(overview.island ?? node?.id ?? `node-${index}`),
+    rootCount: Math.max(1, Math.round(finiteNumber(overview.root_count, 1))),
     baseRadius: 3.3 + Math.log2(Math.max(0, finiteNumber(overview.downstream_impact, 0)) + 1) * 1.15
   };
 }

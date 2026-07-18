@@ -146,9 +146,12 @@ and dependency: drag to rotate, Shift-drag to pan, use the wheel or toolbar to
 zoom, and select a matter to emphasize its complete prerequisite ancestry.
 **Focus here** moves from that selection into the dependency view; **Back to
 overview** restores the previous overview camera and selection. Search and
-status filters fade nonmatches in Overview without rearranging the atlas. The
-UI also supports node inspection, condition toggles, matter creation, and
-dependency creation/removal in either view.
+status filters fade nonmatches in Overview without rearranging the atlas. Its
+layered archipelago layout gives every dependency root a stable island, stacks
+dependency depth as terraces, and places matters that join several roots
+between their contributing islands. The UI also supports node inspection,
+condition toggles, matter creation, and dependency creation/removal in either
+view.
 
 The top toolbar and the chat-style command panel both expose common graph
 operations:

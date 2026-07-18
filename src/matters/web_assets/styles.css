@@ -147,9 +147,21 @@ textarea {
 
 .toolbar {
   align-items: center;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 7px;
-  grid-template-columns: minmax(190px, 280px) 132px 132px repeat(8, auto);
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.toolbar #search {
+  flex: 1 1 210px;
+  max-width: 280px;
+}
+
+.toolbar select {
+  flex: 0 1 122px;
+  width: 122px;
 }
 
 .toolbar button {
@@ -160,6 +172,17 @@ textarea {
   background: #f2fbf5;
   border-color: rgba(39, 131, 91, 0.24);
   color: var(--actionable);
+}
+
+#show-overview,
+#back-overview {
+  background: #fff9e9;
+  border-color: rgba(160, 116, 42, 0.3);
+  color: #76551e;
+}
+
+#show-overview[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px rgba(160, 116, 42, 0.22);
 }
 
 #show-unlock {
@@ -203,7 +226,8 @@ textarea {
   position: relative;
 }
 
-#graph {
+#graph,
+#overview-graph {
   background: var(--background);
   cursor: grab;
   display: block;
@@ -214,8 +238,65 @@ textarea {
   width: 100%;
 }
 
-#graph canvas {
+#graph canvas,
+#overview-graph canvas {
   display: block;
+}
+
+#overview-graph {
+  background:
+    radial-gradient(circle at 42% 34%, rgba(255, 253, 246, 0.96), rgba(247, 241, 228, 0.88) 56%, #e8dec9),
+    var(--background);
+  cursor: grab;
+}
+
+.search-results {
+  align-content: start;
+  background: rgba(255, 254, 249, 0.97);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 3px;
+  left: 14px;
+  max-height: min(48vh, 440px);
+  overflow: auto;
+  padding: 6px;
+  position: absolute;
+  top: 14px;
+  width: min(360px, calc(100% - 28px));
+  z-index: 80;
+}
+
+.search-results button {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  justify-content: start;
+  min-height: 36px;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.search-results span {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 9px;
+}
+
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .empty-state {
@@ -346,6 +427,24 @@ textarea {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 12px;
+}
+
+.inspector-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.inspector-actions:empty {
+  display: none;
+}
+
+.overview-metadata {
+  color: var(--muted);
+  font-family: Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
 }
 
 .badge {
@@ -491,8 +590,15 @@ textarea {
   }
 
   .toolbar {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-top: 12px;
+  }
+
+  .toolbar #search,
+  .toolbar select {
+    max-width: none;
+    width: 100%;
   }
 
   .graph-pane {

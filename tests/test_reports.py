@@ -1,4 +1,6 @@
+import matters.reports as reports
 from matters import format_unlock_report, unlock_report
+from matters.graph_index import GraphIndex
 
 
 def test_unlock_report_prioritizes_actionable_matters_by_downstream_impact():
@@ -56,3 +58,22 @@ def test_format_unlock_report_is_short_and_readable():
         "Blocked matters",
         "- none",
     ]
+
+
+def test_unlock_report_reuses_supplied_graph_index(monkeypatch):
+    matters = {"root", "tip"}
+    conditions = {
+        "root": [{"label": "root done", "truth": False}],
+        "tip": [{"label": "tip done", "truth": False}],
+    }
+    dependencies = {("root", "tip")}
+    index = GraphIndex(matters, conditions, dependencies)
+
+    def unexpected_descendant_scan(*args, **kwargs):
+        raise AssertionError("indexed unlock must not rescan dependencies")
+
+    monkeypatch.setattr(reports, "descendants", unexpected_descendant_scan)
+
+    report = unlock_report(matters, conditions, dependencies, index=index)
+
+    assert report["items"][0]["impact"] == 1

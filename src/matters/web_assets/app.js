@@ -2,6 +2,7 @@ import cytoscape from "https://cdn.jsdelivr.net/npm/cytoscape@3.34.0/+esm";
 import dagre from "https://cdn.jsdelivr.net/npm/cytoscape-dagre@4.0.0/+esm";
 import { FitAddon } from "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/+esm";
 import { Terminal } from "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm";
+import { createOverviewRenderer } from "./map-renderer.js?v=overview-v1";
 
 cytoscape.use(dagre);
 
@@ -27,10 +28,19 @@ const GRAPH_VIEW = {
 const state = {
   graph: null,
   cy: null,
+  view: "focus",
   scope: "attention",
   scopeIds: null,
   selectedId: null,
   visibleIds: new Set(),
+  nodeById: new Map(),
+  prerequisiteMap: new Map(),
+  dependentMap: new Map(),
+  derivedHighlight: new Set(),
+  derivedHighlightActive: false,
+  overviewRenderer: null,
+  overviewSession: null,
+  reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   terminal: null,
   fitAddon: null,
   terminalSessionId: null,
@@ -40,6 +50,7 @@ const state = {
 };
 
 const graphElement = document.querySelector("#graph");
+const overviewElement = document.querySelector("#overview-graph");
 const inspector = document.querySelector("#inspector");
 const operationOutput = document.querySelector("#operation-output");
 const statePath = document.querySelector("#state-path");
@@ -52,6 +63,10 @@ const dependencyForm = document.querySelector("#dependency-form");
 const terminalDrawer = document.querySelector("#terminal-drawer");
 const terminalElement = document.querySelector("#terminal");
 const terminalStatus = document.querySelector("#terminal-status");
+const searchResults = document.querySelector("#search-results");
+const liveRegion = document.querySelector("#view-live-region");
+const overviewButton = document.querySelector("#show-overview");
+const backOverviewButton = document.querySelector("#back-overview");
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -90,8 +105,53 @@ function apiErrorMessage(response, payload) {
 }
 
 async function loadGraph() {
-  state.graph = await api("/api/state");
+  const payload = await api("/api/state");
+  acceptGraph(payload);
+}
+
+function acceptGraph(payload, { graphSwitch = false } = {}) {
+  state.graph = payload;
+  rebuildGraphIndexes();
+
+  if (!state.nodeById.has(state.selectedId)) state.selectedId = null;
+  if (state.view === "focus" && state.scope === "custom") {
+    if (state.selectedId) {
+      state.scopeIds = focusContextIds(state.selectedId);
+    } else {
+      state.scope = "attention";
+      state.scopeIds = null;
+    }
+  }
+  state.derivedHighlight = validIds(state.derivedHighlight);
+  if (state.overviewSession && !state.nodeById.has(state.overviewSession.selectionId)) {
+    state.overviewSession = null;
+  } else if (state.overviewSession) {
+    state.overviewSession.derivedHighlightIds = [
+      ...validIds(state.overviewSession.derivedHighlightIds)
+    ];
+  }
+  if (graphSwitch) {
+    state.view = "focus";
+    state.selectedId = null;
+    state.derivedHighlight.clear();
+    state.derivedHighlightActive = false;
+    state.overviewSession = null;
+  }
   render();
+}
+
+function rebuildGraphIndexes() {
+  state.nodeById = new Map(state.graph.nodes.map((node) => [node.id, node]));
+  state.prerequisiteMap = new Map(
+    state.graph.nodes.map((node) => [node.id, new Set(node.prerequisites || [])])
+  );
+  state.dependentMap = new Map(
+    state.graph.nodes.map((node) => [node.id, new Set(node.dependents || [])])
+  );
+}
+
+function validIds(ids = []) {
+  return new Set([...ids].filter((id) => state.nodeById.has(id)));
 }
 
 function initGraph() {
@@ -109,6 +169,7 @@ function initGraph() {
     focusNode(event.target.id());
     renderInspector();
     updateOperationButtons();
+    announceSelection(event.target.id());
   });
 
   state.cy.on("tap", (event) => {
@@ -117,9 +178,40 @@ function initGraph() {
     setScope("attention");
     renderInspector();
     updateOperationButtons();
+    announceSelection(null);
   });
 
   window.addEventListener("resize", resizeGraph);
+}
+
+function initOverview() {
+  try {
+    state.overviewRenderer = createOverviewRenderer({
+      container: overviewElement,
+      reducedMotion: state.reducedMotion,
+      onSelect: handleOverviewSelection,
+      onError: overviewUnavailable
+    });
+  } catch (error) {
+    overviewUnavailable(error);
+  }
+}
+
+function overviewUnavailable(error) {
+  const failedRenderer = state.overviewRenderer;
+  state.overviewRenderer = null;
+  failedRenderer?.destroy();
+  state.view = "focus";
+  graphElement.hidden = false;
+  overviewElement.hidden = true;
+  overviewButton.disabled = true;
+  setOperationOutput("Overview unavailable", error?.message || "Canvas rendering failed.");
+  announce("Overview unavailable. Focus view remains active.");
+  syncViewControls();
+  if (state.graph && state.cy) {
+    recomputeVisibleIds();
+    renderGraph();
+  }
 }
 
 function graphStyles() {
@@ -237,6 +329,10 @@ function graphStyles() {
 }
 
 function resizeGraph() {
+  if (state.view === "overview") {
+    state.overviewRenderer?.resize();
+    return;
+  }
   if (!state.cy) return;
   state.cy.resize();
   window.requestAnimationFrame(() => {
@@ -252,10 +348,45 @@ function render() {
   syncScopeControl();
   recomputeVisibleIds();
   renderFiltersAndSelectors();
-  renderGraph();
+  syncViewControls();
+  if (state.view === "overview") {
+    updateOverviewRenderer();
+  } else {
+    renderGraph();
+  }
+  renderSearchResults();
   renderInspector();
   updateOperationButtons();
   emptyState.hidden = state.graph.nodes.length > 0;
+}
+
+function syncViewControls() {
+  const overview = state.view === "overview" && state.overviewRenderer;
+  graphElement.hidden = Boolean(overview);
+  overviewElement.hidden = !overview;
+  overviewButton.setAttribute("aria-pressed", String(Boolean(overview)));
+  overviewButton.disabled = !state.overviewRenderer || Boolean(overview);
+  backOverviewButton.hidden = state.view !== "focus" || !state.overviewSession;
+  scopeFilter.disabled = Boolean(overview);
+}
+
+function updateOverviewRenderer() {
+  if (!state.overviewRenderer || !state.graph) return;
+  const derivedActive = state.derivedHighlightActive;
+  state.overviewRenderer.setModel({
+    nodes: state.graph.nodes,
+    edges: state.graph.edges,
+    selectedId: state.selectedId,
+    ancestorIds: derivedActive ? new Set() : completeAncestorIds(state.selectedId),
+    directDependentIds: derivedActive
+      ? new Set()
+      : state.dependentMap.get(state.selectedId) || new Set(),
+    matchIds: derivedActive ? new Set() : overviewMatchIds(),
+    filterActive: !derivedActive && overviewFiltersActive(),
+    derivedHighlightIds: derivedActive && !state.derivedHighlight.size
+      ? new Set(["__no_derived_matches__"])
+      : state.derivedHighlight
+  });
 }
 
 function syncStatePathControl() {
@@ -288,6 +419,10 @@ function normalizedScope(scope) {
 }
 
 function recomputeVisibleIds() {
+  if (!state.graph) {
+    state.visibleIds = new Set();
+    return;
+  }
   state.visibleIds = new Set(filteredNodes().map((node) => node.id));
 }
 
@@ -349,7 +484,7 @@ function refreshGraphStyles(options = {}) {
     state.cy.edges().forEach((element) => {
       const link = { source: element.data("source"), target: element.data("target") };
       const visible = linkVisible(link);
-      const focused = linkTouchesSelection(link);
+      const focused = linkTouchesSelection(link, connected);
       element.toggleClass("filtered", !visible);
       element.toggleClass("focused", selected && focused);
       element.toggleClass("dimmed", selected && !focused);
@@ -401,7 +536,10 @@ function graphLayoutOptions() {
     rankSep: visibleNodeCount > 260 ? 40 : 86,
     avoidOverlap: true,
     nodeDimensionsIncludeLabels: true,
-    animate: visibleNodeCount > 0 && visibleNodeCount <= GRAPH_VIEW.maxAnimatedNodes,
+    animate:
+      !state.reducedMotion
+      && visibleNodeCount > 0
+      && visibleNodeCount <= GRAPH_VIEW.maxAnimatedNodes,
     animationDuration: 240,
     fit: true,
     padding: GRAPH_VIEW.fitPadding
@@ -409,9 +547,9 @@ function graphLayoutOptions() {
 }
 
 function shouldUseOverviewLayout(visibleNodeCount) {
+  if (state.scope === "custom") return false;
   if (visibleNodeCount > 260) return true;
-  if (state.scope === "custom" && visibleNodeCount > 8) return true;
-  return state.scope !== "custom" && visibleNodeCount > 48;
+  return visibleNodeCount > 48;
 }
 
 function fitGraphToVisible() {
@@ -423,6 +561,10 @@ function fitGraphToVisible() {
 }
 
 function zoomGraph(factor) {
+  if (state.view === "overview") {
+    state.overviewRenderer?.zoom(factor);
+    return;
+  }
   if (!state.cy) return;
   const rect = graphElement.getBoundingClientRect();
   const renderedPosition = { x: rect.width / 2, y: rect.height / 2 };
@@ -430,12 +572,16 @@ function zoomGraph(factor) {
     GRAPH_VIEW.maxZoom,
     Math.max(GRAPH_VIEW.minZoom, state.cy.zoom() * factor)
   );
-  state.cy.animate(
-    {
-      zoom: { level, renderedPosition }
-    },
-    { duration: 140 }
-  );
+  if (state.reducedMotion) {
+    state.cy.zoom({ level, renderedPosition });
+  } else {
+    state.cy.animate(
+      {
+        zoom: { level, renderedPosition }
+      },
+      { duration: 140 }
+    );
+  }
 }
 
 function nodeVisible(id) {
@@ -446,8 +592,8 @@ function linkVisible(link) {
   return state.visibleIds.has(link.source) && state.visibleIds.has(link.target);
 }
 
-function linkTouchesSelection(link) {
-  return link.source === state.selectedId || link.target === state.selectedId;
+function linkTouchesSelection(link, connected = connectedSet()) {
+  return connected.has(link.source) && connected.has(link.target);
 }
 
 function renderFiltersAndSelectors() {
@@ -494,6 +640,24 @@ function renderInspector() {
   badge.textContent = statusLabel(node);
   badges.append(badge);
 
+  const overviewActions = document.createElement("div");
+  overviewActions.className = "inspector-actions";
+  if (state.view === "overview") {
+    const focusHere = document.createElement("button");
+    focusHere.type = "button";
+    focusHere.textContent = "Focus here";
+    focusHere.addEventListener("click", focusHereFromOverview);
+    overviewActions.append(focusHere);
+
+    const coordinates = node.overview;
+    if (coordinates) {
+      const metadata = document.createElement("span");
+      metadata.className = "overview-metadata";
+      metadata.textContent = `Depth ${coordinates.depth} · ${coordinates.downstream_impact} downstream`;
+      overviewActions.append(metadata);
+    }
+  }
+
   const conditionTitle = smallHeading("Conditions");
   const conditionList = document.createElement("div");
   conditionList.className = "condition-list";
@@ -537,7 +701,7 @@ function renderInspector() {
   links.append(smallHeading("Dependents"));
   links.append(...linkSpans(node.dependents));
 
-  inspector.append(title, badges, conditionTitle, conditionList, addForm, links);
+  inspector.append(title, badges, overviewActions, conditionTitle, conditionList, addForm, links);
 }
 
 function smallHeading(text) {
@@ -560,23 +724,79 @@ function linkSpans(ids) {
 }
 
 function filteredNodes() {
-  const query = searchInput.value.trim().toLowerCase();
-  const status = statusFilter.value;
+  if (!state.graph) return [];
   const scopedIds = baseScopeIds();
   return state.graph.nodes.filter((node) => {
     const matchesScope = scopedIds.has(node.id);
-    const matchesText =
-      !query ||
-      node.id.toLowerCase().includes(query) ||
-      node.conditions.some((condition) => condition.label.toLowerCase().includes(query));
-    const matchesStatus =
-      status === "all" ||
-      (status === "actionable" && node.actionable) ||
-      (status === "blocked" && node.blocked) ||
-      (status === "resolved" && node.resolved) ||
-      (status === "unresolved" && !node.resolved);
-    return matchesScope && matchesText && matchesStatus;
+    return matchesScope && nodeMatchesSearch(node) && nodeMatchesStatus(node);
   });
+}
+
+function nodeMatchesSearch(node) {
+  const query = searchInput.value.trim().toLowerCase();
+  return !query
+    || node.id.toLowerCase().includes(query)
+    || node.label.toLowerCase().includes(query)
+    || node.conditions.some((condition) => condition.label.toLowerCase().includes(query));
+}
+
+function nodeMatchesStatus(node) {
+  const status = statusFilter.value;
+  return status === "all"
+    || (status === "actionable" && node.actionable)
+    || (status === "blocked" && node.blocked)
+    || (status === "resolved" && node.resolved)
+    || (status === "unresolved" && !node.resolved);
+}
+
+function overviewMatchIds() {
+  if (!state.graph) return new Set();
+  if (!overviewFiltersActive()) return new Set();
+  return new Set(
+    state.graph.nodes
+      .filter((node) => nodeMatchesSearch(node) && nodeMatchesStatus(node))
+      .map((node) => node.id)
+  );
+}
+
+function overviewFiltersActive() {
+  return Boolean(searchInput.value.trim()) || statusFilter.value !== "all";
+}
+
+function renderSearchResults() {
+  const query = searchInput.value.trim();
+  searchResults.replaceChildren();
+  searchResults.hidden = !query || !state.graph;
+  if (!query || !state.graph) return;
+
+  const matches = state.graph.nodes
+    .filter((node) => nodeMatchesSearch(node) && nodeMatchesStatus(node))
+    .slice(0, 50);
+  matches.forEach((node) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = node.label;
+    button.dataset.matterId = node.id;
+    button.addEventListener("click", () => selectSearchResult(node.id));
+    searchResults.append(button);
+  });
+  if (!matches.length) {
+    const empty = document.createElement("span");
+    empty.textContent = "No matching matters";
+    searchResults.append(empty);
+  }
+}
+
+function selectSearchResult(id) {
+  if (state.view === "overview") {
+    handleOverviewSelection(id);
+  } else {
+    focusNode(id);
+    renderInspector();
+    updateOperationButtons();
+    announceSelection(id);
+  }
+  searchInput.focus();
 }
 
 function baseScopeIds() {
@@ -625,12 +845,22 @@ function universeContextIds() {
 }
 
 function focusContextIds(id) {
-  const ids = new Set([id]);
-  const node = nodeById(id);
-  if (!node) return ids;
-  node.prerequisites.forEach((matterId) => ids.add(matterId));
-  sortedDependents(id).forEach((matterId) => ids.add(matterId));
+  const ids = new Set([id, ...completeAncestorIds(id)]);
+  (state.dependentMap.get(id) || new Set()).forEach((matterId) => ids.add(matterId));
   return ids;
+}
+
+function completeAncestorIds(id) {
+  if (!id || !state.nodeById.has(id)) return new Set();
+  const ancestors = new Set();
+  const pending = [...(state.prerequisiteMap.get(id) || [])];
+  while (pending.length) {
+    const prerequisite = pending.pop();
+    if (ancestors.has(prerequisite)) continue;
+    ancestors.add(prerequisite);
+    (state.prerequisiteMap.get(prerequisite) || new Set()).forEach((parent) => pending.push(parent));
+  }
+  return ancestors;
 }
 
 function downstreamCount(id) {
@@ -646,17 +876,67 @@ function sortedDependents(id) {
 
 function focusNode(id) {
   state.selectedId = id;
+  state.derivedHighlight.clear();
+  state.derivedHighlightActive = false;
   setScope("custom", focusContextIds(id));
+}
+
+function handleOverviewSelection(id) {
+  state.selectedId = id && state.nodeById.has(id) ? id : null;
+  state.derivedHighlight.clear();
+  state.derivedHighlightActive = false;
+  updateOverviewRenderer();
+  renderInspector();
+  updateOperationButtons();
+  announceSelection(state.selectedId);
+}
+
+function showOverview() {
+  if (!state.overviewRenderer || !state.graph) return;
+  state.view = "overview";
+  syncViewControls();
+  updateOverviewRenderer();
+  state.overviewRenderer.resize();
+  renderSearchResults();
+  renderInspector();
+  updateOperationButtons();
+  announce("Overview active. All matters remain in their stable positions.");
+}
+
+function focusHereFromOverview() {
+  if (!state.selectedId || !state.overviewRenderer) return;
+  state.overviewSession = {
+    camera: state.overviewRenderer.getCamera(),
+    selectionId: state.selectedId,
+    derivedHighlightIds: [...state.derivedHighlight],
+    derivedHighlightActive: state.derivedHighlightActive
+  };
+  state.view = "focus";
+  state.scope = "custom";
+  state.scopeIds = focusContextIds(state.selectedId);
+  render();
+  announce(`Focus view active for ${state.selectedId}.`);
+}
+
+function returnToOverview() {
+  if (!state.overviewSession || !state.overviewRenderer) return;
+  const session = state.overviewSession;
+  state.selectedId = state.nodeById.has(session.selectionId) ? session.selectionId : null;
+  state.derivedHighlight = validIds(session.derivedHighlightIds);
+  state.derivedHighlightActive = session.derivedHighlightActive;
+  state.view = "overview";
+  state.overviewSession = null;
+  render();
+  window.requestAnimationFrame(() => {
+    state.overviewRenderer.resize();
+    state.overviewRenderer.setCamera(session.camera);
+  });
+  announce("Returned to the previous overview position.");
 }
 
 function connectedSet() {
   if (!state.selectedId) return new Set(state.graph.nodes.map((node) => node.id));
-  const connected = new Set([state.selectedId]);
-  state.graph.edges.forEach((edge) => {
-    if (edge.source === state.selectedId) connected.add(edge.target);
-    if (edge.target === state.selectedId) connected.add(edge.source);
-  });
-  return connected;
+  return focusContextIds(state.selectedId);
 }
 
 function currentNode() {
@@ -664,7 +944,7 @@ function currentNode() {
 }
 
 function nodeById(id) {
-  return state.graph?.nodes.find((node) => node.id === id);
+  return state.nodeById.get(id);
 }
 
 function nodeSize(node) {
@@ -676,9 +956,7 @@ function nodeSize(node) {
 
 function graphDegree(id) {
   if (!id || !state.graph) return 0;
-  return state.graph.edges.reduce((total, edge) => {
-    return total + (edge.source === id || edge.target === id ? 1 : 0);
-  }, 0);
+  return (state.prerequisiteMap.get(id)?.size || 0) + (state.dependentMap.get(id)?.size || 0);
 }
 
 function statusClass(node) {
@@ -714,29 +992,29 @@ function updateOperationButtons() {
 }
 
 async function toggleCondition(matterId, index) {
-  await api(`/api/matters/${encodeURIComponent(matterId)}/conditions`, {
+  const payload = await api(`/api/matters/${encodeURIComponent(matterId)}/conditions`, {
     method: "PATCH",
     body: JSON.stringify({ action: "toggle", index })
   });
-  await loadGraph();
+  acceptGraph(payload);
 }
 
 async function addCondition(matterId, label) {
   if (!label.trim()) return;
-  await api(`/api/matters/${encodeURIComponent(matterId)}/conditions`, {
+  const payload = await api(`/api/matters/${encodeURIComponent(matterId)}/conditions`, {
     method: "PATCH",
     body: JSON.stringify({ label: label.trim(), truth: false })
   });
-  await loadGraph();
+  acceptGraph(payload);
 }
 
 async function updateCondition(matterId, index, label, conditionTruth) {
   if (!label.trim()) return;
-  await api(`/api/matters/${encodeURIComponent(matterId)}/conditions`, {
+  const payload = await api(`/api/matters/${encodeURIComponent(matterId)}/conditions`, {
     method: "PATCH",
     body: JSON.stringify({ index, label: label.trim(), truth: conditionTruth })
   });
-  await loadGraph();
+  acceptGraph(payload);
 }
 
 async function runCommand(text) {
@@ -747,10 +1025,7 @@ async function runCommand(text) {
     });
     setOperationOutput(result.type || "matters", formatCommandResult(result));
     if (result.state) {
-      state.graph = result.state;
-      render();
-    } else {
-      await loadGraph();
+      acceptGraph(result.state);
     }
   } catch (error) {
     setOperationOutput("error", error.message);
@@ -763,6 +1038,17 @@ async function showDerivedScope(kind, matterId) {
       method: "POST",
       body: JSON.stringify({ text: `${kind} ${matterId}` })
     });
+    if (state.view === "overview") {
+      state.selectedId = matterId;
+      state.derivedHighlight = validIds(result.items);
+      state.derivedHighlightActive = true;
+      updateOverviewRenderer();
+      renderInspector();
+      updateOperationButtons();
+      setOperationOutput(result.type || kind, formatCommandResult(result));
+      announce(`${kind} highlighted ${state.derivedHighlight.size} matters.`);
+      return;
+    }
     const ids = kind === "horizon"
       ? downstreamContextIds(matterId, result.items)
       : new Set([matterId, ...result.items]);
@@ -797,16 +1083,15 @@ async function switchGraphState(statePathValue) {
   const nextStatePath = statePathValue.trim();
   if (!nextStatePath) return;
   try {
-    state.graph = await api("/api/state", {
+    const payload = await api("/api/state", {
       method: "POST",
       body: JSON.stringify({ state_path: nextStatePath })
     });
-    state.selectedId = null;
     state.scope = "attention";
     state.scopeIds = null;
     searchInput.value = "";
     statusFilter.value = "all";
-    render();
+    acceptGraph(payload, { graphSwitch: true });
     setOperationOutput("graph", `Switched to:\n${state.graph.state_path}`);
   } catch (error) {
     setOperationOutput("error", switchGraphStateErrorMessage(error));
@@ -845,6 +1130,18 @@ function setOperationOutput(role, text) {
   body.textContent = text;
   operationOutput.append(heading, body);
   return body;
+}
+
+function announce(message) {
+  liveRegion.textContent = "";
+  window.requestAnimationFrame(() => {
+    liveRegion.textContent = message;
+  });
+}
+
+function announceSelection(id) {
+  const node = nodeById(id);
+  announce(node ? `Selected ${id}, ${statusLabel(node)}.` : "Selection cleared.");
 }
 
 function ensureTerminal() {
@@ -979,24 +1276,49 @@ async function resizeTerminal(rows, cols) {
 }
 
 searchInput.addEventListener("input", () => {
+  state.derivedHighlight.clear();
+  state.derivedHighlightActive = false;
+  renderSearchResults();
+  if (state.view === "overview") {
+    updateOverviewRenderer();
+    return;
+  }
   recomputeVisibleIds();
   refreshGraphStyles({ layout: true });
 });
 statusFilter.addEventListener("change", () => {
+  state.derivedHighlight.clear();
+  state.derivedHighlightActive = false;
+  renderSearchResults();
+  if (state.view === "overview") {
+    updateOverviewRenderer();
+    return;
+  }
   recomputeVisibleIds();
   refreshGraphStyles({ layout: true });
 });
 scopeFilter.addEventListener("change", () => {
   state.selectedId = null;
+  state.derivedHighlight.clear();
+  state.derivedHighlightActive = false;
   setScope(scopeFilter.value);
   renderInspector();
   updateOperationButtons();
 });
 window.addEventListener("resize", fitTerminal);
+overviewButton.addEventListener("click", showOverview);
+backOverviewButton.addEventListener("click", returnToOverview);
 document.querySelector("#zoom-in").addEventListener("click", () => zoomGraph(1.22));
 document.querySelector("#zoom-out").addEventListener("click", () => zoomGraph(0.82));
 document.querySelector("#reset-view").addEventListener("click", () => {
+  if (state.view === "overview") {
+    state.overviewRenderer?.resetCamera();
+    announce("Overview camera reset.");
+    return;
+  }
   state.selectedId = null;
+  state.derivedHighlight.clear();
+  state.derivedHighlightActive = false;
   searchInput.value = "";
   statusFilter.value = "all";
   setScope("attention");
@@ -1020,15 +1342,36 @@ document.querySelector("#restart-terminal").addEventListener("click", () => {
   });
 });
 document.querySelector("#show-universe").addEventListener("click", () => {
+  if (!state.graph) return;
   state.selectedId = null;
-  setScope("universe");
+  state.derivedHighlight = new Set(state.graph.universe || []);
+  state.derivedHighlightActive = true;
+  state.scope = "universe";
+  state.scopeIds = null;
+  if (state.view === "overview") {
+    syncScopeControl();
+    updateOverviewRenderer();
+  } else {
+    setScope("universe");
+  }
   renderInspector();
   updateOperationButtons();
+  announce(`Universe highlighted ${state.derivedHighlight.size} matters.`);
   setOperationOutput("universe", (state.graph.universe || []).join("\n") || "none");
 });
 document.querySelector("#show-unlock").addEventListener("click", () => {
+  if (!state.graph) return;
   state.selectedId = null;
-  setScope("universe");
+  state.derivedHighlight = new Set(state.graph.universe || []);
+  state.derivedHighlightActive = true;
+  state.scope = "universe";
+  state.scopeIds = null;
+  if (state.view === "overview") {
+    syncScopeControl();
+    updateOverviewRenderer();
+  } else {
+    setScope("universe");
+  }
   renderInspector();
   updateOperationButtons();
   runCommand("unlock");
@@ -1060,15 +1403,19 @@ document.querySelector("#create-matter-form").addEventListener("submit", async (
       conditions
     };
     const createdId = payload.id.trim() || slugify(payload.title);
-    state.graph = await api("/api/matters", {
+    const graphPayload = await api("/api/matters", {
       method: "POST",
       body: JSON.stringify(payload)
     });
-    state.selectedId = state.graph.nodes.find((node) => node.id === createdId)?.id || state.graph.nodes.at(-1)?.id;
-    state.scope = "custom";
-    state.scopeIds = focusContextIds(state.selectedId);
+    state.selectedId = graphPayload.nodes.find((node) => node.id === createdId)?.id
+      || graphPayload.nodes.at(-1)?.id;
+    state.derivedHighlight.clear();
+    state.derivedHighlightActive = false;
+    if (state.view === "focus") {
+      state.scope = "custom";
+    }
     form.reset();
-    render();
+    acceptGraph(graphPayload);
     setOperationOutput("matters", "Matter created.");
   } catch (error) {
     setOperationOutput("error", error.message);
@@ -1082,11 +1429,11 @@ dependencyForm.addEventListener("submit", async (event) => {
     target: dependencyForm.elements.target.value
   };
   try {
-    state.graph = await api("/api/dependencies", {
+    const graphPayload = await api("/api/dependencies", {
       method: "POST",
       body: JSON.stringify(payload)
     });
-    render();
+    acceptGraph(graphPayload);
     setOperationOutput("matters", `Added ${payload.source} -> ${payload.target}`);
   } catch (error) {
     setOperationOutput("error", error.message);
@@ -1099,11 +1446,11 @@ document.querySelector("#remove-dependency").addEventListener("click", async () 
     target: dependencyForm.elements.target.value
   };
   try {
-    state.graph = await api("/api/dependencies", {
+    const graphPayload = await api("/api/dependencies", {
       method: "DELETE",
       body: JSON.stringify(payload)
     });
-    render();
+    acceptGraph(graphPayload);
     setOperationOutput("matters", `Removed ${payload.source} -> ${payload.target}`);
   } catch (error) {
     setOperationOutput("error", error.message);
@@ -1111,6 +1458,7 @@ document.querySelector("#remove-dependency").addEventListener("click", async () 
 });
 
 initGraph();
+initOverview();
 loadGraph().catch((error) => {
   setOperationOutput("error", error.message);
 });

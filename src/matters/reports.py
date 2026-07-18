@@ -1,6 +1,7 @@
 """Derived reports for deciding what matters can move next."""
 
-from .engine import descendants, prerequisites, resolved, truth, universe
+from .engine import descendants, truth
+from .graph_index import GraphIndex
 
 
 HUMAN_INPUT_MARKERS = (
@@ -25,7 +26,9 @@ def false_condition_labels(matter, conditions):
     ]
 
 
-def downstream_impact(matter, dependencies):
+def downstream_impact(matter, dependencies, index=None):
+    if index is not None:
+        return index.downstream_impact[matter]
     return len(descendants(matter, dependencies))
 
 
@@ -50,8 +53,9 @@ def propose_action(matter, condition_label):
     return {"mode": mode, "condition": condition_label, "action": action}
 
 
-def unlock_items(matters, conditions, dependencies):
-    actionable = universe(matters, conditions, dependencies)
+def unlock_items(matters, conditions, dependencies, index=None):
+    index = index or GraphIndex(matters, conditions, dependencies)
+    actionable = index.universe
     items = []
 
     for matter in actionable:
@@ -59,7 +63,7 @@ def unlock_items(matters, conditions, dependencies):
         items.append(
             {
                 "matter": matter,
-                "impact": downstream_impact(matter, dependencies),
+                "impact": downstream_impact(matter, dependencies, index=index),
                 "false_conditions": false_conditions,
                 "actions": [
                     propose_action(matter, condition) for condition in false_conditions
@@ -70,19 +74,14 @@ def unlock_items(matters, conditions, dependencies):
     return sorted(items, key=lambda item: (-item["impact"], item["matter"]))
 
 
-def unlock_report(matters, conditions, dependencies):
+def unlock_report(matters, conditions, dependencies, index=None):
+    index = index or GraphIndex(matters, conditions, dependencies)
     return {
-        "universe": sorted(universe(matters, conditions, dependencies)),
-        "items": unlock_items(matters, conditions, dependencies),
-        "blocked": sorted(
-            matter
-            for matter in matters
-            if not resolved(matter, conditions, dependencies)
-            and any(
-                not resolved(prerequisite, conditions, dependencies)
-                for prerequisite in prerequisites(matter, dependencies)
-            )
+        "universe": sorted(index.universe),
+        "items": unlock_items(
+            matters, conditions, dependencies, index=index
         ),
+        "blocked": sorted(index.blocked),
     }
 
 

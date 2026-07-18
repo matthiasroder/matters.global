@@ -137,12 +137,18 @@ The UI shows matters in a Cytoscape.js-powered directed graph, with dependency
 edges drawn as arrows from prerequisite matters to dependent matters. Large
 graphs open in an Attention scope: high-impact actionable matters and the
 matters they unlock, rather than an unreadable all-node hairball. The graph
-scope menu can switch between Attention, Universe, and All graph. Selecting a
-node focuses the graph on that node's prerequisites and dependents. Focused
-views use a Dagre hierarchical layout for dependency readability; explicit
-all-graph overviews use Cytoscape's CoSE force layout. The UI supports pan,
-zoom, text search, status filtering, node inspection, condition toggles, matter
-creation, and dependency creation/removal.
+scope menu can switch between Attention, Universe, and All graph.
+
+The default **Focus** view uses Cytoscape and a readable Dagre dependency
+layout. Selecting a matter shows its prerequisite context and direct
+dependents. **Overview** is an explicit, stable spatial atlas of every matter
+and dependency: drag to rotate, Shift-drag to pan, use the wheel or toolbar to
+zoom, and select a matter to emphasize its complete prerequisite ancestry.
+**Focus here** moves from that selection into the dependency view; **Back to
+overview** restores the previous overview camera and selection. Search and
+status filters fade nonmatches in Overview without rearranging the atlas. The
+UI also supports node inspection, condition toggles, matter creation, and
+dependency creation/removal in either view.
 
 The top toolbar and the chat-style command panel both expose common graph
 operations:

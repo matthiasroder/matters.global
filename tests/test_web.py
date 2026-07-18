@@ -78,6 +78,48 @@ def test_graph_payload_includes_derived_status(tmp_path):
     assert nodes["b"]["actionable"] is True
     assert nodes["b"]["prerequisites"] == ["a"]
     assert payload["edges"] == [{"source": "a", "target": "b"}]
+    assert set(payload) == {
+        "state_path",
+        "nodes",
+        "edges",
+        "universe",
+        "unlock",
+        "overview_layout",
+    }
+    assert set(nodes["a"]) == {
+        "id",
+        "label",
+        "conditions",
+        "prerequisites",
+        "dependents",
+        "resolved",
+        "actionable",
+        "blocked",
+        "overview",
+    }
+    assert payload["overview_layout"] == {
+        "version": 1,
+        "algorithm": "dependency-cone-v1",
+        "max_depth": 1,
+        "bounds": {
+            "min_x": min(
+                nodes["a"]["overview"]["x"], nodes["b"]["overview"]["x"]
+            ),
+            "max_x": max(
+                nodes["a"]["overview"]["x"], nodes["b"]["overview"]["x"]
+            ),
+            "min_y": 0.0,
+            "max_y": 120.0,
+            "min_z": min(
+                nodes["a"]["overview"]["z"], nodes["b"]["overview"]["z"]
+            ),
+            "max_z": max(
+                nodes["a"]["overview"]["z"], nodes["b"]["overview"]["z"]
+            ),
+        },
+    }
+    assert nodes["a"]["overview"]["depth"] == 0
+    assert nodes["a"]["overview"]["downstream_impact"] == 1
 
 
 def test_create_matter_persists_conditions(tmp_path):
@@ -97,6 +139,8 @@ def test_create_matter_persists_conditions(tmp_path):
     assert data["conditions"]["ship_web_ui"] == [
         {"label": "UI opens in browser", "truth": False}
     ]
+    assert "overview_layout" not in data
+    assert all("overview" not in matter for matter in data["matters"])
 
 
 def test_api_rejects_cross_origin_text_plain_mutation(tmp_path):
@@ -362,6 +406,101 @@ def test_switch_state_path_rejects_missing_file(tmp_path):
         switch_state_path(state_paths, {"state_path": str(tmp_path / "missing.json")})
 
 
+def test_graph_payload_rejects_dependency_cycle_with_422(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(
+        state_path,
+        {
+            "matters": ["a", "b"],
+            "conditions": {"a": [], "b": []},
+            "dependencies": [["a", "b"], ["b", "a"]],
+        },
+    )
+
+    with pytest.raises(ApiError, match="state dependency graph contains a cycle") as error:
+        graph_payload(state_path)
+
+    assert error.value.status == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_api_state_returns_422_for_dependency_cycle(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(
+        state_path,
+        {
+            "matters": ["a", "b"],
+            "conditions": {"a": [], "b": []},
+            "dependencies": [["a", "b"], ["b", "a"]],
+        },
+    )
+
+    status, body = api_request(state_path, "GET", "/api/state")
+
+    assert status == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert json.loads(body) == {"error": "state dependency graph contains a cycle"}
+
+
+def test_switch_state_path_rejects_cycle_without_replacing_active_path(tmp_path):
+    first = tmp_path / "first.json"
+    cyclic = tmp_path / "cyclic.json"
+    write_state(first, {"matters": ["first"], "conditions": {"first": []}, "dependencies": []})
+    write_state(
+        cyclic,
+        {
+            "matters": ["a", "b"],
+            "conditions": {"a": [], "b": []},
+            "dependencies": [["a", "b"], ["b", "a"]],
+        },
+    )
+    state_paths = StatePathStore(first)
+
+    with pytest.raises(ApiError, match="state dependency graph contains a cycle") as error:
+        switch_state_path(state_paths, {"state_path": str(cyclic)})
+
+    assert error.value.status == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert state_paths.current() == first
+
+
+def test_switch_state_path_commits_only_after_candidate_payload_builds(
+    tmp_path, monkeypatch
+):
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    write_state(first, {"matters": ["first"], "conditions": {"first": []}, "dependencies": []})
+    write_state(second, {"matters": ["second"], "conditions": {"second": []}, "dependencies": []})
+    state_paths = StatePathStore(first)
+
+    def fail_candidate_payload(state_path):
+        assert state_path == second
+        raise ApiError("candidate payload failed")
+
+    monkeypatch.setattr(web, "graph_payload", fail_candidate_payload)
+
+    with pytest.raises(ApiError, match="candidate payload failed"):
+        switch_state_path(state_paths, {"state_path": str(second)})
+
+    assert state_paths.current() == first
+
+
+def test_mutation_rejects_preexisting_cycle_without_writing(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(
+        state_path,
+        {
+            "matters": ["a", "b"],
+            "conditions": {"a": [], "b": []},
+            "dependencies": [["a", "b"], ["b", "a"]],
+        },
+    )
+    before = state_path.read_bytes()
+
+    with pytest.raises(ApiError, match="state dependency graph contains a cycle") as error:
+        create_matter(state_path, {"title": "must not be saved"})
+
+    assert error.value.status == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert state_path.read_bytes() == before
+
+
 def test_cli_registers_web_command(monkeypatch):
     called = {}
 
@@ -422,16 +561,23 @@ def test_terminal_manager_rejects_missing_workspace(tmp_path):
         manager.create(workspace=tmp_path / "missing")
 
 
-def test_web_assets_use_cytoscape_graph():
+def test_web_assets_offer_focus_and_deterministic_overview():
     html = (ASSETS / "index.html").read_text()
     app = (ASSETS / "app.js").read_text()
+    renderer = (ASSETS / "map-renderer.js").read_text()
 
     assert '<div id="graph"' in html
-    assert '<script type="module" src="app.js?v=cytoscape-graph"></script>' in html
+    assert '<script type="module" src="app.js?v=overview-v1"></script>' in html
+    assert 'from "./map-renderer.js?v=overview-v1"' in app
     assert '<details class="panel-section disclosure">' in html
     assert "<summary>Create Matter</summary>" in html
     assert "<summary>Dependencies</summary>" in html
     assert 'id="scope-filter"' in html
+    assert 'id="overview-graph"' in html
+    assert 'id="show-overview"' in html
+    assert 'id="back-overview"' in html
+    assert 'id="search-results"' in html
+    assert 'id="view-live-region"' in html
     assert '<option value="attention">Attention</option>' in html
     assert '<option value="universe">Universe</option>' in html
     assert '<option value="all">All graph</option>' in html
@@ -447,12 +593,30 @@ def test_web_assets_use_cytoscape_graph():
     assert "new Terminal" in app
     assert "cytoscape@3.34.0" in app
     assert "cytoscape-dagre@4.0.0" in app
-    assert "3d-force-graph" not in app
-    assert "three@" not in app
-    assert 'href="styles.css?v=cytoscape-graph"' in html
+    assert "3d-force-graph" not in app + renderer
+    assert "three@" not in app + renderer
+    assert 'href="styles.css?v=overview-v1"' in html
     assert "[hidden]" in (ASSETS / "styles.css").read_text()
     assert "cytoscape({" in app
     assert "cytoscape.use(dagre)" in app
+    assert "createOverviewRenderer" in app
+    assert 'view: "focus"' in app
+    assert "function completeAncestorIds(id)" in app
+    assert "filterActive: !derivedActive && overviewFiltersActive()" in app
+    assert "__no_matches__" not in app
+    assert "function focusHereFromOverview()" in app
+    assert "function returnToOverview()" in app
+    assert "Overview unavailable" in app
+    assert 'matchMedia("(prefers-reduced-motion: reduce)")' in app
+    assert "slice(0, 50)" in app
+    assert 'canvas.setAttribute("role", "img")' in renderer
+    assert "ResizeObserver" in renderer
+    assert "emphasis.filterActive && !match" in renderer
+    assert "function classifyNodeOverlaps()" in renderer
+    assert "const OVERLAP_GRID_SIZE = 64" in renderer
+    assert "function drawMovingNodes()" in renderer
+    assert "const NODE_DEPTH_BANDS = 8" in renderer
+    assert "projectedNodes.forEach((projected)" in renderer
     assert "attentionMaxNodes" in app
     assert 'scope: "attention"' in app
     assert "function attentionScopeIds()" in app

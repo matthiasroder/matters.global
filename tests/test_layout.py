@@ -14,10 +14,10 @@ def test_empty_layout_has_zero_bounds():
     metadata, coordinates = layout(set(), set())
 
     assert metadata == {
-        "version": 2,
-        "algorithm": "layered-archipelago-v1",
+        "version": 3,
+        "algorithm": "solar-systems-v1",
         "max_depth": 0,
-        "island_count": 0,
+        "system_count": 0,
         "bounds": {
             "min_x": 0.0,
             "max_x": 0.0,
@@ -48,7 +48,7 @@ def test_layout_is_deterministic_and_rounded_to_three_decimals():
             assert coordinate[axis] == round(coordinate[axis], 3)
 
 
-def test_every_dependency_moves_up_in_depth_and_y():
+def test_every_dependency_moves_inward_toward_its_goal():
     matters = {"a", "b", "c", "d"}
     dependencies = {("a", "b"), ("a", "c"), ("b", "d"), ("c", "d")}
     metadata, coordinates = layout(matters, dependencies)
@@ -56,38 +56,67 @@ def test_every_dependency_moves_up_in_depth_and_y():
     assert metadata["max_depth"] == 2
     for source, target in dependencies:
         assert coordinates[target]["depth"] > coordinates[source]["depth"]
-        assert coordinates[target]["y"] > coordinates[source]["y"]
+        assert coordinates[target]["orbit_level"] < coordinates[source]["orbit_level"]
+        assert coordinates[target]["y"] < coordinates[source]["y"]
 
 
-def test_root_families_form_islands_and_join_between_them():
-    matters = {"root_a", "root_b", "branch_a", "branch_b", "join", "after_join"}
+def test_dependency_depths_form_orbits_and_join_between_systems():
+    matters = {
+        "root_a", "a1", "a2", "a3", "goal_a",
+        "root_b", "b1", "b2", "b3", "goal_b",
+        "bridge", "z_bridge_goal",
+    }
     dependencies = {
-        ("root_a", "branch_a"),
-        ("root_b", "branch_b"),
-        ("branch_a", "join"),
-        ("branch_b", "join"),
-        ("join", "after_join"),
+        ("root_a", "a1"),
+        ("a1", "a2"),
+        ("a2", "a3"),
+        ("a3", "goal_a"),
+        ("root_b", "b1"),
+        ("b1", "b2"),
+        ("b2", "b3"),
+        ("b3", "goal_b"),
+        ("a1", "bridge"),
+        ("b1", "bridge"),
+        ("bridge", "z_bridge_goal"),
     }
     metadata, coordinates = layout(matters, dependencies)
 
-    assert metadata["island_count"] == 2
-    assert coordinates["root_a"]["island"] == "root_a"
-    assert coordinates["branch_a"]["island"] == "root_a"
-    assert coordinates["branch_a"]["root_count"] == 1
-    assert coordinates["join"]["island"] == "root_a"
-    assert coordinates["join"]["root_count"] == 2
-    assert coordinates["after_join"]["island"] == "root_a"
-    assert coordinates["after_join"]["root_count"] == 1
+    assert metadata["system_count"] == 2
+    assert coordinates["goal_a"]["system"] == "goal_a"
+    assert coordinates["goal_a"]["orbit_radius"] == 0
+    assert coordinates["goal_a"]["system_population"] > 1
+    assert coordinates["goal_a"]["system_radius"] > coordinates["a1"]["orbit_radius"]
+    assert coordinates["a1"]["system"] == "goal_a"
+    assert coordinates["a1"]["system_count"] == 1
+    assert coordinates["a1"]["orbit_radius"] > 0
+    assert coordinates["root_a"]["system"] == "goal_a"
+    assert coordinates["root_a"]["system_count"] == 1
+    assert coordinates["root_a"]["orbit_radius"] > coordinates["a1"]["orbit_radius"]
+    assert coordinates["bridge"]["system"] == "goal_a"
+    assert coordinates["bridge"]["system_count"] == 2
+    assert coordinates["bridge"]["orbit_radius"] == 0
+
+    branch_distance = math.hypot(
+        coordinates["a1"]["x"] - coordinates["goal_a"]["x"],
+        coordinates["a1"]["z"] - coordinates["goal_a"]["z"],
+    )
+    assert abs(branch_distance - coordinates["a1"]["orbit_radius"]) <= 5.001
 
     root_midpoint = {
-        axis: (coordinates["root_a"][axis] + coordinates["root_b"][axis]) / 2
+        axis: (coordinates["goal_a"][axis] + coordinates["goal_b"][axis]) / 2
         for axis in ("x", "z")
     }
     join_offset = math.hypot(
-        coordinates["join"]["x"] - root_midpoint["x"],
-        coordinates["join"]["z"] - root_midpoint["z"],
+        coordinates["bridge"]["x"] - root_midpoint["x"],
+        coordinates["bridge"]["z"] - root_midpoint["z"],
     )
-    assert join_offset <= 78.001
+    assert join_offset <= 24.001
+
+    system_distance = math.hypot(
+        coordinates["goal_a"]["x"] - coordinates["goal_b"]["x"],
+        coordinates["goal_a"]["z"] - coordinates["goal_b"]["z"],
+    )
+    assert system_distance >= 336
 
 
 def test_condition_changes_do_not_move_nodes():
@@ -105,20 +134,6 @@ def test_condition_changes_do_not_move_nodes():
     )
 
     assert before == after
-
-
-def test_dependency_change_leaves_unrelated_branch_coordinates_unchanged():
-    matters = {"a", "b", "c", "x", "y"}
-    _, before = layout(matters, {("a", "b"), ("x", "y")})
-    _, after = layout(matters, {("a", "b"), ("b", "c"), ("x", "y")})
-
-    assert after["c"] != before["c"]
-    for matter in {"a", "b", "x", "y"}:
-        assert {
-            axis: after[matter][axis] for axis in ("x", "y", "z", "depth")
-        } == {
-            axis: before[matter][axis] for axis in ("x", "y", "z", "depth")
-        }
 
 
 def test_layout_includes_exact_unique_downstream_impact():

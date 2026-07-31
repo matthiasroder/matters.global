@@ -10,6 +10,7 @@ from .llm_extraction import build_extraction_proposal
 from .reports import format_unlock_report, unlock_report
 from .sharing import merge_public_state, public_state
 from .storage import load_state, resolve_state_path, save_state
+from .tots import TotsError, build_tots_proposal
 
 
 def main(argv=None):
@@ -76,6 +77,27 @@ def main(argv=None):
         action="store_false",
         help="Use only the deterministic marker engine; never call the LLM.",
     )
+
+    tots_parser = subparsers.add_parser(
+        "tots",
+        parents=[state_parent],
+        help="Explore a bounded hypothesis tree for an unresolved matter.",
+    )
+    tots_parser.add_argument("matter", help="Unresolved matter id to explore.")
+    tots_parser.add_argument(
+        "--context",
+        default=None,
+        help="Optional evidence text file, or '-' for stdin.",
+    )
+    tots_parser.add_argument(
+        "--model",
+        default=None,
+        help="Override the ToTs model id (default: claude-sonnet-4-6 or MATTERS_TOTS_MODEL).",
+    )
+    tots_parser.add_argument("--breadth", type=int, default=4)
+    tots_parser.add_argument("--depth", type=int, default=2)
+    tots_parser.add_argument("--max-candidates", type=int, default=8)
+    tots_parser.add_argument("--max-comparisons", type=int, default=24)
 
     export_public_parser = subparsers.add_parser(
         "export-public",
@@ -185,6 +207,26 @@ def main(argv=None):
                 indent=2,
             )
         )
+        return 0
+
+    if args.command == "tots":
+        context_text = read_source_text(args.context) if args.context else ""
+        try:
+            proposal = build_tots_proposal(
+                args.matter,
+                matters,
+                conditions,
+                dependencies,
+                context_text=context_text,
+                breadth=args.breadth,
+                depth=args.depth,
+                max_candidates=args.max_candidates,
+                max_comparisons=args.max_comparisons,
+                model=args.model,
+            )
+        except TotsError as error:
+            parser.error(str(error))
+        print(json.dumps(proposal, indent=2))
         return 0
 
     if args.command == "export-public":

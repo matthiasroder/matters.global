@@ -51,6 +51,15 @@ from .storage import (
     resolve_state_path,
     save_state,
 )
+from .tots import (
+    TotsError,
+    build_tots_context,
+    build_tots_proposal,
+    fit_bradley_terry_davidson,
+    reconcile_ordered_judgments,
+    schedule_swiss_pairs,
+    select_diverse_finalists,
+)
 
 __all__ = [
     "DEFAULT_STATE_PATH",
@@ -58,8 +67,11 @@ __all__ = [
     "FakeEmbedder",
     "LocalEmbedder",
     "PUBLIC",
+    "TotsError",
     "as_condition_list",
     "build_extraction_proposal",
+    "build_tots_context",
+    "build_tots_proposal",
     "classify_relationship",
     "condition_label",
     "create_condition",
@@ -67,6 +79,7 @@ __all__ = [
     "descendants",
     "extract_candidate_matters",
     "extraction_proposal",
+    "fit_bradley_terry_davidson",
     "get_embedder",
     "ingest_candidates",
     "llm_extraction_proposal",
@@ -84,9 +97,12 @@ __all__ = [
     "propose_action",
     "propose_dependency_candidates",
     "public_state",
+    "reconcile_ordered_judgments",
     "resolve_state_path",
     "resolved",
     "save_state",
+    "schedule_swiss_pairs",
+    "select_diverse_finalists",
     "serialize_condition",
     "slugify",
     "truth",

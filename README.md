@@ -62,6 +62,7 @@ matters frontier root --state examples/matters.example.json
 matters horizon root --state examples/matters.example.json
 matters unlock --state examples/matters.example.json
 matters extract notes.txt --source-type notes --state examples/matters.example.json
+matters tots open_question --context evidence.txt --state examples/matters.example.json
 matters export-public --state private.matters.json --visibility visibility.json
 matters merge-public --state private.matters.json --public-state public.matters.json --visibility visibility.json
 matters web --state examples/matters.example.json
@@ -223,6 +224,45 @@ matters extract notes.txt --no-llm   # deterministic, offline
 For PDFs and documents, extract the readable text first (v1 is text-only), then
 pipe it in. See `examples/creativity_research/` for a small corpus and expected
 extraction-quality notes.
+
+## Matters ToTs
+
+`matters tots` performs a bounded Tree-of-Thoughts exploration for one
+unresolved matter. It uses the target's false conditions, prerequisite context,
+direct dependents, and optional evidence text to generate structured hypotheses,
+reflect on their grounding and testability, compare them, and expand promising
+but distinct directions.
+
+```sh
+matters tots open_question \
+  --state ~/.local/share/matters/matters.json \
+  --context evidence.txt
+```
+
+The default search generates four initial candidates, expands to at most eight
+nodes over two levels, and permits at most 24 ordered comparisons. Override the
+bounds with `--breadth`, `--depth`, `--max-candidates`, and
+`--max-comparisons`. Use `--model` or `MATTERS_TOTS_MODEL` to select a model.
+An Anthropic credential is required; ToTs fails explicitly rather than
+substituting a non-semantic fallback.
+
+Each candidate includes its hypothesis, mechanism, assumptions, discriminating
+predictions, evidence references, and a falsification-oriented next test.
+Graph and context references are validated before evaluation. Candidates are
+judged pairwise in both presentation orders; contradictory order judgments
+become ties, and the outcomes are aggregated with a tie-aware
+Bradley-Terry-Davidson model. Diverse proximity clusters are preserved among the
+finalists. External evaluator failures, when supplied through the library API,
+exclude candidates before the model tournament. Evaluator results may also set
+an explicit `promote`, `neutral`, or `demote` preference; that preference is
+applied before the model tournament rank and remains visible in the output.
+
+The JSON output always carries `requires_confirmation: true`,
+`state_modified: false`, and
+`ranking_semantics: "search_priority_not_truth"`. A high rank means that a
+branch appears useful to investigate next. It is not evidence that the
+hypothesis is true. The command never changes the selected state file or adds
+its candidates to the graph.
 
 ## Matter Identity and Reconciliation
 

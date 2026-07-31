@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from matters.cli import main
 
 
@@ -130,6 +132,106 @@ def test_cli_extract_reads_text_file_without_saving(tmp_path, capsys):
         "conditions": {},
         "dependencies": [],
     }
+
+
+def test_cli_tots_passes_options_and_never_writes_state(
+    tmp_path, capsys, monkeypatch
+):
+    state_path = tmp_path / "matters.json"
+    context_path = tmp_path / "evidence.txt"
+    original = json.dumps(
+        {
+            "matters": ["open_question"],
+            "conditions": {
+                "open_question": [{"label": "answered", "truth": False}]
+            },
+            "dependencies": [],
+        },
+        indent=2,
+    )
+    state_path.write_text(original)
+    context_path.write_text("Evidence line")
+    received = {}
+
+    def fake_build(matter, matters, conditions, dependencies, **kwargs):
+        received.update(
+            matter=matter,
+            matters=matters,
+            conditions=conditions,
+            dependencies=dependencies,
+            kwargs=kwargs,
+        )
+        return {
+            "target": matter,
+            "requires_confirmation": True,
+            "state_modified": False,
+        }
+
+    monkeypatch.setattr("matters.cli.build_tots_proposal", fake_build)
+
+    assert (
+        main(
+            [
+                "tots",
+                "open_question",
+                "--context",
+                str(context_path),
+                "--breadth",
+                "3",
+                "--depth",
+                "1",
+                "--max-candidates",
+                "5",
+                "--max-comparisons",
+                "8",
+                "--model",
+                "test-model",
+                "--state",
+                str(state_path),
+            ]
+        )
+        == 0
+    )
+
+    assert json.loads(capsys.readouterr().out)["state_modified"] is False
+    assert received["matter"] == "open_question"
+    assert received["kwargs"] == {
+        "context_text": "Evidence line",
+        "breadth": 3,
+        "depth": 1,
+        "max_candidates": 5,
+        "max_comparisons": 8,
+        "model": "test-model",
+    }
+    assert state_path.read_text() == original
+
+
+def test_cli_tots_surfaces_actionable_error_without_writing_state(
+    tmp_path, capsys, monkeypatch
+):
+    state_path = tmp_path / "matters.json"
+    original = json.dumps(
+        {
+            "matters": ["open_question"],
+            "conditions": {"open_question": []},
+            "dependencies": [],
+        }
+    )
+    state_path.write_text(original)
+
+    def fail(*_args, **_kwargs):
+        from matters import TotsError
+
+        raise TotsError("model credential is unavailable")
+
+    monkeypatch.setattr("matters.cli.build_tots_proposal", fail)
+
+    with pytest.raises(SystemExit) as error:
+        main(["tots", "open_question", "--state", str(state_path)])
+
+    assert error.value.code == 2
+    assert "model credential is unavailable" in capsys.readouterr().err
+    assert state_path.read_text() == original
 
 
 def test_cli_export_public_uses_visibility_file(tmp_path, capsys):

@@ -246,6 +246,26 @@ matters config check
 matters config check --profile personal
 ```
 
+For a new Codex/ChatGPT installation, create the user configuration without
+putting credentials in it:
+
+```sh
+codex login
+CONFIG_PATH="$(matters config path)"
+mkdir -p "$(dirname "$CONFIG_PATH")"
+"${EDITOR:-vi}" "$CONFIG_PATH"
+```
+
+Use the `personal` Codex profile and workflow sections from the TOML example
+above, then run `matters config check --profile personal`. The check verifies
+the saved ChatGPT authentication and the isolated Codex command without making
+a model request.
+
+The Codex adapter and its fail-closed capability denylist are tested with Codex
+CLI 0.145. After upgrading Codex, run `matters config check` and the provider
+tests before relying on live generation; new tool-bearing capabilities may need
+to be added to the denylist.
+
 Use `--llm-profile` to select another profile and `--model` for a one-run model
 override. `MATTERS_EXTRACT_MODEL` and `MATTERS_TOTS_MODEL` remain model-only
 overrides; they do not select a provider.
@@ -302,6 +322,27 @@ bounds with `--breadth`, `--depth`, `--max-candidates`, and
 `--model` or `MATTERS_TOTS_MODEL` to override that profile's model. ToTs fails
 explicitly when no semantic provider is configured or ready; it never
 substitutes a non-semantic fallback.
+
+Start with a bounded live smoke test on a real unresolved matter:
+
+```sh
+matters config check --profile personal
+matters tots MATTER_ID \
+  --state /path/to/matters.json \
+  --llm-profile personal \
+  --breadth 2 \
+  --depth 1 \
+  --max-candidates 2 \
+  --max-comparisons 2 \
+  > matters-tots-smoke.json
+```
+
+When both candidates remain viable, this smoke configuration currently makes
+six structured model calls: one generation, two reflections, one proximity
+clustering, and the same pairwise judgment in both presentation orders. The
+default search can make substantially more calls because it adds candidates,
+expansion rounds, and ordered comparisons. `config check` is non-generating;
+`tots` is a live provider operation and may consume subscription or API quota.
 
 Each candidate includes its hypothesis, mechanism, assumptions, discriminating
 predictions, evidence references, and a falsification-oriented next test.

@@ -8,18 +8,22 @@ an exploration priority, never a scientific truth judgment.
 from __future__ import annotations
 
 import copy
-import importlib.util
 import itertools
 import json
 import math
-import os
 import re
 
 from .engine import as_condition_list, serialize_condition, truth
 from .graph_index import DependencyCycleError, GraphIndex
+from .llm import (
+    ConfigError,
+    GenerationError,
+    InvalidStructuredResponseError,
+    StructuredRequest,
+    resolve_generator,
+)
 
 
-DEFAULT_MODEL = "claude-sonnet-4-6"
 PROMPT_VERSION = "matters-tots-v1"
 DEFAULT_CONTEXT_HOPS = 2
 DEFAULT_CONTEXT_CAP = 50
@@ -245,8 +249,11 @@ def build_tots_proposal(
     depth=2,
     max_candidates=8,
     max_comparisons=24,
+    generator=None,
     client=None,
     model=None,
+    config_path=None,
+    llm_profile=None,
     evaluator=None,
 ):
     """Explore an unresolved matter without mutating the supplied graph."""
@@ -260,7 +267,7 @@ def build_tots_proposal(
     try:
         index = GraphIndex(matters, conditions, dependencies)
     except DependencyCycleError as error:
-        raise TotsError(str(error)) from error
+        raise TotsError(str(error)) from None
 
     if matter_id not in set(matters):
         raise TotsError(f"unknown matter: {matter_id}")
@@ -275,8 +282,24 @@ def build_tots_proposal(
         index=index,
         context_text=context_text,
     )
-    model = model or os.environ.get("MATTERS_TOTS_MODEL") or DEFAULT_MODEL
-    client = client or _default_client()
+    injected = generator if generator is not None else client
+    try:
+        selection = resolve_generator(
+            "tots",
+            injected=injected,
+            config_path=config_path,
+            profile_override=llm_profile,
+            model_override=model,
+        )
+    except (ConfigError, GenerationError, TypeError) as error:
+        raise TotsError(str(error)) from None
+    if selection is None:
+        raise TotsError(
+            "no model profile configured for tots; add [llm.profiles] and "
+            "[llm.workflows.tots] or select --llm-profile"
+        )
+    client = selection.generator
+    model = selection.model
 
     nodes = []
     warnings = list(context.pop("warnings"))
@@ -457,6 +480,8 @@ def build_tots_proposal(
         "schema_version": 1,
         "prompt_version": PROMPT_VERSION,
         "model": model,
+        "provider": selection.provider,
+        "model_profile": selection.profile,
         "target": matter_id,
         "context": context,
         "config": config,
@@ -1304,52 +1329,26 @@ def _call_stage(client, stage, payload, schema, model):
         "priority, not truth. Return only the requested structured result."
     )
     try:
-        response = client.messages.create(
-            model=model,
-            max_tokens=8192,
-            system=system,
-            messages=[{"role": "user", "content": json.dumps(payload)}],
-            output_config={"format": {"type": "json_schema", "schema": schema}},
+        result = client.generate(
+            StructuredRequest(
+                operation=f"tots-{stage}",
+                system=system,
+                user=json.dumps(payload),
+                schema=schema,
+                max_output_tokens=8192,
+                metadata={"stage": stage},
+            )
         )
+        data = dict(result.data)
+    except InvalidStructuredResponseError:
+        raise TotsError(f"{stage} model response was not valid JSON") from None
     except Exception as error:  # noqa: BLE001 - convert SDK failures at boundary
         raise TotsError(
             f"{stage} model call failed ({type(error).__name__})"
-        ) from error
-    try:
-        text = next(
-            block.text
-            for block in response.content
-            if getattr(block, "type", None) == "text"
-        )
-    except (AttributeError, StopIteration) as error:
-        raise TotsError(f"{stage} model response contained no text") from error
-    try:
-        data = json.loads(text)
-    except (TypeError, json.JSONDecodeError) as error:
-        raise TotsError(f"{stage} model response was not valid JSON") from error
+        ) from None
     if not isinstance(data, dict):
         raise TotsError(f"{stage} model response must be a JSON object")
     return data
-
-
-def _default_client():
-    if importlib.util.find_spec("anthropic") is None:
-        raise TotsError("Anthropic SDK is required for matters tots")
-    if not (
-        os.environ.get("ANTHROPIC_API_KEY")
-        or os.environ.get("ANTHROPIC_AUTH_TOKEN")
-    ):
-        raise TotsError(
-            "ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN is required for matters tots"
-        )
-    import anthropic
-
-    try:
-        return anthropic.Anthropic()
-    except Exception as error:  # noqa: BLE001 - redact provider configuration
-        raise TotsError(
-            f"Anthropic client initialization failed ({type(error).__name__})"
-        ) from error
 
 
 def _text(value):

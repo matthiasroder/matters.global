@@ -49,9 +49,13 @@ The skill is intentionally thin. Shared behavior belongs in `src/matters`, not i
 ## Local Development
 
 ```sh
-python -m pip install -e '.[test]'
+python -m pip install -e '.[test,providers]'
 python -m pytest
 ```
+
+Core installation does not include provider SDKs. Install `.[openai]`,
+`.[anthropic]`, or `.[providers]` for the corresponding API adapters. The
+`codex-cli` adapter has no additional Python dependency.
 
 The package installs a `matters` CLI:
 
@@ -192,9 +196,63 @@ produced it. LLM-engine candidates also carry a resolution `status`
 (`resolved` or `open`) and a truth value per condition; marker-engine
 candidates are always unresolved.
 
+### Model provider configuration
+
+Semantic generation is selected explicitly through named profiles in a TOML
+file. Matters checks `--config`, then `MATTERS_CONFIG`, then the platform user
+configuration directory shown by `matters config path`. It never auto-loads a
+repository-local file or activates a provider merely because an API key exists.
+
+```toml
+[llm]
+default_profile = "personal"
+
+[llm.profiles.personal]
+provider = "codex-cli"
+model = "gpt-5.6-sol"
+auth = "chatgpt"
+timeout_seconds = 300
+
+[llm.profiles.openai]
+provider = "openai-api"
+model = "gpt-5.6"
+api_key_env = "OPENAI_API_KEY"
+
+[llm.profiles.claude]
+provider = "anthropic-api"
+model = "claude-sonnet-4-6"
+api_key_env = "ANTHROPIC_API_KEY"
+
+[llm.workflows.extraction]
+profile = "personal"
+on_unavailable = "marker"
+
+[llm.workflows.reconciliation]
+profile = "personal"
+on_unavailable = "skip"
+
+[llm.workflows.tots]
+profile = "personal"
+on_unavailable = "error"
+```
+
+Configuration stores only environment-variable names, never credential values.
+For subscription-backed Codex use, run `codex login` with ChatGPT. Inspect the
+resolved path and provider readiness without making a model request:
+
+```sh
+matters config path
+matters config check
+matters config check --profile personal
+```
+
+Use `--llm-profile` to select another profile and `--model` for a one-run model
+override. `MATTERS_EXTRACT_MODEL` and `MATTERS_TOTS_MODEL` remain model-only
+overrides; they do not select a provider.
+
 ### Two extraction engines
 
-- **LLM engine** (default when an API key is available): reads prose — paper
+- **LLM engine** (when an extraction profile is configured): reads prose — paper
   abstracts, sections, blog posts — and extracts the source's actual claims,
   contributions, findings, and open questions as matters. Each matter is judged
   **status-aware**: settled results come back `resolved` (their conditions
@@ -202,22 +260,20 @@ candidates are always unresolved.
   (at least one condition false) — so a graph captures both what a field has
   established and what it leaves open. Conditions are evidence-grounded and
   dependency candidates are semantic. This is the right engine for scientific
-  papers, which rarely contain explicit markers. It calls the Anthropic API, so
-  it needs `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) in the environment.
-  The model defaults to `claude-sonnet-4-6` and can be overridden with `--model`
-  or the `MATTERS_EXTRACT_MODEL` environment variable.
+  papers, which rarely contain explicit markers. It can use Codex with ChatGPT
+  authentication, the OpenAI Responses API, or the Anthropic Messages API.
 - **Marker engine** (deterministic fallback): recognizes explicit markers like
   `Goal:`, `Problem:`, `Decision:`, `Risk:`, `Responsibility:`, and `Matter:`,
   plus speaker-prefixed lines such as `Agent: Goal: Map creativity
   interventions`. It runs with no network access and no key.
 
-The selection is automatic: `matters extract` uses the LLM engine when a key is
-present and falls back to the marker engine when the key is missing or the API
-call fails (the proposal then carries `engine: "marker"` and a
-`fallback_reason`). Pass `--no-llm` to force the marker engine.
+`matters extract` uses the selected extraction profile and falls back to the
+marker engine when no profile is configured or the configured provider is
+unavailable (the proposal then carries `engine: "marker"` and, after a provider
+failure, a redacted `fallback_reason`). Pass `--no-llm` to force marker mode.
 
 ```sh
-ANTHROPIC_API_KEY=... matters extract paper.txt --source-type paper
+matters extract paper.txt --source-type paper --llm-profile personal
 matters extract notes.txt --no-llm   # deterministic, offline
 ```
 
@@ -242,9 +298,10 @@ matters tots open_question \
 The default search generates four initial candidates, expands to at most eight
 nodes over two levels, and permits at most 24 ordered comparisons. Override the
 bounds with `--breadth`, `--depth`, `--max-candidates`, and
-`--max-comparisons`. Use `--model` or `MATTERS_TOTS_MODEL` to select a model.
-An Anthropic credential is required; ToTs fails explicitly rather than
-substituting a non-semantic fallback.
+`--max-comparisons`. Use `--llm-profile` to select a configured provider and
+`--model` or `MATTERS_TOTS_MODEL` to override that profile's model. ToTs fails
+explicitly when no semantic provider is configured or ready; it never
+substitutes a non-semantic fallback.
 
 Each candidate includes its hypothesis, mechanism, assumptions, discriminating
 predictions, evidence references, and a falsification-oriented next test.
@@ -287,8 +344,9 @@ layer (`src/matters/identity.py`), used by ingestion pipelines rather than the
 - **Role/status guard.** A deterministic check never merges a `resolved` matter
   with an `open` one, a problem with its solution, or a method with a finding
   that uses it — regardless of what the classifier proposes.
-- Without an embedding backend or API key, identity degrades safely to slug
-  matching, and reconciliation merges only on very high similarity.
+- Without an embedding backend or configured reconciliation provider, identity
+  degrades safely to slug matching, and reconciliation merges only on very high
+  similarity.
 
 Reusable APIs: `get_embedder`, `EmbeddingStore`, `match_candidate`,
 `ingest_candidates`, and `reconcile_candidates`.

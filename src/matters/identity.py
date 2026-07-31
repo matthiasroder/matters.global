@@ -15,13 +15,14 @@ when later evidence resolves an open matter) is slice 2.
 
 import collections
 import hashlib
-import json
 import math
 import os
 import re
 
+from .llm import GenerationError, StructuredRequest, resolve_generator
+from .llm.legacy import LEGACY_DEFAULT_MODEL, coerce_generator
+
 DEFAULT_EMBED_MODEL = "minishlab/potion-retrieval-32M"
-LLM_DEFAULT_MODEL = "claude-sonnet-4-6"
 HIGH_THRESHOLD = 0.90
 LOW_THRESHOLD = 0.78
 
@@ -220,9 +221,12 @@ def match_candidate(
     *,
     high=HIGH_THRESHOLD,
     low=LOW_THRESHOLD,
+    generator=None,
     llm_client=None,
     model=None,
     top_k=10,
+    config_path=None,
+    llm_profile=None,
 ):
     """Decide whether ``text`` is an existing matter.
 
@@ -244,15 +248,32 @@ def match_candidate(
     best_id, best_score = neighbours[0]
     if best_score >= high:
         return Match("merge", best_id, best_score, vector)
-    if best_score < low or llm_client is None:
+    if best_score < low:
+        return Match("new", None, best_score, vector)
+
+    selection = resolve_generator(
+        "reconciliation",
+        injected=generator if generator is not None else llm_client,
+        config_path=config_path,
+        profile_override=llm_profile,
+        model_override=model,
+    )
+    if selection is None:
         return Match("new", None, best_score, vector)
 
     # Borderline band: ask the LLM whether any in-band neighbour is the same.
     for cand_id, score in neighbours:
         if score < low:
             break
-        if _llm_same_matter(text, store.text_of(cand_id), llm_client, model):
-            return Match("merge", cand_id, score, vector)
+        try:
+            if _llm_same_matter(
+                text, store.text_of(cand_id), selection.generator, selection.model
+            ):
+                return Match("merge", cand_id, score, vector)
+        except GenerationError:
+            if selection.on_unavailable != "skip":
+                raise
+            return Match("new", None, best_score, vector)
     return Match("new", None, best_score, vector)
 
 
@@ -263,10 +284,13 @@ def ingest_candidates(
     store,
     embedder,
     *,
+    generator=None,
     llm_client=None,
     high=HIGH_THRESHOLD,
     low=LOW_THRESHOLD,
     model=None,
+    config_path=None,
+    llm_profile=None,
 ):
     """Merge candidate matters into the graph by identity, returning an id map.
 
@@ -288,7 +312,16 @@ def ingest_candidates(
             continue
 
         match = match_candidate(
-            text, store, embedder, high=high, low=low, llm_client=llm_client, model=model
+            text,
+            store,
+            embedder,
+            high=high,
+            low=low,
+            generator=generator,
+            llm_client=llm_client,
+            model=model,
+            config_path=config_path,
+            llm_profile=llm_profile,
         )
         if match.action == "merge" and match.matter_id in matters:
             id_map[cid] = match.matter_id
@@ -323,26 +356,23 @@ SAME_MATTER_SYSTEM = (
 
 
 def _llm_same_matter(text_a, text_b, client, model=None):
-    model = model or os.environ.get("MATTERS_EXTRACT_MODEL") or LLM_DEFAULT_MODEL
-    response = client.messages.create(
-        model=model,
-        max_tokens=200,
-        system=SAME_MATTER_SYSTEM,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Matter A: {text_a}\n\nMatter B: {text_b}\n\n"
-                "Are A and B the same matter?",
-            }
-        ],
-        output_config={
-            "format": {"type": "json_schema", "schema": SAME_MATTER_SCHEMA}
-        },
+    effective_model = (
+        model or os.environ.get("MATTERS_EXTRACT_MODEL") or LEGACY_DEFAULT_MODEL
     )
-    text = next(
-        block.text for block in response.content if getattr(block, "type", None) == "text"
+    generator = coerce_generator(client, model=effective_model)
+    result = generator.generate(
+        StructuredRequest(
+            operation="identity-match",
+            system=SAME_MATTER_SYSTEM,
+            user=(
+                f"Matter A: {text_a}\n\nMatter B: {text_b}\n\n"
+                "Are A and B the same matter?"
+            ),
+            schema=SAME_MATTER_SCHEMA,
+            max_output_tokens=200,
+        )
     )
-    return bool(json.loads(text).get("same"))
+    return bool(result.data.get("same"))
 
 
 def _candidate_text(candidate):
@@ -448,7 +478,10 @@ def classify_relationship(
     new_text, new_status, existing_text, existing_conditions, llm_client, model=None
 ):
     """Classify how a new matter relates to one existing matter (LLM-judged)."""
-    model = model or os.environ.get("MATTERS_EXTRACT_MODEL") or LLM_DEFAULT_MODEL
+    effective_model = (
+        model or os.environ.get("MATTERS_EXTRACT_MODEL") or LEGACY_DEFAULT_MODEL
+    )
+    generator = coerce_generator(llm_client, model=effective_model)
     resolved = bool(existing_conditions) and all(
         c.get("truth") for c in existing_conditions
     )
@@ -465,17 +498,16 @@ def classify_relationship(
         f"EXISTING conditions:\n{cond_lines}\n\n"
         "Classify the relationship of NEW to EXISTING."
     )
-    response = llm_client.messages.create(
-        model=model,
-        max_tokens=400,
-        system=CLASSIFY_SYSTEM,
-        messages=[{"role": "user", "content": user}],
-        output_config={"format": {"type": "json_schema", "schema": CLASSIFY_SCHEMA}},
+    result = generator.generate(
+        StructuredRequest(
+            operation="reconciliation",
+            system=CLASSIFY_SYSTEM,
+            user=user,
+            schema=CLASSIFY_SCHEMA,
+            max_output_tokens=400,
+        )
     )
-    text = next(
-        b.text for b in response.content if getattr(b, "type", None) == "text"
-    )
-    data = json.loads(text)
+    data = result.data
     return Relationship(
         data.get("relation", "distinct"),
         data.get("direction", "none"),
@@ -491,10 +523,13 @@ def reconcile_candidates(
     store,
     embedder,
     *,
+    generator=None,
     llm_client=None,
     floor=CANDIDATE_FLOOR,
     top_k=3,
     model=None,
+    config_path=None,
+    llm_profile=None,
 ):
     """Merge / resolve / link / keep new matters against the existing graph.
 
@@ -505,8 +540,19 @@ def reconcile_candidates(
       - LINK      -> add a directed dependency edge between the two matters
       - DISTINCT  -> the new matter is added on its own
     new_edges is a list of (prerequisite, dependent); flips records what changed.
-    Without an llm_client, only very-high-similarity SAME merges happen.
+    Without a configured or injected generator, only very-high-similarity SAME
+    merges happen.
     """
+    injected = generator if generator is not None else llm_client
+    selection = resolve_generator(
+        "reconciliation",
+        injected=injected,
+        config_path=config_path,
+        profile_override=llm_profile,
+        model_override=model,
+    )
+    semantic_generator = selection.generator if selection else None
+
     matters = set(matters)
     conditions = dict(conditions)
     id_map = {}
@@ -533,23 +579,29 @@ def reconcile_candidates(
 
         results = []
         for nid, score in considered:
-            if llm_client is None:
+            if semantic_generator is None:
                 relation = "same" if score >= HIGH_THRESHOLD else "distinct"
                 results.append((nid, Relationship(relation, "none", [], "")))
             else:
-                results.append(
-                    (
-                        nid,
-                        classify_relationship(
-                            text,
-                            candidate.get("status", ""),
-                            store.text_of(nid),
-                            conditions.get(nid, []),
-                            llm_client,
-                            model,
-                        ),
+                try:
+                    relation = classify_relationship(
+                        text,
+                        candidate.get("status", ""),
+                        store.text_of(nid),
+                        conditions.get(nid, []),
+                        semantic_generator,
+                        selection.model,
                     )
-                )
+                except GenerationError:
+                    if selection.on_unavailable != "skip":
+                        raise
+                    relation = Relationship(
+                        "same" if score >= HIGH_THRESHOLD else "distinct",
+                        "none",
+                        [],
+                        "",
+                    )
+                results.append((nid, relation))
 
         same = []
         for nid, rel in results:

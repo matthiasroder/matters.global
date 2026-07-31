@@ -139,6 +139,8 @@ def test_cli_tots_passes_options_and_never_writes_state(
 ):
     state_path = tmp_path / "matters.json"
     context_path = tmp_path / "evidence.txt"
+    config_path = tmp_path / "config.toml"
+    config_path.write_text("")
     original = json.dumps(
         {
             "matters": ["open_question"],
@@ -186,6 +188,10 @@ def test_cli_tots_passes_options_and_never_writes_state(
                 "8",
                 "--model",
                 "test-model",
+                "--llm-profile",
+                "personal",
+                "--config",
+                str(config_path),
                 "--state",
                 str(state_path),
             ]
@@ -202,8 +208,49 @@ def test_cli_tots_passes_options_and_never_writes_state(
         "max_candidates": 5,
         "max_comparisons": 8,
         "model": "test-model",
+        "config_path": str(config_path),
+        "llm_profile": "personal",
     }
     assert state_path.read_text() == original
+
+
+def test_cli_config_path_accepts_global_option_before_command(tmp_path, capsys):
+    config_path = tmp_path / "config.toml"
+    config_path.write_text("")
+
+    assert main(["--config", str(config_path), "config", "path"]) == 0
+    assert capsys.readouterr().out.strip() == str(config_path)
+
+
+def test_cli_config_check_is_sanitized_and_does_not_load_state(
+    tmp_path, capsys, monkeypatch
+):
+    config_path = tmp_path / "config.toml"
+    config_path.write_text("")
+    received = {}
+
+    def fake_diagnostics(config, profile_name=None):
+        received["path"] = str(config.path)
+        received["profile"] = profile_name
+        return {"ready": True, "credential_available": True}
+
+    monkeypatch.setattr("matters.cli.config_diagnostics", fake_diagnostics)
+
+    assert (
+        main(
+            [
+                "config",
+                "check",
+                "--profile",
+                "personal",
+                "--config",
+                str(config_path),
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["ready"] is True
+    assert received == {"path": str(config_path), "profile": "personal"}
 
 
 def test_cli_tots_surfaces_actionable_error_without_writing_state(

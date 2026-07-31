@@ -1,9 +1,12 @@
 import json
+import traceback
 from types import SimpleNamespace
 
 import pytest
 
 from matters import (
+    Readiness,
+    StructuredResult,
     TotsError,
     build_tots_context,
     build_tots_proposal,
@@ -11,6 +14,11 @@ from matters import (
     reconcile_ordered_judgments,
     schedule_swiss_pairs,
     select_diverse_finalists,
+)
+
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Anthropic-shaped injected clients are deprecated.*:DeprecationWarning"
 )
 
 
@@ -162,6 +170,29 @@ class FakeStageClient:
         }
 
 
+class FakeStageGenerator:
+    provider = "fake-provider"
+    model = "fake-model"
+
+    def __init__(self):
+        self.client = FakeStageClient()
+
+    def check(self):
+        return Readiness(self.provider, self.model, True, "fake", True, True)
+
+    def generate(self, request):
+        response = self.client._create(
+            model=self.model,
+            max_tokens=request.max_output_tokens,
+            system=request.system,
+            messages=[{"role": "user", "content": request.user}],
+            output_config={"format": {"type": "json_schema", "schema": request.schema}},
+        )
+        return StructuredResult(
+            json.loads(response.content[0].text), self.provider, self.model
+        )
+
+
 def test_context_contains_false_conditions_and_bounded_ancestry():
     matters, conditions, dependencies = graph_state()
 
@@ -184,6 +215,45 @@ def test_context_contains_false_conditions_and_bounded_ancestry():
         "text": "second line",
     }
     assert "truncated" in context["warnings"][0]
+
+
+def test_tots_accepts_provider_neutral_generator():
+    matters, conditions, dependencies = graph_state()
+    result = build_tots_proposal(
+        "target",
+        matters,
+        conditions,
+        dependencies,
+        breadth=2,
+        depth=1,
+        max_candidates=2,
+        max_comparisons=2,
+        generator=FakeStageGenerator(),
+    )
+
+    assert result["provider"] == "fake-provider"
+    assert result["model"] == "fake-model"
+    assert result["model_profile"] == "injected"
+
+
+def test_legacy_tots_client_uses_workflow_model_environment(monkeypatch):
+    matters, conditions, dependencies = graph_state()
+    monkeypatch.setenv("MATTERS_TOTS_MODEL", "tots-environment-model")
+    client = FakeStageClient()
+
+    build_tots_proposal(
+        "target",
+        matters,
+        conditions,
+        dependencies,
+        breadth=2,
+        depth=1,
+        max_candidates=2,
+        max_comparisons=2,
+        client=client,
+    )
+
+    assert {call["model"] for call in client.calls} == {"tots-environment-model"}
 
 
 def test_unknown_resolved_and_cyclic_targets_fail_before_model_use():
@@ -271,6 +341,7 @@ def test_full_search_builds_bounded_immutable_tree_and_uses_complete_budget():
         dependencies,
         context_text="Observed result\nContradicting result",
         client=client,
+        model="test-model",
     )
 
     assert result["ranking_semantics"] == "search_priority_not_truth"
@@ -292,7 +363,9 @@ def test_full_search_builds_bounded_immutable_tree_and_uses_complete_budget():
     assert all(
         node["validation"]["status"] == "viable" for node in result["tree"]
     )
-    assert {call["model"] for call in client.calls} == {"claude-sonnet-4-6"}
+    assert {call["model"] for call in client.calls} == {"test-model"}
+    assert result["provider"] == "legacy-messages-client"
+    assert result["model_profile"] == "injected"
 
 
 def test_external_hard_failure_excludes_candidate_from_tournament():
@@ -438,19 +511,17 @@ def test_rejected_children_do_not_replace_viable_parents():
     )
 
 
-def test_malformed_expansion_entry_does_not_hide_later_valid_children():
+def test_schema_invalid_expansion_is_rejected_at_model_boundary():
     matters, conditions, dependencies = graph_state()
 
-    result = build_tots_proposal(
-        "target",
-        matters,
-        conditions,
-        dependencies,
-        client=FakeStageClient(malformed_child_entry=True),
-    )
-
-    assert len(result["tree"]) == 8
-    assert all(isinstance(node, dict) for node in result["tree"])
+    with pytest.raises(TotsError, match="expansion model response was not valid JSON"):
+        build_tots_proposal(
+            "target",
+            matters,
+            conditions,
+            dependencies,
+            client=FakeStageClient(malformed_child_entry=True),
+        )
 
 
 def test_model_boundary_reports_stage_without_leaking_provider_detail():
@@ -465,8 +536,11 @@ def test_model_boundary_reports_stage_without_leaking_provider_detail():
             client=FakeStageClient(error_stage="generation"),
         )
     assert "secret provider detail" not in str(error.value)
+    assert "secret provider detail" not in "".join(
+        traceback.format_exception(error.value)
+    )
 
-    with pytest.raises(TotsError, match="not valid JSON"):
+    with pytest.raises(TotsError, match="not valid JSON") as malformed_error:
         build_tots_proposal(
             "target",
             matters,
@@ -474,6 +548,10 @@ def test_model_boundary_reports_stage_without_leaking_provider_detail():
             dependencies,
             client=FakeStageClient(malformed_stage="generation"),
         )
+    assert "not json" not in str(malformed_error.value)
+    assert "not json" not in "".join(
+        traceback.format_exception(malformed_error.value)
+    )
 
 
 def test_configuration_rejects_unconnected_comparison_budget():
@@ -491,26 +569,19 @@ def test_configuration_rejects_unconnected_comparison_budget():
         )
 
 
-def test_missing_model_credentials_fail_explicitly(monkeypatch):
+def test_missing_model_profile_fails_explicitly(monkeypatch, tmp_path):
     matters, conditions, dependencies = graph_state()
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    monkeypatch.setattr("matters.llm.config.user_config_dir", lambda _name: str(tmp_path))
 
-    with pytest.raises(TotsError, match="ANTHROPIC_API_KEY"):
+    with pytest.raises(TotsError, match="no model profile configured"):
         build_tots_proposal("target", matters, conditions, dependencies)
 
 
-def test_client_initialization_failure_is_redacted(monkeypatch):
-    import anthropic
-
+def test_api_key_does_not_silently_select_tots_provider(monkeypatch, tmp_path):
     matters, conditions, dependencies = graph_state()
+    monkeypatch.setattr("matters.llm.config.user_config_dir", lambda _name: str(tmp_path))
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
-    def fail_initialization():
-        raise RuntimeError("secret client configuration")
-
-    monkeypatch.setattr(anthropic, "Anthropic", fail_initialization)
-
-    with pytest.raises(TotsError, match="client initialization failed") as error:
+    with pytest.raises(TotsError, match="no model profile configured") as error:
         build_tots_proposal("target", matters, conditions, dependencies)
-    assert "secret client configuration" not in str(error.value)
+    assert "test-key" not in str(error.value)

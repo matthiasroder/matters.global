@@ -1,6 +1,8 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+
 from matters import (
     EmbeddingStore,
     FakeEmbedder,
@@ -9,6 +11,17 @@ from matters import (
     reconcile_candidates,
 )
 from matters.identity import _candidate_text
+from matters.llm import AuthenticationError, Readiness, StructuredResult
+
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Anthropic-shaped injected clients are deprecated.*:DeprecationWarning"
+)
+
+
+@pytest.fixture(autouse=True)
+def isolate_user_llm_config(tmp_path, monkeypatch):
+    monkeypatch.setattr("matters.llm.config.user_config_dir", lambda _name: str(tmp_path))
 
 
 class StubEmbedder:
@@ -166,6 +179,37 @@ def fake_classifier(relation, direction="none", satisfied=None, reason=""):
     return SimpleNamespace(messages=SimpleNamespace(create=create))
 
 
+def test_direct_classify_relationship_preserves_legacy_model_precedence(monkeypatch):
+    calls = []
+    payload = {
+        "relation": "distinct",
+        "direction": "none",
+        "satisfied_condition_indices": [],
+        "reason": "different",
+    }
+
+    def create(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(
+            content=[SimpleNamespace(type="text", text=json.dumps(payload))]
+        )
+
+    client = SimpleNamespace(messages=SimpleNamespace(create=create))
+    monkeypatch.delenv("MATTERS_EXTRACT_MODEL", raising=False)
+    from matters import classify_relationship
+
+    classify_relationship("new", "open", "existing", [], client)
+    monkeypatch.setenv("MATTERS_EXTRACT_MODEL", "identity-environment-model")
+    classify_relationship("new", "open", "existing", [], client)
+    classify_relationship("new", "open", "existing", [], client, "explicit-model")
+
+    assert [call["model"] for call in calls] == [
+        "claude-sonnet-4-6",
+        "identity-environment-model",
+        "explicit-model",
+    ]
+
+
 def prepared_store_with_A():
     emb = StubEmbedder(VECS)
     store = EmbeddingStore()
@@ -248,6 +292,74 @@ def test_reconcile_no_llm_merges_only_on_high_similarity():
         llm_client=None,
     )
     assert id_map2[C["id"]] == C["id"]  # cos 0.8 < high -> new
+
+
+def test_reconciliation_uses_provider_neutral_generator():
+    class Generator:
+        provider = "fake-provider"
+        model = "fake-model"
+
+        def __init__(self):
+            self.requests = []
+
+        def check(self):
+            return Readiness(self.provider, self.model, True, "fake", True, True)
+
+        def generate(self, request):
+            self.requests.append(request)
+            return StructuredResult(
+                {
+                    "relation": "link",
+                    "direction": "new_before_existing",
+                    "satisfied_condition_indices": [],
+                    "reason": "directly related",
+                },
+                self.provider,
+                self.model,
+            )
+
+    emb, store = prepared_store_with_A()
+    generator = Generator()
+    _, _, _, edges, _ = reconcile_candidates(
+        [C],
+        {A["id"]},
+        {A["id"]: [{"label": "c", "truth": False}]},
+        store,
+        emb,
+        generator=generator,
+    )
+
+    assert [request.operation for request in generator.requests] == ["reconciliation"]
+    assert edges == [(C["id"], A["id"])]
+
+
+def test_reconciliation_skip_fallback_handles_provider_failure():
+    class UnavailableGenerator:
+        provider = "fake-provider"
+        model = "fake-model"
+
+        def check(self):
+            return Readiness(
+                self.provider, self.model, False, "fake", True, False
+            )
+
+        def generate(self, request):
+            raise AuthenticationError(self.provider, request.operation)
+
+    emb, store = prepared_store_with_A()
+    matters, _, id_map, edges, flips = reconcile_candidates(
+        [C],
+        {A["id"]},
+        {A["id"]: [{"label": "c", "truth": False}]},
+        store,
+        emb,
+        generator=UnavailableGenerator(),
+    )
+
+    assert C["id"] in matters
+    assert id_map[C["id"]] == C["id"]
+    assert edges == []
+    assert flips == []
 
 
 def test_guard_blocks_same_across_role_status_even_when_llm_says_same():

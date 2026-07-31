@@ -13,14 +13,26 @@ authors = [
   { name = "Matthias Roeder" }
 ]
 dependencies = [
-  "anthropic>=0.40",
+  "jsonschema>=4.20",
   "numpy>=1.24",
   "model2vec>=0.3",
+  "platformdirs>=4.0",
+  "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
 test = [
   "pytest>=9",
+]
+anthropic = [
+  "anthropic>=0.117",
+]
+openai = [
+  "openai>=2.51",
+]
+providers = [
+  "anthropic>=0.117",
+  "openai>=2.51",
 ]
 
 [project.scripts]

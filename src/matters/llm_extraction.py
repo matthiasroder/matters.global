@@ -6,17 +6,16 @@ model to surface the source's actual claims, contributions, and findings as
 matters, with evidence-grounded conditions and semantic dependency candidates.
 
 The marker extractor stays the offline fallback: ``build_extraction_proposal``
-uses the LLM when an API key is available and degrades to the marker engine on
-any failure, so callers always get a valid proposal in the existing contract.
+uses the configured extraction profile and degrades according to that
+workflow's configured fallback mode.
 """
 
-import importlib.util
-import json
-import os
-
 from .extraction import dedupe_candidates, extraction_proposal, slugify
+from .llm import ConfigError, GenerationError, StructuredRequest, resolve_generator
 
 
+# Import compatibility for existing scripts that explicitly inject Anthropic.
+# Provider-neutral workflow selection does not consult this constant.
 DEFAULT_MODEL = "claude-sonnet-4-6"
 
 MATTER_KINDS = (
@@ -154,27 +153,44 @@ def build_extraction_proposal(
     existing_matters=(),
     *,
     use_llm=True,
+    generator=None,
     client=None,
     model=None,
+    config_path=None,
+    llm_profile=None,
 ):
     """Return an extraction proposal, preferring the LLM engine.
 
-    Falls back to the deterministic marker engine when the LLM is unavailable
-    (no SDK, no API key) or fails (auth error, API error, unparseable output),
-    so the caller always receives a valid proposal in the standard contract.
+    Falls back to the deterministic marker engine when no profile is selected,
+    or when the selected extraction workflow uses ``on_unavailable = "marker"``
+    and semantic generation fails.
     """
-    if use_llm and (client is not None or _llm_available()):
+    if not use_llm:
+        return _marker_proposal(source_text, source_type, existing_matters)
+
+    injected = generator if generator is not None else client
+    selection = resolve_generator(
+        "extraction",
+        injected=injected,
+        config_path=config_path,
+        profile_override=llm_profile,
+        model_override=model,
+    )
+
+    if selection is not None:
         try:
             return llm_extraction_proposal(
                 source_text,
                 source_type,
                 existing_matters,
-                client=client,
-                model=model,
+                generator=selection.generator,
+                selection=selection,
             )
         except Exception as error:  # noqa: BLE001 - any failure degrades gracefully
+            if selection.on_unavailable != "marker":
+                raise
             proposal = _marker_proposal(source_text, source_type, existing_matters)
-            proposal["fallback_reason"] = f"{type(error).__name__}: {error}"
+            proposal["fallback_reason"] = _safe_error(error)
             return proposal
 
     return _marker_proposal(source_text, source_type, existing_matters)
@@ -185,34 +201,41 @@ def llm_extraction_proposal(
     source_type="text",
     existing_matters=(),
     *,
+    generator=None,
     client=None,
     model=None,
+    config_path=None,
+    llm_profile=None,
+    selection=None,
 ):
     """Extract candidate matters with an LLM and return a standard proposal.
 
-    ``client`` is any object exposing ``messages.create(...)`` like the Anthropic
-    SDK client; injecting a fake keeps this fully testable offline. A real client
-    is constructed lazily only when one is not provided.
+    ``generator`` implements the provider-neutral StructuredGenerator protocol.
+    ``client`` temporarily accepts the legacy Anthropic-shaped injection contract.
     """
-    client = client or _default_client()
-    model = model or os.environ.get("MATTERS_EXTRACT_MODEL") or DEFAULT_MODEL
+    if selection is None:
+        injected = generator if generator is not None else client
+        selection = resolve_generator(
+            "extraction",
+            injected=injected,
+            config_path=config_path,
+            profile_override=llm_profile,
+            model_override=model,
+        )
+    if selection is None:
+        raise ConfigError("extraction: no model profile configured")
 
-    response = client.messages.create(
-        model=model,
-        max_tokens=4096,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": _user_content(source_text, source_type, existing_matters),
-            }
-        ],
-        output_config={
-            "format": {"type": "json_schema", "schema": EXTRACTION_SCHEMA}
-        },
+    result = selection.generator.generate(
+        StructuredRequest(
+            operation="extraction",
+            system=SYSTEM_PROMPT,
+            user=_user_content(source_text, source_type, existing_matters),
+            schema=EXTRACTION_SCHEMA,
+            max_output_tokens=4096,
+            metadata={"source_type": source_type},
+        )
     )
-
-    data = json.loads(_response_text(response))
+    data = dict(result.data)
     candidates = _candidates_from_llm(data, source_type)
     candidate_ids = [candidate["id"] for candidate in candidates]
     dependency_candidates = _dependencies_from_llm(
@@ -225,7 +248,9 @@ def llm_extraction_proposal(
         "dependency_candidates": dependency_candidates,
         "requires_confirmation": True,
         "engine": "llm",
-        "model": model,
+        "model": result.model,
+        "provider": result.provider,
+        "model_profile": selection.profile,
     }
 
 
@@ -341,22 +366,25 @@ def _user_content(source_text, source_type, existing_matters):
     )
 
 
-def _response_text(response):
-    for block in response.content:
-        if getattr(block, "type", None) == "text":
-            return block.text
-    raise ValueError("LLM response contained no text block")
+def _llm_available(*, config_path=None, llm_profile=None):
+    """Return whether configuration selects an extraction provider.
 
-
-def _default_client():
-    import anthropic
-
-    return anthropic.Anthropic()
-
-
-def _llm_available():
-    if importlib.util.find_spec("anthropic") is None:
+    API keys alone deliberately do not activate billable model calls.
+    """
+    try:
+        return (
+            resolve_generator(
+                "extraction",
+                config_path=config_path,
+                profile_override=llm_profile,
+            )
+            is not None
+        )
+    except ConfigError:
         return False
-    return bool(
-        os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
-    )
+
+
+def _safe_error(error):
+    if isinstance(error, (GenerationError, ConfigError)):
+        return f"{type(error).__name__}: {error}"
+    return f"{type(error).__name__}: extraction model failed"

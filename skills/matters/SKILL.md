@@ -56,7 +56,7 @@ Use this workflow when the user asks to unlock, advance, resolve, or work toward
 
 Use this workflow when the user asks to extract matters from a PDF, AI conversation, blog post, notes, pasted text, or another source.
 
-Extraction has two engines. The LLM engine (default when `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is set) reads prose and is the right choice for scientific papers and other unstructured text; it returns evidence-grounded conditions and semantic dependency candidates. The deterministic marker engine recognizes explicit `Goal:`/`Problem:`/`Decision:`/`Risk:`/`Responsibility:`/`Matter:` lines and runs offline. Selection is automatic with fallback to the marker engine when no key is present or the API call fails; the proposal's `engine` field records which one ran. Force the marker engine with `--no-llm`.
+Extraction has two engines. The LLM engine runs when an `extraction` model profile is configured and is the right choice for scientific papers and other unstructured text; it returns evidence-grounded conditions and semantic dependency candidates. Profiles may use Codex with ChatGPT authentication, OpenAI, or Anthropic. The deterministic marker engine recognizes explicit `Goal:`/`Problem:`/`Decision:`/`Risk:`/`Responsibility:`/`Matter:` lines and runs offline. Extraction falls back to marker mode when no profile is selected or the configured provider is unavailable; the proposal's `engine` field records which one ran. Force the marker engine with `--no-llm`.
 
 1. Convert the source to readable text first. For PDFs or documents, use an available parser or export path before extraction.
 2. Extract candidate matters with stable ids, clear names, short descriptions, and observable resolution conditions with truth states grounded in the source. Resolved findings or delivered methods may have true conditions; open questions, gaps, risks, or goals should retain false conditions for what remains unresolved.
@@ -80,10 +80,11 @@ graph.
 7. Preserve distinct finalist directions instead of selecting several paraphrases of the same hypothesis.
 8. Do not add a finalist to the Matters graph until the user separately confirms the exact matter, conditions, and dependencies.
 
-ToTs requires `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN`. It has no marker
-fallback. Its default bounds are breadth 4, depth 2, eight total candidates, and
-24 ordered comparisons. Increase them only when the additional model cost and
-latency are justified.
+ToTs requires a configured `tots` model profile and has no marker fallback. Use
+`matters config check` to inspect readiness without generating content. Its
+default bounds are breadth 4, depth 2, eight total candidates, and 24 ordered
+comparisons. Increase them only when the additional model cost and latency are
+justified.
 
 ## Public Sharing Workflow
 
@@ -144,8 +145,8 @@ Do not persist exploratory conversation by default. Persist when the user is man
 - Persist each condition as an object with `label` and `truth`; do not save new conditions as bare booleans.
 - Treat legacy boolean conditions as unlabeled data that must be normalized before saving; callable condition predicates are runtime-only.
 - For unlock-style reports, prefer `matters unlock --state <path>` when the CLI is installed, or the `unlock_report` API from the `matters` package when working from source.
-- For extraction, prefer `matters extract <source-text-file> --source-type <kind> --state <path>` when the CLI is installed, or the `build_extraction_proposal` API from the `matters` package when working from source. `build_extraction_proposal` runs the LLM engine when a key is available and falls back to the deterministic `extraction_proposal` marker engine; pass `use_llm=False` (or `--no-llm`) to force the marker engine, and inject a `client` to test without network access.
-- For hypothesis exploration, prefer `matters tots <matter-id> --state <path> [--context <text-file>]`, or `build_tots_proposal` from the package. The library accepts an injected model client and optional external evaluator for offline tests and tool-backed checks. Treat `finalists` as proposals requiring confirmation.
+- For extraction, prefer `matters extract <source-text-file> --source-type <kind> --state <path>` when the CLI is installed, or the `build_extraction_proposal` API from the `matters` package when working from source. `build_extraction_proposal` runs the configured profile and falls back to the deterministic `extraction_proposal` marker engine; pass `use_llm=False` (or `--no-llm`) to force marker mode, and inject a `StructuredGenerator` to test without network access.
+- For hypothesis exploration, prefer `matters tots <matter-id> --state <path> [--context <text-file>]`, or `build_tots_proposal` from the package. The library accepts an injected `StructuredGenerator` and optional external evaluator for offline tests and tool-backed checks. Treat `finalists` as proposals requiring confirmation.
 - For public sharing, prefer `matters export-public --state <private-state> --visibility <visibility.json>`, or the `public_state` API from the `matters` package when working from source.
 - For public edit intake, prefer `matters merge-public --state <private-state> --public-state <public-state> --visibility <visibility.json>`, or the `merge_public_state` API from the `matters` package when working from source.
 - If `matters` is not installed, ask the user to install the `matters.global` package before performing persisted operations:

@@ -3,8 +3,18 @@ from types import SimpleNamespace
 
 import pytest
 
-from matters import build_extraction_proposal, llm_extraction_proposal
+from matters import (
+    Readiness,
+    StructuredResult,
+    build_extraction_proposal,
+    llm_extraction_proposal,
+)
 from matters.llm_extraction import _llm_available
+
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Anthropic-shaped injected clients are deprecated.*:DeprecationWarning"
+)
 
 
 class FakeClient:
@@ -42,8 +52,14 @@ PAPER_PAYLOAD = {
             "description": "A four-week intervention increased fluency 23% vs controls.",
             "status": "resolved",
             "conditions": [
-                {"label": "Effect replicates beyond the 120-student sample"},
-                {"label": "Fluency gain holds at p < 0.05 against a control group"},
+                {
+                    "label": "Effect replicates beyond the 120-student sample",
+                    "truth": True,
+                },
+                {
+                    "label": "Fluency gain holds at p < 0.05 against a control group",
+                    "truth": True,
+                },
             ],
         },
         {
@@ -52,7 +68,10 @@ PAPER_PAYLOAD = {
             "description": "Gains did not carry to a domain-general insight task.",
             "status": "open",
             "conditions": [
-                {"label": "Transfer is measured on an independent insight task"},
+                {
+                    "label": "Transfer is measured on an independent insight task",
+                    "truth": False,
+                },
             ],
         },
     ],
@@ -89,6 +108,8 @@ def test_llm_proposal_maps_structured_response():
 
     assert proposal["engine"] == "llm"
     assert proposal["model"] == "claude-sonnet-4-6"
+    assert proposal["provider"] == "legacy-messages-client"
+    assert proposal["model_profile"] == "injected"
     assert proposal["source_type"] == "paper"
     assert proposal["requires_confirmation"] is True
 
@@ -109,6 +130,30 @@ def test_llm_proposal_maps_structured_response():
         condition["truth"] is False
         for condition in proposal["candidates"][1]["conditions"]
     )
+
+
+def test_extraction_accepts_provider_neutral_generator():
+    class FakeGenerator:
+        provider = "fake-provider"
+        model = "fake-model"
+
+        def __init__(self):
+            self.requests = []
+
+        def check(self):
+            return Readiness(self.provider, self.model, True, "fake", True, True)
+
+        def generate(self, request):
+            self.requests.append(request)
+            return StructuredResult(PAPER_PAYLOAD, self.provider, self.model)
+
+    generator = FakeGenerator()
+    proposal = llm_extraction_proposal("source", generator=generator)
+
+    assert generator.requests[0].operation == "extraction"
+    assert proposal["provider"] == "fake-provider"
+    assert proposal["model"] == "fake-model"
+    assert proposal["model_profile"] == "injected"
 
 
 def test_llm_proposal_resolves_and_drops_dependencies():
@@ -142,6 +187,22 @@ def test_llm_proposal_sends_schema_and_model_to_client():
     assert call["model"] == "claude-opus-4-8"
     assert call["output_config"]["format"]["type"] == "json_schema"
     assert "candidates" in call["output_config"]["format"]["schema"]["properties"]
+
+
+def test_legacy_client_model_precedence(monkeypatch):
+    monkeypatch.delenv("MATTERS_EXTRACT_MODEL", raising=False)
+    default_client = FakeClient(PAPER_PAYLOAD)
+    llm_extraction_proposal("text", client=default_client)
+    assert default_client.calls[0]["model"] == "claude-sonnet-4-6"
+
+    monkeypatch.setenv("MATTERS_EXTRACT_MODEL", "environment-model")
+    environment_client = FakeClient(PAPER_PAYLOAD)
+    llm_extraction_proposal("text", client=environment_client)
+    assert environment_client.calls[0]["model"] == "environment-model"
+
+    explicit_client = FakeClient(PAPER_PAYLOAD)
+    llm_extraction_proposal("text", client=explicit_client, model="explicit-model")
+    assert explicit_client.calls[0]["model"] == "explicit-model"
 
 
 def test_llm_proposal_supplies_default_conditions_when_missing():
@@ -202,14 +263,21 @@ def test_llm_condition_defaults_follow_candidate_status():
                 "kind": "finding",
                 "description": "The paper establishes the finding.",
                 "status": "resolved",
-                "conditions": [{"label": "Finding is established by the source"}],
+                "conditions": [
+                    {"label": "Finding is established by the source", "truth": True}
+                ],
             },
             {
                 "name": "Open limitation",
                 "kind": "problem",
                 "description": "The paper leaves this unresolved.",
                 "status": "open",
-                "conditions": [{"label": "Limitation is resolved in follow-up work"}],
+                "conditions": [
+                    {
+                        "label": "Limitation is resolved in follow-up work",
+                        "truth": False,
+                    }
+                ],
             },
             {
                 "name": "Mixed explicit truth",
@@ -249,7 +317,8 @@ def test_build_falls_back_to_marker_on_llm_error():
     )
 
     assert proposal["engine"] == "marker"
-    assert "RuntimeError" in proposal["fallback_reason"]
+    assert "GenerationError" in proposal["fallback_reason"]
+    assert "api exploded" not in proposal["fallback_reason"]
     assert proposal["candidates"][0]["id"] == "build_shared_matter_map"
     assert proposal["requires_confirmation"] is True
 
@@ -266,7 +335,7 @@ def test_build_falls_back_on_unparseable_output():
     proposal = build_extraction_proposal("Goal: X\n", client=bad)
 
     assert proposal["engine"] == "marker"
-    assert "JSONDecodeError" in proposal["fallback_reason"]
+    assert "InvalidStructuredResponseError" in proposal["fallback_reason"]
 
 
 def test_build_uses_marker_when_no_key(monkeypatch):
@@ -292,6 +361,6 @@ def test_no_llm_flag_never_calls_client():
     assert proposal["candidates"][0]["id"] == "build_shared_matter_map"
 
 
-def test_llm_available_true_with_key(monkeypatch):
+def test_api_key_alone_does_not_activate_llm(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
-    assert _llm_available() is True
+    assert _llm_available() is False

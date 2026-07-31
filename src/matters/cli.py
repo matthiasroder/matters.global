@@ -7,6 +7,13 @@ import sys
 from .engine import frontier, horizon, universe
 from .extraction import slugify
 from .llm_extraction import build_extraction_proposal
+from .llm import (
+    ConfigError,
+    GenerationError,
+    config_diagnostics,
+    load_config,
+    resolve_config_path,
+)
 from .reports import format_unlock_report, unlock_report
 from .sharing import merge_public_state, public_state
 from .storage import load_state, resolve_state_path, save_state
@@ -15,10 +22,18 @@ from .tots import TotsError, build_tots_proposal
 
 def main(argv=None):
     state_parent = argparse.ArgumentParser(add_help=False)
-    state_parent.add_argument("--state", help="Path to matters JSON state file.")
+    state_parent.add_argument(
+        "--state", default=argparse.SUPPRESS, help="Path to matters JSON state file."
+    )
+    state_parent.add_argument(
+        "--config",
+        default=argparse.SUPPRESS,
+        help="Path to Matters TOML configuration.",
+    )
 
     parser = argparse.ArgumentParser(prog="matters")
     parser.add_argument("--state", help="Path to matters JSON state file.")
+    parser.add_argument("--config", help="Path to Matters TOML configuration.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser(
@@ -68,8 +83,12 @@ def main(argv=None):
     extract_parser.add_argument(
         "--model",
         default=None,
-        help="Override the extraction model id (default: claude-sonnet-4-6 or "
-        "MATTERS_EXTRACT_MODEL).",
+        help="Override the extraction profile's model id.",
+    )
+    extract_parser.add_argument(
+        "--llm-profile",
+        default=None,
+        help="Select a configured model profile for extraction.",
     )
     extract_parser.add_argument(
         "--no-llm",
@@ -92,12 +111,35 @@ def main(argv=None):
     tots_parser.add_argument(
         "--model",
         default=None,
-        help="Override the ToTs model id (default: claude-sonnet-4-6 or MATTERS_TOTS_MODEL).",
+        help="Override the ToTs profile's model id.",
+    )
+    tots_parser.add_argument(
+        "--llm-profile",
+        default=None,
+        help="Select a configured model profile for ToTs.",
     )
     tots_parser.add_argument("--breadth", type=int, default=4)
     tots_parser.add_argument("--depth", type=int, default=2)
     tots_parser.add_argument("--max-candidates", type=int, default=8)
     tots_parser.add_argument("--max-comparisons", type=int, default=24)
+
+    config_parser = subparsers.add_parser(
+        "config",
+        parents=[state_parent],
+        help="Inspect model-provider configuration without generating content.",
+    )
+    config_subparsers = config_parser.add_subparsers(
+        dest="config_command", required=True
+    )
+    config_subparsers.add_parser(
+        "path", parents=[state_parent], help="Print the resolved configuration path."
+    )
+    config_check_parser = config_subparsers.add_parser(
+        "check", parents=[state_parent], help="Print sanitized provider readiness."
+    )
+    config_check_parser.add_argument(
+        "--profile", default=None, help="Check only one named profile."
+    )
 
     export_public_parser = subparsers.add_parser(
         "export-public",
@@ -159,6 +201,22 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
+    if args.command == "config":
+        try:
+            if args.config_command == "path":
+                path, _ = resolve_config_path(args.config)
+                print(path)
+            else:
+                config = load_config(args.config)
+                print(
+                    json.dumps(
+                        config_diagnostics(config, profile_name=args.profile), indent=2
+                    )
+                )
+        except ConfigError as error:
+            parser.error(str(error))
+        return 0
+
     if args.command == "state-path":
         print(resolve_state_path(args.state))
         return 0
@@ -195,18 +253,19 @@ def main(argv=None):
 
     if args.command == "extract":
         source_text = read_source_text(args.source)
-        print(
-            json.dumps(
-                build_extraction_proposal(
-                    source_text,
-                    source_type=args.source_type,
-                    existing_matters=matters,
-                    use_llm=args.use_llm,
-                    model=args.model,
-                ),
-                indent=2,
+        try:
+            proposal = build_extraction_proposal(
+                source_text,
+                source_type=args.source_type,
+                existing_matters=matters,
+                use_llm=args.use_llm,
+                model=args.model,
+                config_path=args.config,
+                llm_profile=args.llm_profile,
             )
-        )
+        except (ConfigError, GenerationError, TypeError) as error:
+            parser.error(str(error))
+        print(json.dumps(proposal, indent=2))
         return 0
 
     if args.command == "tots":
@@ -223,6 +282,8 @@ def main(argv=None):
                 max_candidates=args.max_candidates,
                 max_comparisons=args.max_comparisons,
                 model=args.model,
+                config_path=args.config,
+                llm_profile=args.llm_profile,
             )
         except TotsError as error:
             parser.error(str(error))

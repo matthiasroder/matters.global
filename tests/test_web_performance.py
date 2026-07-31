@@ -8,12 +8,12 @@ from matters.web import graph_payload
 KENETT_GRAPH = (
     Path(__file__).parents[1]
     / "examples"
-    / "kenett_creativity"
+    / "creativity_matters_graph"
     / "creativity_graph.json"
 )
 
 
-def test_kenett_graph_payload_median_is_under_500_ms():
+def test_creativity_matters_graph_payload_median_is_under_500_ms():
     graph_payload(KENETT_GRAPH)
 
     timings = []

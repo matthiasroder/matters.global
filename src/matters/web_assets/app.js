@@ -2,7 +2,7 @@ import cytoscape from "https://cdn.jsdelivr.net/npm/cytoscape@3.34.0/+esm";
 import dagre from "https://cdn.jsdelivr.net/npm/cytoscape-dagre@4.0.0/+esm";
 import { FitAddon } from "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/+esm";
 import { Terminal } from "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm";
-import { createOverviewRenderer } from "./map-renderer.js?v=overview-v1";
+import { createOverviewRenderer } from "./map-renderer.js?v=overview-v4";
 
 cytoscape.use(dagre);
 
@@ -653,7 +653,7 @@ function renderInspector() {
     if (coordinates) {
       const metadata = document.createElement("span");
       metadata.className = "overview-metadata";
-      metadata.textContent = `Depth ${coordinates.depth} · ${coordinates.downstream_impact} downstream`;
+      metadata.textContent = `Orbit ${coordinates.orbit_level} · Depth ${coordinates.depth} · ${coordinates.downstream_impact} downstream`;
       overviewActions.append(metadata);
     }
   }

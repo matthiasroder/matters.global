@@ -20,8 +20,8 @@ const CAMERA_LIMITS = {
 };
 
 const DEFAULT_CAMERA = Object.freeze({
-  yaw: -0.62,
-  pitch: -0.22,
+  yaw: -0.34,
+  pitch: -1.05,
   zoom: 1,
   panX: 0,
   panY: 0
@@ -39,8 +39,8 @@ const EMPTY_MODEL = Object.freeze({
 });
 
 const EDGE_STYLES = Object.freeze({
-  faded: { color: PALETTE.line, alpha: 0.055, width: 0.75, arrows: false, arrowSize: 0 },
-  normal: { color: PALETTE.line, alpha: 0.24, width: 0.75, arrows: true, arrowSize: 3.2 },
+  faded: { color: PALETTE.line, alpha: 0.025, width: 0.75, arrows: false, arrowSize: 0 },
+  normal: { color: PALETTE.line, alpha: 0.085, width: 0.75, arrows: true, arrowSize: 3.2 },
   focused: { color: PALETTE.gold, alpha: 0.76, width: 1.45, arrows: true, arrowSize: 4.5 },
   dependent: { color: PALETTE.actionable, alpha: 0.76, width: 1.45, arrows: true, arrowSize: 4.5 },
   derived: { color: PALETTE.derived, alpha: 0.76, width: 1.45, arrows: true, arrowSize: 4.5 }
@@ -49,6 +49,7 @@ const EDGE_STYLES = Object.freeze({
 const MOTION_SETTLE_MS = 110;
 const OVERLAP_GRID_SIZE = 64;
 const NODE_DEPTH_BANDS = 8;
+const LARGE_GRAPH_THRESHOLD = 180;
 
 /**
  * A small, dependency-free canvas renderer for the stable overview coordinates.
@@ -243,7 +244,9 @@ export function createOverviewRenderer({
     projectNodes();
     if (!moving) {
       classifyNodeOverlaps();
-      drawDepthGuides(projectedNodes);
+      drawSystemBoundaries(projectedNodes);
+      drawOrbitGuides(projectedNodes);
+      drawSunHalos(projectedNodes);
     }
     drawEdges(moving);
     if (moving) {
@@ -252,7 +255,7 @@ export function createOverviewRenderer({
       drawSettledNodes();
     }
     if (!moving) drawLabels(projectedNodes, emphasis);
-    if (hoverNode && !moving) drawTooltip(hoverNode.projected);
+    if (hoverNode && !hoverNode.projected.hidden && !moving) drawTooltip(hoverNode.projected);
   }
 
   function drawAtmosphere(moving) {
@@ -301,30 +304,74 @@ export function createOverviewRenderer({
     backgroundContext.restore();
   }
 
-  function drawDepthGuides(projected) {
-    const byLayer = new Map();
+  function drawOrbitGuides(projected) {
+    const rings = new Map();
     projected.forEach((node) => {
-      const layer = node.node.layer;
-      const current = byLayer.get(layer);
-      if (!current) {
-        byLayer.set(layer, { minX: node.x, maxX: node.x, y: node.y, totalY: node.y, count: 1 });
-      } else {
-        current.minX = Math.min(current.minX, node.x);
-        current.maxX = Math.max(current.maxX, node.x);
-        current.totalY += node.y;
-        current.count += 1;
-      }
+      if (node.hidden) return;
+      if (node.node.systemCount !== 1 || node.node.orbitRadius <= 0) return;
+      const key = `${node.node.systemId}\0${node.node.orbitRadius}`;
+      if (!rings.has(key)) rings.set(key, node);
     });
 
     context.save();
-    context.setLineDash([2, 7]);
-    context.lineWidth = 0.75;
-    context.strokeStyle = "rgba(96, 91, 80, 0.16)";
-    [...byLayer.entries()].sort((a, b) => a[0] - b[0]).forEach(([, layer]) => {
-      const y = layer.totalY / layer.count;
+    context.setLineDash([1.5, 5.5]);
+    context.lineWidth = 0.9;
+    context.strokeStyle = "rgba(106, 91, 61, 0.28)";
+    [...rings.values()].sort((a, b) => a.node.orbitRadius - b.node.orbitRadius).forEach((ring) => {
+      const center = nodeLookup.get(ring.node.systemId)?.projected;
+      if (!center) return;
+      const radius = ring.node.orbitRadius * center.worldScale;
+      if (radius < 3) return;
       context.beginPath();
-      context.moveTo(Math.max(16, layer.minX - 28), y);
-      context.lineTo(Math.min(width - 16, layer.maxX + 28), y);
+      context.ellipse(
+        center.x,
+        center.y,
+        radius,
+        Math.max(2, radius * Math.abs(Math.sin(camera.pitch))),
+        0,
+        0,
+        Math.PI * 2
+      );
+      context.stroke();
+    });
+    context.restore();
+  }
+
+  function drawSystemBoundaries(projected) {
+    context.save();
+    context.setLineDash([]);
+    context.lineWidth = 0.75;
+    context.fillStyle = "rgba(194, 147, 62, 0.022)";
+    context.strokeStyle = "rgba(126, 105, 65, 0.17)";
+    projected.forEach((node) => {
+      if (node.hidden || !node.node.isSun || node.node.systemPopulation <= 1) return;
+      const radius = node.node.systemRadius * node.worldScale;
+      if (radius < 5) return;
+      context.beginPath();
+      context.ellipse(
+        node.x,
+        node.y,
+        radius,
+        Math.max(3, radius * Math.abs(Math.sin(camera.pitch))),
+        0,
+        0,
+        Math.PI * 2
+      );
+      context.fill();
+      context.stroke();
+    });
+    context.restore();
+  }
+
+  function drawSunHalos(projected) {
+    context.save();
+    context.lineWidth = 1;
+    context.strokeStyle = "rgba(194, 147, 62, 0.46)";
+    projected.forEach((node) => {
+      if (node.hidden) return;
+      if (!node.node.isSun) return;
+      context.beginPath();
+      context.arc(node.x, node.y, node.radius + 4.2, 0, Math.PI * 2);
       context.stroke();
     });
     context.restore();
@@ -347,6 +394,7 @@ export function createOverviewRenderer({
     if (moving) {
       edges.forEach((edge) => {
         if (edge.renderKind !== kind) return;
+        if (edge.source.projected.hidden || edge.target.projected.hidden) return;
         context.moveTo(edge.source.projected.x, edge.source.projected.y);
         context.lineTo(edge.target.projected.x, edge.target.projected.y);
         count += 1;
@@ -356,6 +404,7 @@ export function createOverviewRenderer({
     }
     edges.forEach((edge) => {
       if (edge.renderKind !== kind) return;
+      if (edge.source.projected.hidden || edge.target.projected.hidden) return;
       const source = edge.source.projected;
       const target = edge.target.projected;
       const dx = target.x - source.x;
@@ -406,6 +455,7 @@ export function createOverviewRenderer({
     context.beginPath();
     for (let index = start; index < end; index += 1) {
       const projected = projectedNodes[index];
+      if (projected.hidden) continue;
       if (projected.node.renderStyleKey !== key) continue;
       context.moveTo(projected.x + projected.radius, projected.y);
       context.arc(projected.x, projected.y, projected.radius, 0, Math.PI * 2);
@@ -421,6 +471,7 @@ export function createOverviewRenderer({
   function drawSettledNodes() {
     nodeStyles.forEach((style, key) => drawNonOverlappingStyle(key, style));
     projectedNodes.forEach((projected) => {
+      if (projected.hidden) return;
       if (projected.overlapping) drawNodeDirect(projected);
     });
     context.shadowBlur = 0;
@@ -438,6 +489,7 @@ export function createOverviewRenderer({
     applyNodeStyle(style);
     context.beginPath();
     projectedNodes.forEach((projected) => {
+      if (projected.hidden) return;
       if (projected.overlapping || projected.node.renderStyleKey !== key) return;
       context.moveTo(projected.x + projected.radius, projected.y);
       context.arc(projected.x, projected.y, projected.radius, 0, Math.PI * 2);
@@ -484,7 +536,10 @@ export function createOverviewRenderer({
   }
 
   function drawLabels(projected, emphasis) {
-    const labelLimit = clamp(Math.floor((width * height) / 17000), 18, 92);
+    const normalLabelLimit = clamp(Math.floor((width * height) / 17000), 18, 92);
+    const labelLimit = nodes.length > LARGE_GRAPH_THRESHOLD && camera.zoom < 1.35
+      ? Math.min(14, normalLabelLimit)
+      : normalLabelLimit;
     const priority = [...projected].sort((a, b) => {
       return labelPriority(b.node, emphasis) - labelPriority(a.node, emphasis)
         || a.node.id.localeCompare(b.node.id);
@@ -497,15 +552,31 @@ export function createOverviewRenderer({
     context.textBaseline = "middle";
     priority.some((projectedNode) => {
       if (labelCount >= labelLimit) return true;
+      if (projectedNode.hidden) return false;
       const priorityScore = labelPriority(projectedNode.node, emphasis);
       if (priorityScore <= 0) return false;
       const label = truncate(projectedNode.node.label || projectedNode.node.id, 34);
       const textWidth = Math.ceil(context.measureText(label).width);
-      const x = projectedNode.x + projectedNode.radius + 6;
-      const y = projectedNode.y;
+      const gap = projectedNode.radius + 6;
+      const placements = [
+        { x: projectedNode.x + gap, y: projectedNode.y },
+        ...(projectedNode.node.isSun ? [
+          { x: projectedNode.x - gap - textWidth, y: projectedNode.y },
+          { x: projectedNode.x - textWidth / 2, y: projectedNode.y + gap + 7 },
+          { x: projectedNode.x - textWidth / 2, y: projectedNode.y - gap - 7 }
+        ] : [])
+      ];
+      const placement = placements.find(({ x, y }) => {
+        const box = { x: x - 3, y: y - 9, width: textWidth + 7, height: 18 };
+        return !occupied.some((other) => intersects(box, other))
+          && box.x >= 5
+          && box.x + box.width <= width - 5
+          && box.y >= 4
+          && box.y + box.height <= height - 4;
+      });
+      if (!placement) return false;
+      const { x, y } = placement;
       const box = { x: x - 3, y: y - 9, width: textWidth + 7, height: 18 };
-      if (occupied.some((other) => intersects(box, other))) return false;
-      if (box.x + box.width > width - 5 || box.y < 4 || box.y + box.height > height - 4) return false;
 
       const filterMatch = !emphasis.filterActive || emphasis.matches.has(projectedNode.node.id);
       const related = filterMatch && (!emphasis.active || emphasis.all.has(projectedNode.node.id));
@@ -577,7 +648,9 @@ export function createOverviewRenderer({
       projected.x = screenX + rotatedX * scale * perspective;
       projected.y = screenY + rotatedY * scale * perspective;
       projected.depth = depth;
+      projected.worldScale = scale * perspective;
       projected.radius = clamp(node.baseRadius * perspective * zoomRadius, 2.6, 17);
+      projected.hidden = !lodVisible(node);
     });
     projectedNodes.sort((a, b) => b.depth - a.depth);
   }
@@ -586,6 +659,7 @@ export function createOverviewRenderer({
     const grid = new Map();
     let queryStamp = 0;
     projectedNodes.forEach((projected) => {
+      if (projected.hidden) return;
       const style = projected.node.renderStyle;
       const padding = style.selected
         ? Math.max(5.2, style.shadowBlur)
@@ -632,9 +706,29 @@ export function createOverviewRenderer({
 
   function fitScale() {
     if (!nodes.length) return 1;
-    const horizontal = width / Math.max(1, world.spanX * 1.18);
-    const vertical = height / Math.max(1, world.spanY * 1.18);
+    const cosYaw = Math.abs(Math.cos(camera.yaw));
+    const sinYaw = Math.abs(Math.sin(camera.yaw));
+    const cosPitch = Math.abs(Math.cos(camera.pitch));
+    const sinPitch = Math.abs(Math.sin(camera.pitch));
+    const horizontalSpan = world.spanX * cosYaw + world.spanZ * sinYaw;
+    const yawDepthSpan = world.spanX * sinYaw + world.spanZ * cosYaw;
+    const verticalSpan = world.spanY * cosPitch + yawDepthSpan * sinPitch;
+    const horizontal = width / Math.max(1, horizontalSpan * 1.28);
+    const vertical = height / Math.max(1, verticalSpan * 1.28);
     return clamp(Math.min(horizontal, vertical), 0.035, 4.5);
+  }
+
+  function lodVisible(node) {
+    if (nodes.length <= LARGE_GRAPH_THRESHOLD || node.isSun) return true;
+    if (emphasis.all.has(node.id)) return true;
+    if (camera.zoom >= 3.2) return true;
+    if (camera.zoom >= 2.1) {
+      return node.systemCount === 1 && node.orbitLevel <= 3;
+    }
+    if (camera.zoom >= 1.35) {
+      return node.systemCount === 1 && node.orbitLevel <= 1;
+    }
+    return false;
   }
 
   function cacheVisualStyles() {
@@ -868,6 +962,7 @@ export function createOverviewRenderer({
   function hitTest(x, y) {
     for (let index = projectedNodes.length - 1; index >= 0; index -= 1) {
       const node = projectedNodes[index];
+      if (node.hidden) continue;
       if (Math.hypot(node.x - x, node.y - y) <= Math.max(8, node.radius + 4)) {
         return node.node;
       }
@@ -903,6 +998,8 @@ export function createOverviewRenderer({
 function normalizeNode(node, index, count) {
   const overview = node?.overview || node?.position || {};
   const fallbackAngle = count ? (index / count) * Math.PI * 2 : 0;
+  const orbitLevel = Math.max(0, Math.round(finiteNumber(overview.orbit_level, 0)));
+  const impact = Math.max(0, Math.round(finiteNumber(overview.downstream_impact, 0)));
   return {
     ...node,
     id: String(node?.id ?? `node-${index}`),
@@ -911,8 +1008,15 @@ function normalizeNode(node, index, count) {
     y: finiteNumber(overview.y, 0),
     z: finiteNumber(overview.z, Math.sin(fallbackAngle) * 100),
     layer: Math.max(0, Math.round(finiteNumber(overview.depth, 0))),
-    impact: Math.max(0, Math.round(finiteNumber(overview.downstream_impact, 0))),
-    baseRadius: 3.3 + Math.log2(Math.max(0, finiteNumber(overview.downstream_impact, 0)) + 1) * 1.15
+    orbitLevel,
+    impact,
+    systemId: String(overview.system ?? node?.id ?? `node-${index}`),
+    systemCount: Math.max(1, Math.round(finiteNumber(overview.system_count, 1))),
+    systemPopulation: Math.max(1, Math.round(finiteNumber(overview.system_population, 1))),
+    systemRadius: Math.max(0, finiteNumber(overview.system_radius, 0)),
+    orbitRadius: Math.max(0, finiteNumber(overview.orbit_radius, 0)),
+    isSun: orbitLevel === 0,
+    baseRadius: 3.3 + Math.log2(impact + 1) * 1.15 + (orbitLevel === 0 ? 2.2 : 0)
   };
 }
 
@@ -989,6 +1093,7 @@ function labelPriority(node, emphasis) {
   if (emphasis.ancestors.has(node.id)) return 80000 + node.impact;
   if (emphasis.dependents.has(node.id)) return 70000 + node.impact;
   if (emphasis.derived.has(node.id)) return 60000 + node.impact;
+  if (node.isSun) return 15000;
   if (node.actionable) return 10000 + node.impact;
   return node.impact >= 6 ? node.impact : 0;
 }

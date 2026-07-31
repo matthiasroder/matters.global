@@ -20,13 +20,21 @@ from matters import build_extraction_proposal, save_state
 from matters.llm_extraction import DEFAULT_MODEL
 
 AUTHOR_ID = "3000599"  # Yoed N. Kenett (Technion), h-index 43
-WORK_DIR = "/Users/matthias/.local/share/matters/kenett"
+WORK_DIR = os.environ.get(
+    "CREATIVITY_MATTERS_WORK_DIR",
+    "/Users/matthias/.local/share/matters/creativity_matters_graph",
+)
 CORPUS_PATH = os.path.join(WORK_DIR, "corpus.json")
 GRAPH_PATH = "/Users/matthias/.local/share/matters/creativity.json"
 PROVENANCE_PATH = os.path.join(WORK_DIR, "matter_sources.json")
 MANIFEST_PATH = os.path.join(WORK_DIR, "run_manifest.json")
 EXTRACT_DIR = os.path.join(WORK_DIR, "extractions")
-EXTRACT_CAP = int(os.environ.get("KENETT_EXTRACT_CAP", "25"))
+EXTRACT_CAP = int(
+    os.environ.get(
+        "CREATIVITY_MATTERS_EXTRACT_CAP",
+        os.environ.get("KENETT_EXTRACT_CAP", "25"),
+    )
+)
 
 
 def log(msg):
@@ -177,7 +185,7 @@ def write_manifest(corpus, selected, matters, conditions, edges, provenance):
     with_abstract = [paper for paper in corpus if paper["abstract"]]
     manifest = {
         "schema_version": 1,
-        "kind": "kenett_creativity_extraction_run",
+        "kind": "creativity_matters_graph_extraction_run",
         "author_id": AUTHOR_ID,
         "extract_cap": EXTRACT_CAP,
         "models": {

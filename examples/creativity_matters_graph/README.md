@@ -1,4 +1,4 @@
-# Kenett Creativity Matters Graph
+# Creativity Matters Graph
 
 A real-world example of LLM-based matter extraction (`build_extraction_proposal`,
 the `engine: "llm"` path) applied to a scientific corpus.
@@ -18,8 +18,8 @@ dedicated matters graph.
 | `creativity_graph.json` | The assembled matters state (`schema_version: 2`), after dependency enrichment. |
 | `matter_sources.json` | Provenance sidecar: each matter id → its source paper, year, DOI, and the model's name/description. |
 | `added_dependencies.json` | The 854 edges added by the enrichment pass, each with the model's one-line reason. |
-| `~/.local/share/matters/kenett/run_manifest.json` | Extraction-run audit manifest: corpus hash, selected papers, extraction-cache hashes, model, script hash, and output hashes. |
-| `~/.local/share/matters/kenett/enrich_manifest.json` | Dependency-enrichment audit manifest: input graph hash, provenance hash, batch-cache hashes, rejected proposal counts, and final output hashes. |
+| `~/.local/share/matters/creativity_matters_graph/run_manifest.json` | Extraction-run audit manifest: corpus hash, selected papers, extraction-cache hashes, model, script hash, and output hashes. |
+| `~/.local/share/matters/creativity_matters_graph/enrich_manifest.json` | Dependency-enrichment audit manifest: input graph hash, provenance hash, batch-cache hashes, rejected proposal counts, and final output hashes. |
 
 ## The graph
 
@@ -40,20 +40,21 @@ Built from the **102 abstracts** (extracted with `claude-sonnet-4-6`):
 ## Explore it
 
 ```sh
-matters web --state examples/kenett_creativity/creativity_graph.json
-matters universe --state examples/kenett_creativity/creativity_graph.json
+matters web --state examples/creativity_matters_graph/creativity_graph.json
+matters universe --state examples/creativity_matters_graph/creativity_graph.json
 ```
 
 ## Reproduce / extend
 
 `pipeline.py` caches each paper's extraction under
-`~/.local/share/matters/kenett/extractions/`, so a re-run resumes instead of
+`~/.local/share/matters/creativity_matters_graph/extractions/`, so a re-run resumes instead of
 re-extracting. Cached proposals are reused only when they include `kind`,
 `status`, condition `truth` values, and status/truth-consistent conditions;
 stale unresolved-only cache files are ignored and re-extracted. Requires
 `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) in the environment;
-`KENETT_EXTRACT_CAP` caps how many of the most-cited abstracts are processed
-(default 25; this graph used 102 = all abstracts).
+`CREATIVITY_MATTERS_EXTRACT_CAP` caps how many of the most-cited abstracts are
+processed (default 25; this graph used 102 = all abstracts). `KENETT_EXTRACT_CAP`
+is still accepted as a legacy alias.
 
 Current LLM extraction preserves source-grounded condition truth states:
 resolved findings or delivered methods have true conditions, while open

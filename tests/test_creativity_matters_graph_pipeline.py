@@ -7,10 +7,10 @@ def load_pipeline():
     path = (
         Path(__file__).resolve().parents[1]
         / "examples"
-        / "kenett_creativity"
+        / "creativity_matters_graph"
         / "pipeline.py"
     )
-    spec = importlib.util.spec_from_file_location("kenett_pipeline", path)
+    spec = importlib.util.spec_from_file_location("creativity_matters_pipeline", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -20,10 +20,12 @@ def load_enrich_dependencies():
     path = (
         Path(__file__).resolve().parents[1]
         / "examples"
-        / "kenett_creativity"
+        / "creativity_matters_graph"
         / "enrich_dependencies.py"
     )
-    spec = importlib.util.spec_from_file_location("kenett_enrich_dependencies", path)
+    spec = importlib.util.spec_from_file_location(
+        "creativity_matters_enrich_dependencies", path
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

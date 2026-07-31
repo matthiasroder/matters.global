@@ -19,10 +19,14 @@ import anthropic
 from matters import load_state, save_state
 
 GRAPH = "/Users/matthias/.local/share/matters/creativity.json"
-PROV = "/Users/matthias/.local/share/matters/kenett/matter_sources.json"
-CACHE_DIR = "/Users/matthias/.local/share/matters/kenett/enrich_cache"
-ADDED_SIDECAR = "/Users/matthias/.local/share/matters/kenett/added_dependencies.json"
-MANIFEST = "/Users/matthias/.local/share/matters/kenett/enrich_manifest.json"
+WORK_DIR = os.environ.get(
+    "CREATIVITY_MATTERS_WORK_DIR",
+    "/Users/matthias/.local/share/matters/creativity_matters_graph",
+)
+PROV = os.path.join(WORK_DIR, "matter_sources.json")
+CACHE_DIR = os.path.join(WORK_DIR, "enrich_cache")
+ADDED_SIDECAR = os.path.join(WORK_DIR, "added_dependencies.json")
+MANIFEST = os.path.join(WORK_DIR, "enrich_manifest.json")
 MODEL = os.environ.get("MATTERS_EXTRACT_MODEL", "claude-opus-4-8")
 BATCH = 60
 REQUEST_TIMEOUT = float(os.environ.get("MATTERS_EXTRACT_TIMEOUT", "300"))
@@ -202,7 +206,7 @@ def write_manifest(
 ):
     manifest = {
         "schema_version": 1,
-        "kind": "kenett_creativity_dependency_enrichment_run",
+        "kind": "creativity_matters_graph_dependency_enrichment_run",
         "model": MODEL,
         "batch_size": BATCH,
         "request_timeout_seconds": REQUEST_TIMEOUT,

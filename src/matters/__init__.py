@@ -1,27 +1,49 @@
-"""Reusable matters engine."""
+"""Reusable matters engine.
+
+``resolved``, ``unresolved``, ``universe``, ``frontier``, ``horizon`` and
+``descendants`` are re-exported here under the names they have always had,
+but they are now :mod:`matters.graph_index`'s, not :mod:`matters.engine`'s.
+Two consequences for anyone importing them, both deliberate at 0.1.0:
+
+* they refuse a graph containing a cycle with
+  :class:`~matters.graph_index.DependencyCycleError`, naming one concrete
+  cycle, where the recursive versions sometimes raised
+  ``ValueError("dependency cycle")`` and sometimes returned a wrong answer
+  instead, depending on which condition happened to be false first;
+* ``frontier``, ``horizon`` and ``descendants`` take the ``matters`` set as
+  their second argument. They used to infer their nodes from the edge list,
+  which cannot see an isolated matter and cannot tell a typo from a real id.
+
+``prerequisites`` and ``dependents`` are unchanged and still come from
+``engine``: they read the edge set and never traverse, so they answer even
+on a state file that contains a cycle.
+"""
 
 from .engine import (
     as_condition_list,
     condition_label,
     create_condition,
     dependents,
-    descendants,
-    frontier,
     has_dependency_cycle,
-    horizon,
     normalize_conditions,
     prerequisites,
-    resolved,
     serialize_condition,
     truth,
-    universe,
-    unresolved,
 )
 from .extraction import (
     extract_candidate_matters,
     extraction_proposal,
     propose_dependency_candidates,
     slugify,
+)
+from .graph_index import (
+    DependencyCycleError,
+    descendants,
+    frontier,
+    horizon,
+    resolved,
+    universe,
+    unresolved,
 )
 from .identity import (
     EmbeddingStore,
@@ -72,10 +94,16 @@ from .tots import (
     schedule_swiss_pairs,
     select_diverse_finalists,
 )
+from .view import (
+    build_view_payload,
+    render_view_html,
+    write_view,
+)
 
 __all__ = [
     "DEFAULT_STATE_PATH",
     "ConfigError",
+    "DependencyCycleError",
     "EmbeddingStore",
     "FakeEmbedder",
     "GenerationError",
@@ -90,6 +118,7 @@ __all__ = [
     "build_extraction_proposal",
     "build_tots_context",
     "build_tots_proposal",
+    "build_view_payload",
     "classify_relationship",
     "condition_label",
     "create_condition",
@@ -119,6 +148,7 @@ __all__ = [
     "public_state",
     "reconcile_ordered_judgments",
     "register_provider",
+    "render_view_html",
     "resolve_generator",
     "resolve_state_path",
     "resolved",
@@ -132,4 +162,5 @@ __all__ = [
     "unlock_report",
     "universe",
     "unresolved",
+    "write_view",
 ]

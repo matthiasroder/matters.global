@@ -1,6 +1,6 @@
 """Derived reports for deciding what matters can move next."""
 
-from .engine import descendants, truth
+from .engine import truth
 from .graph_index import GraphIndex
 
 
@@ -26,10 +26,17 @@ def false_condition_labels(matter, conditions):
     ]
 
 
-def downstream_impact(matter, dependencies, index=None):
-    if index is not None:
-        return index.downstream_impact[matter]
-    return len(descendants(matter, dependencies))
+def downstream_impact(matter, index):
+    """Return how many matters wait on ``matter``, directly or not.
+
+    Takes the index rather than an edge list. The unindexed fallback that
+    used to live here rescanned the edges per matter and, being a second
+    implementation, could disagree with the index on a graph containing a
+    cycle -- where it answered instead of refusing. There is one traversal
+    now, and it is :class:`~matters.graph_index.GraphIndex`'s.
+    """
+
+    return index.downstream_impact[matter]
 
 
 def propose_action(matter, condition_label):
@@ -63,7 +70,7 @@ def unlock_items(matters, conditions, dependencies, index=None):
         items.append(
             {
                 "matter": matter,
-                "impact": downstream_impact(matter, dependencies, index=index),
+                "impact": downstream_impact(matter, index),
                 "false_conditions": false_conditions,
                 "actions": [
                     propose_action(matter, condition) for condition in false_conditions

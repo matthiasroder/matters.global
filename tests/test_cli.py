@@ -1691,10 +1691,17 @@ def test_cli_list_on_an_empty_state_prints_nothing_and_exits_zero(tmp_path, caps
 def test_cli_read_verbs_survive_a_state_file_that_contains_a_cycle(tmp_path, capsys):
     """E-14: neither read verb may build a graph index.
 
-    Today ``universe`` exits 0 silently on this file, ``unlock`` dumps a
-    traceback and the web API answers 422. ``show``/``list`` must not add a
-    fourth behaviour: they report stored facts, which is exactly why ``show``
-    reports no derived status (D6).
+    This is the contract that keeps a broken file repairable. ``show`` and
+    ``list`` report stored facts and build no index, so they answer here;
+    that is what lets a person see the edge and run ``matters unlink`` to
+    remove it, and it is exactly why ``show`` reports no derived status (D6).
+
+    The three derived verbs are the other side of the same contract:
+    ``universe``, ``frontier`` and ``horizon`` need an index, cannot have
+    one, and now say so by name (D1) -- see
+    ``test_cli_derived_verbs_name_the_cycle_and_how_to_break_it``. ``unlock``
+    still dumps a traceback on this file and the web API answers 422; those
+    are separate and unchanged.
     """
 
     state_path = tmp_path / "matters.json"
@@ -2128,3 +2135,372 @@ def test_cli_the_repair_hint_is_a_command_that_actually_works(tmp_path, capsys):
     # The cycle is gone, so the write that was refused now lands.
     assert main(["mark", "a", "1", "true", "--state", str(state_path)]) == 0
     assert json.loads(state_path.read_text())["conditions"]["a"][0]["truth"] is True
+
+
+# ---------------------------------------------------------------------------
+# D1/D2: the three derived read verbs
+#
+# `universe`, `frontier` and `horizon` are the verbs that answer a question
+# about graph *shape*, so unlike `show` and `list` they need a graph index and
+# cannot have one on a file that contains a loop. They used to print nothing
+# and exit 0 for both failures -- a loop and a typo'd id -- which is
+# indistinguishable from a real empty answer.
+# ---------------------------------------------------------------------------
+
+
+DERIVED_VERBS = [
+    ["universe"],
+    ["frontier", "a"],
+    ["horizon", "a"],
+]
+
+
+def write_chain_state(path):
+    """`a` resolved, `b` and `c` not, along `a -> b -> c`."""
+
+    path.write_text(
+        json.dumps(
+            {
+                "matters": ["a", "b", "c"],
+                "conditions": {
+                    "a": [{"label": "a done", "truth": True}],
+                    "b": [{"label": "b done", "truth": False}],
+                    "c": [{"label": "c done", "truth": False}],
+                },
+                "dependencies": [["a", "b"], ["b", "c"]],
+            }
+        )
+    )
+
+
+def test_cli_derived_verbs_answer_on_a_healthy_graph(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    write_chain_state(state_path)
+    original = state_path.read_bytes()
+
+    assert main(["universe", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == "b\n"
+
+    assert main(["frontier", "a", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == "b\n"
+
+    assert main(["horizon", "a", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == "c\n"
+
+    # Still reads: no rewrite, no lock sidecar.
+    assert state_path.read_bytes() == original
+    assert sorted(item.name for item in tmp_path.iterdir()) == ["matters.json"]
+
+
+@pytest.mark.parametrize("command", DERIVED_VERBS)
+def test_cli_derived_verbs_name_the_cycle_and_how_to_break_it(
+    tmp_path, capsys, command
+):
+    """D1: the same two lines a write verb prints, from a read verb.
+
+    Not `build_index`'s bare sentence: that one is a wire contract the web
+    API answers verbatim, and it names no cycle, so a person reading it
+    cannot act on it.
+    """
+
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "c"), ("c", "a")])
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(command + ["--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert captured.out == ""
+    assert error_diagnostic(captured) == cycle_refusal("a -> b -> c -> a", "a c")
+    assert captured.err.isascii()
+    assert "Traceback" not in captured.err
+    assert state_path.read_bytes() == original
+    assert sorted(item.name for item in tmp_path.iterdir()) == ["matters.json"]
+
+
+@pytest.mark.parametrize("command", DERIVED_VERBS)
+def test_cli_derived_verbs_name_a_self_loop(tmp_path, capsys, command):
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "a")], matters=("a",))
+
+    with pytest.raises(SystemExit) as error:
+        main(command + ["--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert error_diagnostic(captured) == cycle_refusal("a -> a", "a a")
+
+
+@pytest.mark.parametrize("verb", ["frontier", "horizon"])
+def test_cli_derived_verbs_name_an_unknown_matter(tmp_path, capsys, verb):
+    """D2: the same sentence `show` and `tots` already print for a typo."""
+
+    state_path = tmp_path / "matters.json"
+    write_chain_state(state_path)
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main([verb, "ghost", "--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert captured.out == ""
+    assert last_error_line(captured) == "unknown matter: ghost"
+    assert "Traceback" not in captured.err
+    assert state_path.read_bytes() == original
+    assert sorted(item.name for item in tmp_path.iterdir()) == ["matters.json"]
+
+
+@pytest.mark.parametrize("verb", ["frontier", "horizon"])
+def test_cli_derived_verbs_name_the_typo_before_the_cycle(tmp_path, capsys, verb):
+    """A wrong id is the caller's mistake; the loop is the file's.
+
+    Naming the id first means a typo is still reported on a file that is also
+    broken, instead of being masked by it -- and the cycle is then reported
+    once the question itself makes sense.
+    """
+
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "c"), ("c", "a")])
+
+    with pytest.raises(SystemExit) as error:
+        main([verb, "ghost", "--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert last_error_line(captured) == "unknown matter: ghost"
+    assert "contains a cycle" not in captured.err
+
+
+def test_cli_universe_repair_hint_makes_universe_answer(tmp_path, capsys):
+    """The loop the read verb refused on is the loop its hint removes."""
+
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "c"), ("c", "a")])
+
+    with pytest.raises(SystemExit):
+        main(["universe", "--state", str(state_path)])
+
+    hints = [
+        line.split("break it with: matters ", 1)[1]
+        for line in capsys.readouterr().err.splitlines()
+        if "break it with: matters " in line
+    ]
+    assert len(hints) == 1
+
+    assert main(hints[0].split() + ["--state", str(state_path)]) == 0
+    capsys.readouterr()
+
+    assert main(["universe", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == "a\n"
+
+
+def test_cli_frontier_and_horizon_still_print_nothing_for_a_real_empty_answer(
+    tmp_path, capsys
+):
+    """Exit 0 and no output is now reserved for a genuinely empty answer."""
+
+    state_path = tmp_path / "matters.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "matters": ["lonely"],
+                "conditions": {"lonely": [{"label": "done", "truth": False}]},
+                "dependencies": [],
+            }
+        )
+    )
+
+    assert main(["frontier", "lonely", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == ""
+
+    assert main(["horizon", "lonely", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == ""
+
+
+def test_cli_unlock_names_the_cycle_like_the_other_read_verbs(tmp_path, capsys):
+    """unlock is the fourth derived read verb and must not be the odd one out.
+
+    It builds an index of its own, so before this it raised
+    DependencyCycleError all the way out as a traceback with exit 1 while
+    universe, frontier and horizon named the loop and offered the repair.
+    """
+
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "a")])
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(["unlock", "--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert captured.out == ""
+    assert "Traceback" not in captured.err
+    assert error_diagnostic(captured) == cycle_refusal("a -> b -> a", "a b")
+    assert state_path.read_bytes() == original
+
+
+# ---------------------------------------------------------------------------
+# `view`: a read that writes a picture
+#
+# The generator itself is covered in tests/test_view.py. What belongs here is
+# how `view` behaves as a verb: it names an unknown matter the way the other
+# read verbs do, it does NOT refuse a state file with a cycle, and it touches
+# neither the state file nor a lock sidecar.
+# ---------------------------------------------------------------------------
+
+
+def test_cli_view_names_an_unknown_matter_like_the_other_read_verbs(
+    tmp_path, capsys
+):
+    state_path = tmp_path / "matters.json"
+    write_chain_state(state_path)
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(
+            [
+                "view",
+                "typo",
+                "--state",
+                str(state_path),
+                "--output",
+                str(tmp_path / "pages" / "typo.html"),
+                "--no-open",
+            ]
+        )
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert captured.out == ""
+    assert "Traceback" not in captured.err
+    assert last_error_line(captured) == "unknown matter: typo"
+    assert state_path.read_bytes() == original
+    # Refused before anything was written.
+    assert sorted(item.name for item in tmp_path.iterdir()) == ["matters.json"]
+
+
+def test_cli_view_draws_a_state_file_that_contains_a_cycle(tmp_path, capsys):
+    """`view` is not a fourth verb that refuses a file with a loop.
+
+    `show` and `list` keep a broken file inspectable; a picture is the same
+    promise in another medium, and it is what someone repairing a tangled
+    graph actually wants. The derived status is what cannot be computed, so
+    that is what goes -- named on stdout here and on the page itself.
+    """
+
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "c"), ("c", "a")])
+    original = state_path.read_bytes()
+    output = tmp_path / "pages" / "a.html"
+
+    assert (
+        main(
+            [
+                "view",
+                "a",
+                "--state",
+                str(state_path),
+                "--output",
+                str(output),
+                "--no-open",
+            ]
+        )
+        == 0
+    )
+
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert "Traceback" not in captured.err
+    assert captured.out == (
+        "a: 3 matters, 3 dependencies\n"
+        "structure only, the state file contains a cycle: a -> b -> c -> a\n"
+        f"wrote {output}\n"
+    )
+    assert "Structure only." in output.read_text(encoding="utf-8")
+    assert state_path.read_bytes() == original
+
+
+def test_cli_view_writes_nothing_but_the_page_and_leaves_no_lock_file(
+    tmp_path, capsys
+):
+    state_path = tmp_path / "matters.json"
+    write_chain_state(state_path)
+    original = state_path.read_bytes()
+
+    assert (
+        main(
+            [
+                "view",
+                "a",
+                "--state",
+                str(state_path),
+                "--output",
+                str(tmp_path / "pages" / "a.html"),
+                "--no-open",
+            ]
+        )
+        == 0
+    )
+
+    capsys.readouterr()
+    assert state_path.read_bytes() == original
+    # A read takes no lock, so it leaves no sidecar next to the state file.
+    assert sorted(item.name for item in tmp_path.iterdir()) == [
+        "matters.json",
+        "pages",
+    ]
+
+
+def test_cli_view_reports_a_malformed_state_file_without_a_traceback(
+    tmp_path, capsys
+):
+    state_path = tmp_path / "matters.json"
+    state_path.write_text("{")
+
+    with pytest.raises(SystemExit) as error:
+        main(
+            [
+                "view",
+                "a",
+                "--state",
+                str(state_path),
+                "--output",
+                str(tmp_path / "a.html"),
+                "--no-open",
+            ]
+        )
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert captured.out == ""
+    assert "Traceback" not in captured.err
+    assert "state file is not valid JSON" in captured.err
+
+
+def test_cli_view_refuses_a_negative_depth(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    write_chain_state(state_path)
+
+    with pytest.raises(SystemExit) as error:
+        main(
+            [
+                "view",
+                "a",
+                "--depth",
+                "-1",
+                "--state",
+                str(state_path),
+                "--output",
+                str(tmp_path / "a.html"),
+                "--no-open",
+            ]
+        )
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert "Traceback" not in captured.err
+    assert last_error_line(captured) == "depth must not be negative: -1"

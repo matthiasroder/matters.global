@@ -1,4 +1,4 @@
-"""Pure matters graph operations.
+"""Condition plumbing and the two cycle-safe adjacency reads.
 
 Matter:
     A node of concern. It may be resolved or unresolved.
@@ -15,6 +15,20 @@ Dependency:
 Resolution:
     A matter is resolved exactly when all of its conditions are true and all
     of its prerequisite matters are resolved.
+
+This module owns condition handling and nothing derived from graph *shape*.
+``resolved``, ``unresolved``, ``universe``, ``frontier``, ``horizon`` and
+``descendants`` used to live here as a second, recursive implementation of
+what :mod:`matters.graph_index` already computed; they now live there only
+(D5/D7). ``graph_index`` imports :func:`truth` from here, so this module must
+never import ``graph_index`` back (D8) -- which is why those functions moved
+instead of staying here as wrappers.
+
+:func:`prerequisites` and :func:`dependents` stay. They are pure set
+comprehensions over the edge set: they never traverse, so they answer on a
+state file that contains a cycle. That is exactly why ``rules.describe_matter``
+can serve ``matters show`` on a broken file, which is what keeps such a file
+repairable.
 """
 
 
@@ -84,6 +98,18 @@ def dependents(matter, dependencies):
 
 
 def has_dependency_cycle(dependencies):
+    """Report whether ``dependencies`` contains a cycle. Scheduled to go.
+
+    The second of two cycle detectors left in the codebase, down from three:
+    ``rules.has_cycle`` (via :class:`~matters.graph_index.GraphIndex`) is the
+    one every other caller uses, and it names the offending cycle instead of
+    answering yes/no. This one survives for exactly one caller,
+    ``sharing.merge_public_state``, which takes a bare edge list and has no
+    matters set to build an index from. Rewriting ``sharing`` is separately
+    scheduled work and takes the count to one; until then this is a known
+    duplicate, not an oversight. Do not add callers.
+    """
+
     outgoing = {}
     for source, target in dependencies:
         outgoing.setdefault(source, set()).add(target)
@@ -105,70 +131,3 @@ def has_dependency_cycle(dependencies):
         return False
 
     return any(visit(node) for node in outgoing)
-
-
-def resolved(matter, conditions, dependencies, seen=None):
-    if seen is None:
-        seen = set()
-    if matter in seen:
-        raise ValueError("dependency cycle")
-    return (
-        all(truth(condition) for condition in conditions.get(matter, ()))
-        and all(
-            resolved(prerequisite, conditions, dependencies, seen | {matter})
-            for prerequisite in prerequisites(matter, dependencies)
-        )
-    )
-
-
-def unresolved(matter, conditions, dependencies):
-    return not resolved(matter, conditions, dependencies)
-
-
-def universe(matters, conditions, dependencies):
-    return {
-        matter
-        for matter in matters
-        if unresolved(matter, conditions, dependencies)
-        and all(
-            resolved(prerequisite, conditions, dependencies)
-            for prerequisite in prerequisites(matter, dependencies)
-        )
-    }
-
-
-def frontier(root, conditions, dependencies):
-    return {
-        matter
-        for matter in dependents(root, dependencies)
-        if unresolved(matter, conditions, dependencies)
-        and all(
-            resolved(prerequisite, conditions, dependencies)
-            for prerequisite in prerequisites(matter, dependencies)
-        )
-    }
-
-
-def descendants(root, dependencies):
-    out = set()
-    stack = list(dependents(root, dependencies))
-    while stack:
-        matter = stack.pop()
-        if matter not in out:
-            out.add(matter)
-            stack += list(dependents(matter, dependencies))
-    return out
-
-
-def horizon(root, conditions, dependencies):
-    root_descendants = descendants(root, dependencies)
-    return {
-        matter
-        for matter in root_descendants
-        if unresolved(matter, conditions, dependencies)
-        and not any(
-            dependent in root_descendants
-            and unresolved(dependent, conditions, dependencies)
-            for dependent in dependents(matter, dependencies)
-        )
-    }

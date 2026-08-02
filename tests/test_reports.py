@@ -61,6 +61,14 @@ def test_format_unlock_report_is_short_and_readable():
 
 
 def test_unlock_report_reuses_supplied_graph_index(monkeypatch):
+    """A supplied index is the only traversal the report makes.
+
+    This used to monkeypatch ``reports.descendants``, the unindexed rescan
+    that ``downstream_impact`` fell back to. There is no fallback now -- the
+    name is not even imported here -- so the thing left to catch is a second
+    index being built behind the caller's back.
+    """
+
     matters = {"root", "tip"}
     conditions = {
         "root": [{"label": "root done", "truth": False}],
@@ -69,11 +77,12 @@ def test_unlock_report_reuses_supplied_graph_index(monkeypatch):
     dependencies = {("root", "tip")}
     index = GraphIndex(matters, conditions, dependencies)
 
-    def unexpected_descendant_scan(*args, **kwargs):
-        raise AssertionError("indexed unlock must not rescan dependencies")
+    def unexpected_index_build(*args, **kwargs):
+        raise AssertionError("indexed unlock must not rebuild the index")
 
-    monkeypatch.setattr(reports, "descendants", unexpected_descendant_scan)
+    monkeypatch.setattr(reports, "GraphIndex", unexpected_index_build)
 
     report = unlock_report(matters, conditions, dependencies, index=index)
 
     assert report["items"][0]["impact"] == 1
+    assert not hasattr(reports, "descendants")

@@ -5,7 +5,6 @@ import json
 import sys
 
 from . import rules
-from .engine import frontier, horizon, universe
 from .llm_extraction import build_extraction_proposal
 from .llm import (
     ConfigError,
@@ -24,6 +23,7 @@ from .rules import (
 from .sharing import merge_public_state, public_state
 from .storage import load_state, resolve_state_path
 from .tots import TotsError, build_tots_proposal
+from .view import open_view, write_view
 
 
 # One string, two parsers: the root parser and the per-subcommand parent must
@@ -212,6 +212,36 @@ def main(argv=None):
         "--terminal-shell",
         default=None,
         help="Shell executable to use for the web terminal. Defaults to $SHELL or /bin/sh.",
+    )
+
+    view_parser = subparsers.add_parser(
+        "view",
+        parents=[state_parent],
+        help="Write a self-contained HTML picture of one matter and open it.",
+    )
+    view_parser.add_argument("matter", help="Matter id to centre the picture on.")
+    view_parser.add_argument(
+        "--depth",
+        type=int,
+        default=None,
+        help=(
+            "Show only matters within N dependency hops, counted separately "
+            "in each direction. The default is everything connected to the "
+            "matter, which on a large graph can be most of it."
+        ),
+    )
+    view_parser.add_argument(
+        "--output",
+        default=None,
+        help=(
+            "File to write. Defaults to matters-view-<matter>.html in the "
+            "current directory."
+        ),
+    )
+    view_parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="Write the file without opening it in a browser.",
     )
 
     condition_ref_help = (
@@ -515,6 +545,38 @@ def main(argv=None):
             print_lines(matter_ids)
         return 0
 
+    if args.command == "view":
+        # A read like the two above: no transaction, no lock, no sidecar, and
+        # the state file is byte-identical afterwards. Unlike them it does
+        # build an index -- but a file with a loop still gets a picture, drawn
+        # from structure alone and labelled as such on the page, because
+        # refusing here would make `view` the read verb that cannot look at a
+        # broken file.
+        try:
+            path, payload = write_view(
+                args.matter,
+                state_path=args.state,
+                depth=args.depth,
+                output=args.output,
+            )
+        except (RuleError, ValueError, OSError) as error:
+            parser.error(error_message(error))
+        counted = len(payload["nodes"])
+        print(
+            f"{payload['matter']}: {counted} "
+            f"{'matter' if counted == 1 else 'matters'}, "
+            f"{rules.format_dependency_count(len(payload['edges']))}"
+        )
+        if not payload["status_available"]:
+            print(
+                "structure only, the state file contains a cycle: "
+                f"{rules.format_cycle(payload['cycle'])}"
+            )
+        print(f"wrote {path}")
+        if not args.no_open:
+            open_view(path)
+        return 0
+
     matters, conditions, dependencies = load_state(args.state)
 
     if args.command == "create":
@@ -603,11 +665,17 @@ def main(argv=None):
         return 0
 
     if args.command == "universe":
-        print_lines(universe(matters, conditions, dependencies))
+        index = graph_index_or_error(parser, matters, conditions, dependencies)
+        print_lines(index.universe)
         return 0
 
     if args.command == "unlock":
-        report = unlock_report(matters, conditions, dependencies)
+        # unlock is the fourth derived read verb. It builds an index too, so
+        # on a looped file it used to raise DependencyCycleError all the way
+        # out as a traceback with exit 1. Once the other three started naming
+        # the loop, that made unlock the only one failing ugly.
+        index = graph_index_or_error(parser, matters, conditions, dependencies)
+        report = unlock_report(matters, conditions, dependencies, index=index)
         if args.json:
             print(json.dumps(report, indent=2))
         else:
@@ -615,15 +683,64 @@ def main(argv=None):
         return 0
 
     if args.command == "frontier":
-        print_lines(frontier(args.matter, conditions, dependencies))
+        index = graph_index_or_error(
+            parser, matters, conditions, dependencies, matter=args.matter
+        )
+        print_lines(index.frontier(args.matter))
         return 0
 
     if args.command == "horizon":
-        print_lines(horizon(args.matter, conditions, dependencies))
+        index = graph_index_or_error(
+            parser, matters, conditions, dependencies, matter=args.matter
+        )
+        print_lines(index.horizon(args.matter))
         return 0
 
     parser.error(f"unknown command: {args.command}")
     return 2
+
+
+def graph_index_or_error(parser, matters, conditions, dependencies, matter=None):
+    """Build the index the derived read verbs need, or exit 2 explaining why.
+
+    The three verbs that answer a question about graph *shape* --
+    ``universe``, ``frontier`` and ``horizon`` -- share one refusal path, so
+    they cannot drift apart in what they say about the same broken file.
+
+    Both refusals go through ``rules``, never through a local copy of the
+    check, and both are reached by attribute access rather than imported by
+    name -- a module-level attribute here with either of those names is what
+    AC-13 fails on:
+
+    ``rules.require_matter``
+        An id that is not in the state is named, the way ``show`` and ``tots``
+        already name it. These verbs used to print nothing and exit 0 for a
+        typo, which reads exactly like a real empty answer (D2).
+    ``rules.require_acyclic_index``
+        The **named**-cycle renderer, deliberately not ``rules.build_index``:
+        a person told their file has a loop needs to know which one, and
+        :func:`error_message` then adds the ``matters unlink`` line that
+        breaks it (D1). ``build_index``'s bare sentence stays as it is,
+        because the web API answers it verbatim.
+
+    The cycle is checked second. A typo'd id is the caller's mistake and is
+    worth naming even when the file is also broken; the cycle is the file's
+    and is reported once the question itself makes sense.
+
+    This is the one place these verbs differ from ``show`` and ``list``,
+    which report stored facts, build no index, and therefore keep working on
+    a file with a loop -- which is what keeps that file repairable.
+    """
+
+    if matter is not None:
+        try:
+            rules.require_matter(matter, matters)
+        except RuleError as error:
+            parser.error(error_message(error))
+    try:
+        return rules.require_acyclic_index(matters, conditions, dependencies)
+    except RuleError as error:
+        parser.error(error_message(error))
 
 
 def print_lines(items):

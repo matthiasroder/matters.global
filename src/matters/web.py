@@ -16,7 +16,6 @@ import threading
 import time
 import uuid
 import webbrowser
-from contextlib import contextmanager
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -24,14 +23,12 @@ from importlib import resources
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from .cli import create_matters_from_expression
-from .engine import truth
-from .extraction import slugify
-from .graph_index import DependencyCycleError, GraphIndex
+from . import rules
 from .layout import build_overview_layout
 from .llm_extraction import build_extraction_proposal
 from .reports import unlock_report
-from .storage import load_state, resolve_state_path, save_state
+from .rules import RuleError, create_matters_from_expression
+from .storage import load_state, resolve_state_path
 
 
 DEFAULT_WEB_HOST = "127.0.0.1"
@@ -51,21 +48,24 @@ class ApiError(ValueError):
         self.status = status
 
 
-class StateMutationLocks:
-    def __init__(self):
-        self._locks = {}
-        self._guard = threading.Lock()
-
-    @contextmanager
-    def lock(self, state_path):
-        lock_key = str(resolve_state_path(state_path))
-        with self._guard:
-            lock = self._locks.setdefault(lock_key, threading.RLock())
-        with lock:
-            yield
+RULE_ERROR_STATUS = {
+    "invalid": HTTPStatus.BAD_REQUEST,
+    "not_found": HTTPStatus.NOT_FOUND,
+    "conflict": HTTPStatus.CONFLICT,
+    "state_cycle": HTTPStatus.UNPROCESSABLE_ENTITY,
+    "locked": HTTPStatus.CONFLICT,
+}
 
 
-state_mutation_locks = StateMutationLocks()
+def api_error_for(error):
+    """Translate a rules-layer ``RuleError`` into an ``ApiError``."""
+
+    # ``.get`` on purpose: a code added to rules.py without a table entry here
+    # degrades to 400, instead of raising KeyError past the ``except ApiError``
+    # handler and turning a rejected write into a 500.
+    return ApiError(
+        str(error), RULE_ERROR_STATUS.get(error.code, HTTPStatus.BAD_REQUEST)
+    )
 
 
 def graph_payload(state_path=None):
@@ -108,103 +108,51 @@ def graph_payload(state_path=None):
 
 def graph_index_or_api_error(matters, conditions, dependencies):
     try:
-        return GraphIndex(matters, conditions, dependencies)
-    except DependencyCycleError as error:
-        raise ApiError(
-            "state dependency graph contains a cycle",
-            HTTPStatus.UNPROCESSABLE_ENTITY,
-        ) from error
+        return rules.build_index(matters, conditions, dependencies)
+    except RuleError as error:
+        raise api_error_for(error) from error
 
 
 def create_matter(state_path, payload):
-    with state_mutation_locks.lock(state_path):
-        matters, conditions, dependencies = load_state(state_path)
-        graph_index_or_api_error(matters, conditions, dependencies)
-        matter_id = normalized_matter_id(payload)
-        if matter_id in matters:
-            raise ApiError(f"matter already exists: {matter_id}", HTTPStatus.CONFLICT)
-
-        condition_payloads = payload.get("conditions") or [
-            {"label": f"Resolved: {matter_id.replace('_', ' ')}", "truth": False}
-        ]
-        normalized_conditions = [
-            normalize_condition(condition, index)
-            for index, condition in enumerate(condition_payloads, start=1)
-        ]
-
-        matters.add(matter_id)
-        conditions[matter_id] = normalized_conditions
-        save_state(matters, conditions, dependencies, path=state_path)
-        return graph_payload(state_path)
+    try:
+        rules.create_matter(state_path, payload, load=load_state)
+    except RuleError as error:
+        raise api_error_for(error) from error
+    return graph_payload(state_path)
 
 
 def update_conditions(state_path, matter_id, payload):
-    with state_mutation_locks.lock(state_path):
-        matters, conditions, dependencies = load_state(state_path)
-        graph_index_or_api_error(matters, conditions, dependencies)
-        if matter_id not in matters:
-            raise ApiError(f"unknown matter: {matter_id}", HTTPStatus.NOT_FOUND)
-
-        action = payload.get("action")
-        current = list(conditions.get(matter_id, []))
-
-        if "conditions" in payload:
-            current = [
-                normalize_condition(condition, index)
-                for index, condition in enumerate(payload["conditions"], start=1)
-            ]
-        elif action == "toggle":
-            index = require_condition_index(payload, current)
-            current[index]["truth"] = not truth(current[index])
-        elif action == "delete":
-            index = require_condition_index(payload, current)
-            del current[index]
-        else:
-            index = payload.get("index")
-            if index is None:
-                current.append(normalize_condition(payload, len(current) + 1))
-            else:
-                index = require_condition_index(payload, current)
-                updated = dict(current[index])
-                if "label" in payload:
-                    updated["label"] = str(payload["label"]).strip()
-                if "truth" in payload:
-                    updated["truth"] = truth(payload["truth"])
-                current[index] = normalize_condition(updated, index + 1)
-
-        conditions[matter_id] = current
-        save_state(matters, conditions, dependencies, path=state_path)
-        return graph_payload(state_path)
+    try:
+        rules.update_conditions(state_path, matter_id, payload, load=load_state)
+    except RuleError as error:
+        raise api_error_for(error) from error
+    return graph_payload(state_path)
 
 
 def add_dependency(state_path, payload):
-    with state_mutation_locks.lock(state_path):
-        matters, conditions, dependencies = load_state(state_path)
-        graph_index_or_api_error(matters, conditions, dependencies)
-        source, target = dependency_endpoints(payload, matters)
-        next_dependencies = set(dependencies)
-        next_dependencies.add((source, target))
-        try:
-            GraphIndex(matters, conditions, next_dependencies)
-        except DependencyCycleError:
-            raise ApiError("dependency would create a cycle")
-
-        save_state(matters, conditions, next_dependencies, path=state_path)
-        return graph_payload(state_path)
+    try:
+        rules.add_dependency(state_path, payload, load=load_state)
+    except RuleError as error:
+        raise api_error_for(error) from error
+    return graph_payload(state_path)
 
 
 def remove_dependency(state_path, payload):
-    with state_mutation_locks.lock(state_path):
-        matters, conditions, dependencies = load_state(state_path)
-        graph_index_or_api_error(matters, conditions, dependencies)
-        source, target = dependency_endpoints(payload, matters)
-        next_dependencies = set(dependencies)
-        next_dependencies.discard((source, target))
-        save_state(matters, conditions, next_dependencies, path=state_path)
-        return graph_payload(state_path)
+    try:
+        rules.remove_dependency(state_path, payload, load=load_state)
+    except RuleError as error:
+        raise api_error_for(error) from error
+    return graph_payload(state_path)
 
 
 def run_command(state_path, payload):
+    try:
+        return run_text_command(state_path, payload)
+    except RuleError as error:
+        raise api_error_for(error) from error
+
+
+def run_text_command(state_path, payload):
     text = str(payload.get("text") or payload.get("command") or "").strip()
     if not text:
         raise ApiError("command is required")
@@ -216,21 +164,16 @@ def run_command(state_path, payload):
     if command == "create":
         if not rest:
             raise ApiError("create requires an expression")
-        with state_mutation_locks.lock(state_path):
-            matters, conditions, dependencies = load_state(state_path)
-            graph_index_or_api_error(matters, conditions, dependencies)
+        with rules.state_transaction(state_path, load=load_state) as draft:
             try:
                 created = create_matters_from_expression(
-                    rest, matters, conditions, dependencies
+                    rest, draft.matters, draft.conditions, draft.dependencies
                 )
             except ValueError as error:
                 raise ApiError(str(error)) from error
-            try:
-                GraphIndex(matters, conditions, dependencies)
-            except DependencyCycleError:
+            if rules.has_cycle(draft.matters, draft.conditions, draft.dependencies):
                 raise ApiError("created expression would create a cycle")
-            save_state(matters, conditions, dependencies, path=state_path)
-            return {"type": "create", "created": created, "state": graph_payload(state_path)}
+        return {"type": "create", "created": created, "state": graph_payload(state_path)}
 
     matters, conditions, dependencies = load_state(state_path)
     index = graph_index_or_api_error(matters, conditions, dependencies)
@@ -780,53 +723,14 @@ def web_assets_path():
     return resources.files("matters").joinpath("web_assets")
 
 
-def normalized_matter_id(payload):
-    raw_id = str(payload.get("id") or "").strip()
-    title = str(payload.get("title") or payload.get("name") or "").strip()
-    matter_id = raw_id or slugify(title)
-    if not matter_id:
-        raise ApiError("matter id or title is required")
-    if not re.fullmatch(r"[a-z0-9_]+", matter_id):
-        raise ApiError("matter id must contain lowercase letters, numbers, and underscores only")
-    return matter_id
-
-
-def normalize_condition(condition, index):
-    if isinstance(condition, str):
-        label = condition.strip()
-        condition_truth = False
-    else:
-        label = str(condition.get("label") or "").strip()
-        condition_truth = truth(condition.get("truth", False))
-    if not label:
-        label = f"Unlabeled condition {index}"
-    return {"label": label, "truth": condition_truth}
-
-
-def require_condition_index(payload, conditions):
-    try:
-        index = int(payload["index"])
-    except (KeyError, TypeError, ValueError) as error:
-        raise ApiError("valid condition index is required") from error
-    if index < 0 or index >= len(conditions):
-        raise ApiError("condition index is out of range", HTTPStatus.NOT_FOUND)
-    return index
-
-
-def dependency_endpoints(payload, matters):
-    source = str(payload.get("source") or payload.get("prerequisite") or "").strip()
-    target = str(payload.get("target") or payload.get("dependent") or "").strip()
-    if not source or not target:
-        raise ApiError("dependency source and target are required")
-    if source not in matters:
-        raise ApiError(f"unknown dependency source: {source}", HTTPStatus.NOT_FOUND)
-    if target not in matters:
-        raise ApiError(f"unknown dependency target: {target}", HTTPStatus.NOT_FOUND)
-    return source, target
-
-
-def require_matter(matter_id, matters):
-    if not matter_id:
-        raise ApiError("matter id is required")
-    if matter_id not in matters:
-        raise ApiError(f"unknown matter: {matter_id}", HTTPStatus.NOT_FOUND)
+# Backward-compatible aliases. These are the rules-layer functions
+# themselves, not copies: `matters.web.normalize_condition is
+# matters.rules.normalize_condition` must stay true (AC-13). They raise
+# RuleError, which every caller in this module translates through
+# `api_error_for`.
+state_mutation_locks = rules.state_mutation_locks
+normalized_matter_id = rules.normalized_matter_id
+normalize_condition = rules.normalize_condition
+require_condition_index = rules.require_condition_index
+dependency_endpoints = rules.dependency_endpoints
+require_matter = rules.require_matter

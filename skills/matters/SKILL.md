@@ -63,7 +63,7 @@ Extraction has two engines. The LLM engine runs when an `extraction` model profi
 3. Compare candidates against existing matters in the selected state file.
 4. Propose possible dependencies where names, topics, or conditions overlap, but do not silently add them.
 5. Show the proposed candidates, conditions, and dependency candidates to the user for confirmation.
-6. Persist only after explicit confirmation, unless the user has already asked for an update and every change is directly verifiable.
+6. Persist only after explicit confirmation, unless the user has already asked for an update and every change is directly verifiable. Persist through the write commands in Implementation Guidance, never by editing the state file.
 
 ## ToTs Exploration Workflow
 
@@ -108,16 +108,19 @@ Use this workflow when the user asks to publish, share, or separate public matte
 
 When the user asks about or mentions a matter in a matter-management context:
 
-1. Find the JSON state file.
-   - Use the path the user gave, if any.
-   - Otherwise use the `MATTERS_STATE` environment variable, if set.
-   - Otherwise use project-local `.matters/matters.json`, if present.
-   - Otherwise use `~/.local/share/matters/matters.json`.
-   - If the user wants a different state file, use that path explicitly.
+1. Resolve the state file, then pass it to every command.
+   - Use the path the user gave, if any, as `--state <path>` on every command.
+   - Otherwise the CLI uses the `MATTERS_STATE` environment variable, if set.
+   - Otherwise the CLI uses `~/.local/share/matters/matters.json`.
+   - There is no project-local default. A project-local file such as `.matters/matters.json` is used only when it is passed explicitly, so pass `--state <path>` on every read and every write when the user wants one.
+   - Run `matters state-path [--state <path>]` when the resolution is in doubt; it prints the path the CLI will actually use.
 
-2. Load the JSON and check whether the matter already exists.
+2. Read the current state with the CLI, not by opening the file.
+   - `matters list [--state <path>]` prints every known matter id, sorted.
+   - `matters show <matter> [--state <path>]` prints that matter's numbered conditions with their truth values, its direct prerequisites, and its direct dependents.
    - Match by the matter's stable name or id.
    - If there are near matches, show them and ask whether the user means an existing matter or a new one.
+   - Never hand-edit the state file and never write it from a script. Every write goes through a `matters` command so the shared rules apply: matter-id syntax, condition normalization, endpoint existence, cycle refusal, and the advisory lock that keeps a running `matters web` and the CLI from clobbering each other.
 
 3. If the matter does not exist, prepare a proposed new matter.
    - Required: a clear matter name/id.
@@ -129,15 +132,21 @@ When the user asks about or mentions a matter in a matter-management context:
      - If no dependency is found, include `No dependencies` in the proposal before saving.
    - If required information is missing, ask concise follow-up questions before creating anything.
 
-4. Before saving, show the exact matter, named conditions, and dependencies that will be added.
-   - Ask the user to confirm or correct the proposed addition.
-   - Do not persist unconfirmed additions.
+4. Before writing, show the exact change and the exact commands that will make it.
+   - Show the matter, named conditions, and dependencies that will be added, changed, or removed.
+   - Show the `matters` commands you intend to run, verbatim, including `--state`.
+   - Ask the user to confirm or correct the proposed change, then wait for the answer.
+   - Do not persist unconfirmed changes, and do not run a write command that has not been confirmed. Confirmation is per change, not a standing permission for the session.
 
-5. Once the user confirms, update the JSON state.
-   - Add the matter if missing.
-   - Add its named condition truth values and dependencies.
-   - Save the JSON.
-   - Reload or validate the state, then report the updated universe/frontier/horizon when relevant.
+5. Once the user confirms, run the confirmed write commands, one per change, in the order shown.
+   - Create the matter, its first condition, and any prerequisite chain in one step with `matters create 'goal (condition) > prerequisite' --state <path>`.
+   - Then use `matters add-condition`, `matters mark`, `matters edit-condition`, `matters delete-condition`, `matters link`, `matters unlink`, and `matters delete-matter` for the remaining changes, as mapped in Implementation Guidance.
+   - Address a condition by the 1-based number `matters show` prints, or by its exact label; when two conditions on a matter share a label the command refuses and lists the candidates, so use the number instead.
+   - Destructive writes need `--yes`: `matters delete-matter`, and a `matters delete-condition` that removes a matter's last condition. Emptying a matter's conditions silently makes it resolved and unblocks whatever depended on it, so state that consequence and get explicit approval before passing `--yes`.
+   - `matters delete-matter` refuses while other matters depend on the target and names them. Either `matters unlink` those edges first or, with the user's separate approval, pass `--cascade` to delete the matter together with its incident dependency edges.
+   - Each write prints one line describing what changed; relay it. A command that changes nothing, such as marking a condition that is already true or linking an edge that already exists, still exits 0 and leaves the file untouched.
+   - A rejected command exits non-zero with a one-line reason on stderr and leaves the file byte-identical. Report the reason and fix the input; never work around it by editing the JSON.
+   - Re-read with `matters show`/`matters list` after the writes land, then report the updated universe/frontier/horizon when relevant.
 
 Do not persist exploratory conversation by default. Persist when the user is managing matters over time, references the JSON state, asks to save/update/track/record a matter, or confirms a proposed addition.
 
@@ -147,13 +156,25 @@ Do not persist exploratory conversation by default. Persist when the user is man
 - The skill does not bundle the engine. The reusable implementation lives in the `matters` package.
 - Keep persisted state to the primitives only: matters, condition labels and truth values, and dependencies.
 - Compute all derived concepts from the loaded graph.
-- Use JSON persistence through the resolved state path unless the user gives a different path.
-- Persist each condition as an object with `label` and `truth`; do not save new conditions as bare booleans.
-- Treat legacy boolean conditions as unlabeled data that must be normalized before saving; callable condition predicates are runtime-only.
+- Let the CLI own JSON persistence at the resolved state path; pass `--state <path>` when the user wants a different file. Do not open the state file for writing.
+- Map every persisted change to one of these commands. All of them accept `--state <path>` and `--config <path>` before or after the subcommand.
+  - Create matters, their first conditions, and a prerequisite chain: `matters create 'goal (condition) > prerequisite'`
+  - Set a condition true or false: `matters mark <matter> <condition-ref> <true|false>`
+  - Add a condition: `matters add-condition <matter> <label>`
+  - Rename a condition: `matters edit-condition <matter> <condition-ref> <new-label>`
+  - Remove a condition: `matters delete-condition <matter> <condition-ref> [--yes]`
+  - Add a dependency, read as "matter needs prerequisite": `matters link <matter> <prerequisite>`
+  - Remove a dependency: `matters unlink <matter> <prerequisite>`
+  - Remove a matter: `matters delete-matter <matter> [--yes] [--cascade]`
+- Read the graph with `matters list [--json]`, `matters show <matter> [--json]`, `matters universe`, `matters frontier <matter>`, `matters horizon <matter>`, and `matters state-path`. These write nothing.
+- `<condition-ref>` is the 1-based number `matters show <matter>` displays, or an exact condition label. A label that is entirely digits is read as a number, so address such conditions by their position.
+- `matters show <matter> --json` reports each condition with an `index` field that is 0-based, matching the web API and the stored file, while the text output and every `<condition-ref>` you type are 1-based. Subtract one when moving from the printed listing into the JSON, and add one when going back.
+- Pass `true` or `false` to `matters mark`; no other spelling is accepted. Separate a label that starts with a dash with `--`, as in `matters add-condition <matter> -- --force`.
+- Persist each condition as an object with `label` and `truth`; do not save new conditions as bare booleans. `matters add-condition` already stores that shape with `truth` false.
+- Treat legacy boolean conditions as unlabeled data that must be normalized before saving; the CLI normalizes them on any accepted write, and callable condition predicates are runtime-only.
 - For unlock-style reports, prefer `matters unlock --state <path>` when the CLI is installed, or the `unlock_report` API from the `matters` package when working from source.
 - For extraction, prefer `matters extract <source-text-file> --source-type <kind> --state <path>` when the CLI is installed, or the `build_extraction_proposal` API from the `matters` package when working from source. `build_extraction_proposal` runs the configured profile and falls back to the deterministic `extraction_proposal` marker engine; pass `use_llm=False` (or `--no-llm`) to force marker mode, and inject a `StructuredGenerator` to test without network access.
 - For hypothesis exploration, prefer `matters tots <matter-id> --state <path> [--context <text-file>]`, or `build_tots_proposal` from the package. The library accepts an injected `StructuredGenerator` and optional external evaluator for offline tests and tool-backed checks. Treat `finalists` as proposals requiring confirmation.
 - For public sharing, prefer `matters export-public --state <private-state> --visibility <visibility.json>`, or the `public_state` API from the `matters` package when working from source.
 - For public edit intake, prefer `matters merge-public --state <private-state> --public-state <public-state> --visibility <visibility.json>`, or the `merge_public_state` API from the `matters` package when working from source.
-- If `matters` is not installed, ask the user to install the `matters.global` package before performing persisted operations:
-  `python -m pip install -e /Users/matthias/code/matters.global`.
+- If `matters` is not installed, ask the user to install the `matters-global` package before performing persisted operations, for example `python -m pip install -e .` from a checkout of the matters.global repository, or `python -m pip install -e <path-to-checkout>` from elsewhere. Do not guess an install path.

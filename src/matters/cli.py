@@ -398,7 +398,7 @@ def main(argv=None):
                 args.state, args.matter, args.condition, args.truth == "true"
             )
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         print(
             f"{result['matter']}: condition {result['position']} "
             f"{quoted(result['label'])} is now {truth_word(result['truth'])}"
@@ -409,7 +409,7 @@ def main(argv=None):
         try:
             result = rules.add_condition(args.state, args.matter, args.label)
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         print(
             f"{result['matter']}: added condition {result['position']} "
             f"{quoted(result['label'])} ({truth_word(result['truth'])})"
@@ -422,7 +422,7 @@ def main(argv=None):
                 args.state, args.matter, args.condition, args.label
             )
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         print(
             f"{result['matter']}: condition {result['position']} renamed "
             f"{quoted(result['previous_label'])} -> {quoted(result['label'])}"
@@ -435,7 +435,7 @@ def main(argv=None):
                 args.state, args.matter, args.condition, confirmed=args.yes
             )
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         print(
             f"{result['matter']}: deleted condition {result['position']} "
             f"{quoted(result['label'])}"
@@ -455,7 +455,7 @@ def main(argv=None):
         try:
             result = rules.link(args.state, args.matter, args.prerequisite)
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         verb = "now requires" if result["changed"] else "already requires"
         print(f"{result['dependent']} {verb} {result['prerequisite']}")
         return 0
@@ -464,7 +464,7 @@ def main(argv=None):
         try:
             result = rules.unlink(args.state, args.matter, args.prerequisite)
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         verb = (
             "no longer requires" if result["changed"] else "already does not require"
         )
@@ -482,7 +482,7 @@ def main(argv=None):
                 confirmed=args.yes,
             )
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         removed = rules.format_dependency_count(len(result["removed_edges"]))
         print(f"deleted matter {result['matter']} (removed {removed})")
         if result["unblocked"]:
@@ -497,7 +497,7 @@ def main(argv=None):
         try:
             described = rules.describe_matter(args.state, args.matter)
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         if args.json:
             print(json.dumps(described, indent=2))
         else:
@@ -508,7 +508,7 @@ def main(argv=None):
         try:
             matter_ids = rules.list_matters(args.state)
         except (RuleError, ValueError, OSError) as error:
-            parser.error(str(error))
+            parser.error(error_message(error))
         if args.json:
             print(json.dumps(matter_ids, indent=2))
         else:
@@ -643,6 +643,24 @@ def quoted(label):
 
 def truth_word(value):
     return "true" if value else "false"
+
+
+def error_message(error):
+    """Render an error for the terminal, adding a repair hint for a cycle.
+
+    The cycle rides on the error as data; the command that breaks it is CLI
+    vocabulary, so it is spelled here rather than in the shared rules. The
+    hint is worth the line because the message reads in edge direction,
+    ``prerequisite -> dependent``, while ``unlink`` takes the dependent
+    first. Typing the closing edge in the order it is printed removes
+    nothing and still exits 0.
+    """
+
+    message = str(error)
+    cycle = getattr(error, "cycle", ())
+    if not cycle:
+        return message
+    return f"{message}\nbreak it with: matters unlink {cycle[0]} {cycle[-1]}"
 
 
 def print_matter(described):

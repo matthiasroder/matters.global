@@ -8,10 +8,66 @@ from .engine import truth
 
 
 class DependencyCycleError(ValueError):
-    """Raised when a dependency graph cannot be topologically ordered."""
+    """Raised when a dependency graph cannot be topologically ordered.
 
-    def __init__(self):
+    ``cycle`` is one concrete cycle, as a tuple of matter ids in edge
+    direction (``prerequisite`` first), each id appearing exactly once: the
+    closing edge from the last id back to the first is implied, so a
+    self-loop is the one-element tuple ``("a",)``. A graph can hold several
+    cycles; this names one of them, which is all a caller needs to remove an
+    edge and try again.
+
+    The argument is optional so that ``DependencyCycleError()`` keeps
+    working, and the message is unchanged: callers that render the cycle for
+    a person read ``.cycle`` and format it themselves (``rules.format_cycle``
+    is the one renderer).
+    """
+
+    def __init__(self, cycle=()):
         super().__init__("dependency graph contains a cycle")
+        self.cycle = tuple(cycle)
+
+
+def extract_cycle(prerequisite_sets, remaining):
+    """Return one cycle drawn from ``remaining``, in edge direction.
+
+    ``remaining`` is exactly the set Kahn's algorithm could not order: every
+    matter in it is in a cycle or downstream of one, and every one of them
+    therefore still has at least one prerequisite inside ``remaining`` --
+    otherwise its indegree would have reached zero. Walking prerequisites can
+    only stay inside the set, so a finite walk must revisit a matter, and the
+    revisited prefix is a cycle.
+
+    Deterministic twice over, because an error message that changes between
+    two runs on the same file is not a message a person can act on: the walk
+    starts at the smallest id and always takes the smallest prerequisite, and
+    the result is rotated to begin at its own smallest id, so which node the
+    walk happened to enter the cycle from cannot show up in the output.
+
+    Returns matter ids in ``source -> target`` order (prerequisite first),
+    the same direction the dependency tuples and ``create`` output use, with
+    no repeated closing element.
+    """
+
+    if not remaining:
+        return ()
+
+    path = []
+    position = {}
+    matter = min(remaining)
+    while matter not in position:
+        position[matter] = len(path)
+        path.append(matter)
+        matter = min(
+            prerequisite
+            for prerequisite in prerequisite_sets[matter]
+            if prerequisite in remaining
+        )
+
+    # The walk followed prerequisites, which is against edge direction.
+    cycle = tuple(reversed(path[position[matter] :]))
+    start = cycle.index(min(cycle))
+    return cycle[start:] + cycle[:start]
 
 
 class GraphIndex:
@@ -106,7 +162,10 @@ class GraphIndex:
                     heapq.heappush(ready, dependent)
 
         if len(order) != len(self.matters):
-            raise DependencyCycleError()
+            remaining = frozenset(self.matters) - frozenset(order)
+            raise DependencyCycleError(
+                extract_cycle(prerequisite_sets, remaining)
+            )
         return tuple(order)
 
     def descendants(self, matter):

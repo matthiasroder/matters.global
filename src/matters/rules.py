@@ -58,11 +58,17 @@ class RuleError(ValueError):
     The code is deliberately not an ``HTTPStatus``: HTTP is ``web.py``'s
     concern. ``RuleError`` subclasses ``ValueError`` so ``parser.error``
     funnelling keeps working and nothing catching ``ValueError`` regresses.
+
+    ``cycle`` is empty for every code except ``state_cycle``, where it
+    carries the offending cycle as structured data so a caller does not have
+    to parse it back out of the message. It is a keyword with a default
+    because every existing raise site is positional ``(message, code)``.
     """
 
-    def __init__(self, message, code="invalid"):
+    def __init__(self, message, code="invalid", cycle=()):
         super().__init__(message)
         self.code = code
+        self.cycle = tuple(cycle)
 
 
 # ---------------------------------------------------------------------------
@@ -155,7 +161,9 @@ class StateDraft:
 
     Callers mutate ``matters``, ``conditions`` and ``dependencies`` in place.
     ``index`` is the :class:`GraphIndex` built from the state as loaded, or
-    ``None`` when the transaction was opened with ``require_acyclic=False``.
+    ``None`` when the transaction was opened with ``require_acyclic=False``
+    -- in which case the caller must not read it, because no index of a
+    cyclic graph exists to hand over. See :func:`state_transaction`.
     """
 
     def __init__(self, path, matters, conditions, dependencies):
@@ -208,6 +216,26 @@ def state_transaction(
     Reads take no lock at all. ``os.replace`` makes every write atomic, so a
     reader always sees a complete file; locking reads would add contention
     for nothing and would create a lock file for read-only commands.
+
+    ``require_acyclic`` decides two things at once, and they are the same
+    decision: whether a state file that already contains a cycle is refused
+    before the caller is yielded to, and whether ``draft.index`` exists.
+
+    ================  ======================================================
+    Value             Contract
+    ================  ======================================================
+    ``True``          Default. A pre-existing cycle raises ``state_cycle``
+                      naming the cycle, before the caller sees the draft and
+                      before anything is written. ``draft.index`` is the
+                      index of the state **as loaded** -- valid to read, and
+                      stale the moment the caller mutates the draft.
+    ``False``         Nothing is refused for shape, and ``draft.index`` is
+                      ``None``, never a partial or stale index, so a caller
+                      that opts out must not read it. Only a mutation that
+                      cannot create a cycle may opt out: ``create`` (AC-21)
+                      and the two edge-removal verbs, which are how a cyclic
+                      file gets repaired.
+    ================  ======================================================
     """
 
     path = resolve_state_path(state_path)
@@ -221,7 +249,7 @@ def state_transaction(
         matters, conditions, dependencies = load_state_or_rule_error(path, load)
         draft = StateDraft(path, matters, conditions, dependencies)
         if require_acyclic:
-            draft.index = build_index(matters, conditions, dependencies)
+            draft.index = require_acyclic_index(matters, conditions, dependencies)
         snapshot = copy.deepcopy((matters, conditions, dependencies))
 
         yield draft
@@ -311,11 +339,70 @@ def require_matter(matter_id, matters):
 # ---------------------------------------------------------------------------
 
 
+def format_cycle(cycle):
+    """Render one cycle as ``a -> b -> c -> a``, closing the loop.
+
+    The only renderer of a cycle in the codebase. ASCII ``->`` on purpose:
+    this string reaches a terminal under an arbitrary locale, where a unicode
+    arrow can come out as mojibake or raise on encode, and it matches the
+    arrow ``create`` already prints for a dependency.
+
+    A self-loop renders as ``a -> a``, because :attr:`DependencyCycleError`
+    stores each id once and this is where the closing edge is made visible.
+    """
+
+    if not cycle:
+        return ""
+    cycle = tuple(cycle)
+    return " -> ".join(cycle + (cycle[0],))
+
+
+def state_cycle_message(cycle):
+    """Extend the pinned cycle sentence with the cycle itself.
+
+    :data:`STATE_CYCLE_MESSAGE` stays intact and leading. It is a wire
+    contract -- the web API answers it verbatim in the body of a 422 for a
+    graph read -- so naming the cycle may only ever append to it.
+    """
+
+    named = format_cycle(cycle)
+    return f"{STATE_CYCLE_MESSAGE}: {named}" if named else STATE_CYCLE_MESSAGE
+
+
 def build_index(matters, conditions, dependencies):
+    """Build a graph index, refusing a cyclic graph with the pinned message.
+
+    The message is the bare sentence, and the cycle rides along as structured
+    data on the error. Rendering it into the text is
+    :func:`require_acyclic_index`'s job, on the refusal-to-write path where
+    a person needs to know which edge to remove; a graph *read* keeps
+    answering the stable sentence it has always answered.
+    """
+
     try:
         return GraphIndex(matters, conditions, dependencies)
     except DependencyCycleError as error:
-        raise RuleError(STATE_CYCLE_MESSAGE, "state_cycle") from error
+        raise RuleError(
+            STATE_CYCLE_MESSAGE, "state_cycle", cycle=error.cycle
+        ) from error
+
+
+def require_acyclic_index(matters, conditions, dependencies):
+    """Build the index a write needs, naming the cycle when it refuses.
+
+    Goes through :func:`build_index` by name, so a caller that replaces that
+    rule replaces it here too (AC-13), and re-raises anything it did not
+    recognise untouched.
+    """
+
+    try:
+        return build_index(matters, conditions, dependencies)
+    except RuleError as error:
+        if error.code != "state_cycle" or not error.cycle:
+            raise
+        raise RuleError(
+            state_cycle_message(error.cycle), "state_cycle", cycle=error.cycle
+        ) from error
 
 
 def has_cycle(matters, conditions, dependencies):
@@ -576,7 +663,16 @@ def add_dependency(state_path, payload, *, load=None):
 
 
 def remove_dependency(state_path, payload, *, load=None):
-    with state_transaction(state_path, load=load) as draft:
+    """Remove one edge, and do so even on an already cyclic file.
+
+    ``require_acyclic=False`` for the same reason as :func:`unlink`, which is
+    this operation's CLI twin: removing an edge cannot create a cycle, and
+    refusing here would leave the web with no way at all to repair a state
+    file that acquired one. Touches no derived value, so ``draft.index``
+    being ``None`` costs it nothing.
+    """
+
+    with state_transaction(state_path, require_acyclic=False, load=load) as draft:
         source, target = dependency_endpoints(payload, draft.matters)
         draft.dependencies.discard((source, target))
 
@@ -720,7 +816,25 @@ def link(state_path, dependent, prerequisite):
 
 
 def unlink(state_path, dependent, prerequisite):
-    with state_transaction(state_path, require_exists=True) as draft:
+    """Remove the edge for "``dependent`` needs ``prerequisite``".
+
+    The one write verb that runs against a state file which already contains
+    a cycle. Removing an edge cannot create one, so the guard has nothing to
+    protect here, and it is the only repair a person has: with it refused,
+    a file that acquired a cycle -- by hand, by an older tool, by an agent
+    writing JSON directly -- could be fixed only by editing JSON by hand.
+    Every other write verb still refuses.
+
+    A repair is not guaranteed to be finished by one call: a graph can hold
+    several cycles, and the next write refusal names the next one.
+
+    ``draft.index`` is ``None`` on this path. This function reads no derived
+    value, and must not start to.
+    """
+
+    with state_transaction(
+        state_path, require_exists=True, require_acyclic=False
+    ) as draft:
         source, target = dependency_endpoints(
             {"source": prerequisite, "target": dependent}, draft.matters
         )

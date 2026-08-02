@@ -138,6 +138,18 @@ def add_dependency(state_path, payload):
 
 
 def remove_dependency(state_path, payload):
+    """Remove one edge. Permitted on a state file that already has a cycle.
+
+    The permission lives in ``rules.remove_dependency`` and is shared with
+    the CLI's ``unlink``, so the two surfaces cannot drift apart on the one
+    write that repairs a cyclic file.
+
+    The removal is committed before ``graph_payload`` runs. If the file was
+    holding more than one cycle, the removal still lands and this call still
+    answers 422, because there is no graph to render yet -- the caller
+    removes the next edge and asks again.
+    """
+
     try:
         rules.remove_dependency(state_path, payload, load=load_state)
     except RuleError as error:

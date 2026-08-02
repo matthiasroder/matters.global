@@ -298,7 +298,12 @@ def test_state_transaction_refuses_a_preexisting_cycle_before_yielding(tmp_path)
             entered.append(draft)
 
     assert entered == []
-    assert str(error.value) == "state dependency graph contains a cycle"
+    # The pinned sentence is still the whole message up to the colon; the
+    # named cycle is the appended half. See the cycle-naming tests appended
+    # at the end of this file.
+    assert str(error.value) == (
+        "state dependency graph contains a cycle: a -> b -> a"
+    )
     assert error.value.code == "state_cycle"
     assert state_path.read_bytes() == original
 
@@ -1029,3 +1034,299 @@ def test_api_error_for_degrades_an_unmapped_rule_code_to_bad_request():
     assert api_error.status == HTTPStatus.BAD_REQUEST
     assert str(api_error) == "something new went wrong"
     assert "not_in_the_table" not in web.RULE_ERROR_STATUS
+
+
+# ---------------------------------------------------------------------------
+# Naming the cycle
+#
+# A refusal that says only "there is a cycle" leaves a person with nothing to
+# act on. Every expectation below is a literal string, because the whole
+# value of this feature is the exact text a person reads and types back.
+# ---------------------------------------------------------------------------
+
+
+THREE_CYCLE = {
+    "matters": ["a", "b", "c"],
+    "conditions": {"a": [], "b": [], "c": []},
+    # a -> b -> c -> a.
+    "dependencies": [["a", "b"], ["b", "c"], ["c", "a"]],
+}
+
+SELF_LOOP = {
+    "matters": ["a"],
+    "conditions": {"a": []},
+    "dependencies": [["a", "a"]],
+}
+
+TWO_CYCLES = {
+    "matters": ["a", "b", "x", "y"],
+    "conditions": {"a": [], "b": [], "x": [], "y": []},
+    # Two independent cycles: a <-> b and x <-> y.
+    "dependencies": [["a", "b"], ["b", "a"], ["x", "y"], ["y", "x"]],
+}
+
+
+def test_format_cycle_closes_the_loop_in_ascii():
+    assert rules.format_cycle(("a", "b", "c")) == "a -> b -> c -> a"
+    assert rules.format_cycle(("a",)) == "a -> a"
+    assert rules.format_cycle(()) == ""
+    # The arrow reaches a terminal under an arbitrary locale.
+    assert rules.format_cycle(("a", "b", "c")).isascii()
+
+
+def test_state_cycle_message_extends_the_pinned_sentence():
+    assert rules.state_cycle_message(("a", "b", "c")) == (
+        "state dependency graph contains a cycle: a -> b -> c -> a"
+    )
+    # Empty means "no cycle was captured": the sentence must survive alone,
+    # because it is the body the web API answers for a cyclic graph read.
+    assert rules.state_cycle_message(()) == rules.STATE_CYCLE_MESSAGE
+    assert rules.state_cycle_message(("a", "b")).startswith(
+        rules.STATE_CYCLE_MESSAGE
+    )
+
+
+def test_build_index_carries_the_cycle_and_keeps_the_pinned_message():
+    with pytest.raises(RuleError) as error:
+        rules.build_index(
+            {"a", "b", "c"},
+            {"a": [], "b": [], "c": []},
+            {("a", "b"), ("b", "c"), ("c", "a")},
+        )
+
+    # A graph read keeps answering the bare sentence; the cycle rides along
+    # as data so the refusal-to-write path can render it.
+    assert str(error.value) == "state dependency graph contains a cycle"
+    assert error.value.code == "state_cycle"
+    assert error.value.cycle == ("a", "b", "c")
+
+
+def test_build_index_carries_a_self_loop_as_a_one_element_cycle():
+    with pytest.raises(RuleError) as error:
+        rules.build_index({"a"}, {"a": []}, {("a", "a")})
+
+    assert error.value.cycle == ("a",)
+
+
+def test_a_rule_error_without_a_cycle_carries_an_empty_one():
+    assert RuleError("unknown matter: ghost", "not_found").cycle == ()
+
+
+def test_a_write_refusal_names_a_three_cycle(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(state_path, THREE_CYCLE)
+    original = state_path.read_bytes()
+
+    with pytest.raises(RuleError) as error:
+        rules.add_condition(state_path, "a", "ship it")
+
+    assert str(error.value) == (
+        "state dependency graph contains a cycle: a -> b -> c -> a"
+    )
+    assert error.value.code == "state_cycle"
+    assert error.value.cycle == ("a", "b", "c")
+    assert state_path.read_bytes() == original
+
+
+def test_a_write_refusal_names_a_self_loop(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(state_path, SELF_LOOP)
+    original = state_path.read_bytes()
+
+    with pytest.raises(RuleError) as error:
+        rules.add_condition(state_path, "a", "ship it")
+
+    assert str(error.value) == "state dependency graph contains a cycle: a -> a"
+    assert error.value.cycle == ("a",)
+    assert state_path.read_bytes() == original
+
+
+def test_the_named_cycle_does_not_depend_on_where_the_walk_started(tmp_path):
+    # Same three-cycle, reached from a matter that is downstream of it and
+    # sorts before every member. If the walk's entry point leaked into the
+    # message, the two files below would name different cycles.
+    state_path = tmp_path / "cyclic.json"
+    write_state(
+        state_path,
+        {
+            "matters": ["aaa", "b", "c", "d"],
+            "conditions": {"aaa": [], "b": [], "c": [], "d": []},
+            "dependencies": [["b", "c"], ["c", "d"], ["d", "b"], ["d", "aaa"]],
+        },
+    )
+
+    with pytest.raises(RuleError) as error:
+        rules.add_condition(state_path, "b", "ship it")
+
+    assert str(error.value) == (
+        "state dependency graph contains a cycle: b -> c -> d -> b"
+    )
+
+
+def test_a_sabotaged_build_index_is_re_raised_untouched(tmp_path, monkeypatch):
+    # require_acyclic_index must not swallow or reword an error it did not
+    # recognise: the AC-13 sabotage guard depends on the message surviving.
+    def sabotaged_build_index(matters, conditions, dependencies):
+        raise RuleError("sabotaged build_index", "state_cycle")
+
+    monkeypatch.setattr(rules, "build_index", sabotaged_build_index)
+
+    with pytest.raises(RuleError) as error:
+        rules.require_acyclic_index({"a"}, {"a": []}, set())
+
+    assert str(error.value) == "sabotaged build_index"
+    assert error.value.code == "state_cycle"
+
+
+# ---------------------------------------------------------------------------
+# Repairing a cyclic file: unlink, and only unlink
+# ---------------------------------------------------------------------------
+
+
+def test_unlink_removes_the_named_edge_from_a_cyclic_file(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(state_path, THREE_CYCLE)
+
+    # The message's closing arrow is "c -> a": c is the prerequisite, a is
+    # the dependent, and unlink takes the dependent first.
+    assert rules.unlink(state_path, "a", "c")["changed"] is True
+
+    assert json.loads(state_path.read_text())["dependencies"] == [
+        ["a", "b"],
+        ["b", "c"],
+    ]
+
+
+def test_remove_dependency_removes_the_named_edge_from_a_cyclic_file(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(state_path, THREE_CYCLE)
+
+    rules.remove_dependency(state_path, {"source": "c", "target": "a"})
+
+    assert json.loads(state_path.read_text())["dependencies"] == [
+        ["a", "b"],
+        ["b", "c"],
+    ]
+
+
+def test_unlink_can_repair_a_self_loop(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(state_path, SELF_LOOP)
+
+    assert rules.unlink(state_path, "a", "a")["changed"] is True
+
+    assert json.loads(state_path.read_text())["dependencies"] == []
+    # And the file is writable again by everything else.
+    assert rules.add_condition(state_path, "a", "ship it")["position"] == 1
+
+
+def test_unlink_on_a_cyclic_file_still_validates_its_endpoints(tmp_path):
+    # The permission is about the shape of the file, not about the payload:
+    # every other rule the verb runs is unchanged.
+    state_path = tmp_path / "cyclic.json"
+    write_state(state_path, THREE_CYCLE)
+    original = state_path.read_bytes()
+
+    with pytest.raises(RuleError) as error:
+        rules.unlink(state_path, "a", "ghost")
+
+    assert str(error.value) == "unknown dependency source: ghost"
+    assert error.value.code == "not_found"
+    assert state_path.read_bytes() == original
+
+
+def test_unlink_leaves_a_second_cycle_in_place_and_says_nothing_about_it(tmp_path):
+    state_path = tmp_path / "cyclic.json"
+    write_state(state_path, TWO_CYCLES)
+
+    assert rules.unlink(state_path, "b", "a")["changed"] is True
+
+    assert json.loads(state_path.read_text())["dependencies"] == [
+        ["b", "a"],
+        ["x", "y"],
+        ["y", "x"],
+    ]
+    # Still cyclic, so every other write still refuses -- and now names the
+    # cycle that is left, which is the next edge to remove.
+    with pytest.raises(RuleError) as error:
+        rules.add_condition(state_path, "a", "ship it")
+
+    assert str(error.value) == (
+        "state dependency graph contains a cycle: x -> y -> x"
+    )
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(
+            lambda path: rules.set_condition_truth(path, "a", "1", True), id="mark"
+        ),
+        pytest.param(
+            lambda path: rules.add_condition(path, "a", "ship it"), id="add-condition"
+        ),
+        pytest.param(
+            lambda path: rules.edit_condition_label(path, "a", "1", "renamed"),
+            id="edit-condition",
+        ),
+        pytest.param(
+            lambda path: rules.delete_condition(path, "a", "1", confirmed=True),
+            id="delete-condition",
+        ),
+        pytest.param(lambda path: rules.link(path, "a", "b"), id="link"),
+        pytest.param(
+            lambda path: rules.delete_matter(path, "a", cascade=True, confirmed=True),
+            id="delete-matter",
+        ),
+        pytest.param(
+            lambda path: rules.create_matter(path, {"id": "new"}), id="create-matter"
+        ),
+        pytest.param(
+            lambda path: rules.update_conditions(path, "a", {"label": "x"}),
+            id="update-conditions",
+        ),
+        pytest.param(
+            lambda path: rules.add_dependency(path, {"source": "b", "target": "a"}),
+            id="add-dependency",
+        ),
+    ],
+)
+def test_every_other_write_still_refuses_a_cyclic_file(tmp_path, call):
+    # The guard against over-widening: unlink and remove_dependency were the
+    # only two operations that gained permission.
+    state_path = tmp_path / "cyclic.json"
+    write_state(
+        state_path,
+        {
+            "matters": ["a", "b", "c"],
+            "conditions": {
+                "a": [{"label": "a done", "truth": False}],
+                "b": [],
+                "c": [],
+            },
+            "dependencies": [["a", "b"], ["b", "c"], ["c", "a"]],
+        },
+    )
+    original = state_path.read_bytes()
+
+    with pytest.raises(RuleError) as error:
+        call(state_path)
+
+    assert str(error.value) == (
+        "state dependency graph contains a cycle: a -> b -> c -> a"
+    )
+    assert error.value.code == "state_cycle"
+    assert state_path.read_bytes() == original
+
+
+def test_the_opted_out_transaction_hands_over_no_index(tmp_path):
+    # The contract that makes the permission safe: a caller that opts out
+    # gets None, never an index built from a graph that has no ordering.
+    state_path = tmp_path / "cyclic.json"
+    write_state(state_path, THREE_CYCLE)
+    seen = []
+
+    with rules.state_transaction(state_path, require_acyclic=False) as draft:
+        seen.append(draft.index)
+
+    assert seen == [None]

@@ -1870,3 +1870,261 @@ def test_cli_json_read_verbs_also_survive_a_structurally_invalid_state(
         assert error.value.code == 2, argv
         assert captured.out == "", argv
         assert "Traceback" not in captured.err, argv
+
+
+# ---------------------------------------------------------------------------
+# Repairing a state file that already contains a cycle
+#
+# A cyclic state file used to be a dead end for the CLI: every write verb
+# refused, the message named no edge, and hand-editing JSON was the only way
+# out. These tests pin the way back: the refusal names one cycle, `unlink`
+# removes the named edge, and the refused write then succeeds.
+# ---------------------------------------------------------------------------
+
+
+def write_cyclic_state(path, dependencies, matters=("a", "b", "c")):
+    path.write_text(
+        json.dumps(
+            {
+                "matters": list(matters),
+                "conditions": {
+                    matter: [{"label": f"{matter} done", "truth": False}]
+                    for matter in matters
+                },
+                "dependencies": [list(edge) for edge in dependencies],
+            }
+        )
+    )
+
+
+def last_error_line(captured):
+    """The argparse diagnostic, without its `matters: error: ` prefix."""
+
+    return captured.err.splitlines()[-1].split("error: ", 1)[-1]
+
+
+def error_diagnostic(captured):
+    """The whole diagnostic, which is two lines when a cycle is named.
+
+    `last_error_line` cannot be used for those, because the repair hint is
+    the last line and the cycle itself is the line above it.
+    """
+
+    return captured.err.split("error: ", 1)[-1].strip()
+
+
+def cycle_refusal(cycle_text, unlink_args):
+    """The exact two-line diagnostic a write earns against a cyclic file."""
+
+    return f"state dependency graph contains a cycle: {cycle_text}\n" + (
+        f"break it with: matters unlink {unlink_args}"
+    )
+
+
+def test_cli_refusal_names_a_three_cycle(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "c"), ("c", "a")])
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(["add-condition", "a", "ship it", "--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert captured.out == ""
+    assert error_diagnostic(captured) == cycle_refusal(
+        "a -> b -> c -> a", "a c"
+    )
+    # ASCII only: this line goes to a terminal under an arbitrary locale.
+    assert captured.err.isascii()
+    assert "Traceback" not in captured.err
+    assert state_path.read_bytes() == original
+
+
+def test_cli_refusal_names_a_self_loop(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "a")], matters=("a",))
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(["mark", "a", "1", "true", "--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert error_diagnostic(captured) == cycle_refusal("a -> a", "a a")
+    assert state_path.read_bytes() == original
+
+
+def test_cli_repairs_a_cyclic_file_with_unlink_end_to_end(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "c"), ("c", "a")])
+
+    # 1. The write is refused, and the refusal names the cycle.
+    with pytest.raises(SystemExit) as error:
+        main(["mark", "a", "1", "true", "--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert error_diagnostic(captured) == cycle_refusal(
+        "a -> b -> c -> a", "a c"
+    )
+
+    # 2. Unlink the named edge. The last arrow, `c -> a`, is the edge where
+    #    c is the prerequisite and a is the dependent, and `unlink` takes the
+    #    dependent first, exactly as `link` does.
+    assert main(["unlink", "a", "c", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == "a no longer requires c\n"
+
+    # 3. The same write now succeeds.
+    assert main(["mark", "a", "1", "true", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == 'a: condition 1 "a done" is now true\n'
+
+    assert json.loads(state_path.read_text()) == {
+        "schema_version": 2,
+        "matters": ["a", "b", "c"],
+        "conditions": {
+            "a": [{"label": "a done", "truth": True}],
+            "b": [{"label": "b done", "truth": False}],
+            "c": [{"label": "c done", "truth": False}],
+        },
+        "dependencies": [["a", "b"], ["b", "c"]],
+    }
+
+
+def test_cli_repairs_a_self_loop_with_unlink(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "a")], matters=("a",))
+
+    assert main(["unlink", "a", "a", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == "a no longer requires a\n"
+
+    assert main(["add-condition", "a", "ship it", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == 'a: added condition 2 "ship it" (false)\n'
+    assert json.loads(state_path.read_text())["dependencies"] == []
+
+
+SIX_WRITE_VERBS_REFUSED_BY_A_CYCLE = (
+    ["mark", "a", "1", "true"],
+    ["add-condition", "a", "ship it"],
+    ["edit-condition", "a", "1", "renamed"],
+    ["delete-condition", "a", "1", "--yes"],
+    ["link", "a", "b"],
+    ["delete-matter", "a", "--yes", "--cascade"],
+)
+
+
+@pytest.mark.parametrize(
+    "argv", SIX_WRITE_VERBS_REFUSED_BY_A_CYCLE, ids=lambda argv: argv[0]
+)
+def test_cli_the_other_six_write_verbs_still_refuse_a_cyclic_file(
+    tmp_path, capsys, argv
+):
+    # The guard against over-widening the permission: `unlink` was the only
+    # verb that gained one, and every one of these still refuses -- naming
+    # the cycle, so the refusal is now actionable rather than a dead end.
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "c"), ("c", "a")])
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(argv + ["--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2, argv
+    assert captured.out == "", argv
+    assert error_diagnostic(captured) == cycle_refusal(
+        "a -> b -> c -> a", "a c"
+    ), argv
+    assert "Traceback" not in captured.err, argv
+    assert state_path.read_bytes() == original, argv
+
+
+def test_cli_unlink_on_two_cycles_removes_one_edge_and_writes_stay_refused(
+    tmp_path, capsys
+):
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(
+        state_path,
+        [("a", "b"), ("b", "a"), ("x", "y"), ("y", "x")],
+        matters=("a", "b", "x", "y"),
+    )
+
+    with pytest.raises(SystemExit):
+        main(["add-condition", "a", "ship it", "--state", str(state_path)])
+
+    assert error_diagnostic(capsys.readouterr()) == cycle_refusal(
+        "a -> b -> a", "a b"
+    )
+
+    assert main(["unlink", "b", "a", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == "b no longer requires a\n"
+    assert json.loads(state_path.read_text())["dependencies"] == [
+        ["b", "a"],
+        ["x", "y"],
+        ["y", "x"],
+    ]
+
+    # One repair does not finish the job, and the next refusal names the
+    # cycle that is left instead of repeating the one that is gone.
+    with pytest.raises(SystemExit) as error:
+        main(["add-condition", "a", "ship it", "--state", str(state_path)])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert error_diagnostic(captured) == cycle_refusal(
+        "x -> y -> x", "x y"
+    )
+
+    # The user repeats, and the file becomes writable.
+    assert main(["unlink", "y", "x", "--state", str(state_path)]) == 0
+    capsys.readouterr()
+    assert main(["add-condition", "a", "ship it", "--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == 'a: added condition 2 "ship it" (false)\n'
+
+
+def test_cli_unlink_on_a_cyclic_file_leaves_the_bytes_alone_when_the_edge_is_absent(
+    tmp_path, capsys
+):
+    # The permission does not turn `unlink` into a rewrite: a no-op unlink on
+    # a cyclic file still skips the save, so the file keeps its own bytes.
+    state_path = tmp_path / "matters.json"
+    state_path.write_text(
+        '{"matters": ["b", "a", "c"], "conditions": {"a": [], "b": [], "c": []},'
+        ' "dependencies": [["a", "b"], ["b", "a"]]}'
+    )
+    original = state_path.read_bytes()
+
+    assert main(["unlink", "c", "a", "--state", str(state_path)]) == 0
+
+    assert capsys.readouterr().out == "c already does not require a\n"
+    assert state_path.read_bytes() == original
+
+
+def test_cli_the_repair_hint_is_a_command_that_actually_works(tmp_path, capsys):
+    """Follow the printed hint verbatim instead of a literal chosen here.
+
+    The cycle reads in edge direction, `prerequisite -> dependent`, while
+    `unlink` takes the dependent first. A hint with the arguments the other
+    way round still exits 0 and removes nothing, so pinning it against a
+    string would prove only that the string is stable. This runs it.
+    """
+
+    state_path = tmp_path / "matters.json"
+    write_cyclic_state(state_path, [("a", "b"), ("b", "c"), ("c", "a")])
+
+    with pytest.raises(SystemExit):
+        main(["mark", "a", "1", "true", "--state", str(state_path)])
+
+    hints = [
+        line.split("break it with: matters ", 1)[1]
+        for line in capsys.readouterr().err.splitlines()
+        if "break it with: matters " in line
+    ]
+    assert len(hints) == 1
+
+    assert main(hints[0].split() + ["--state", str(state_path)]) == 0
+    assert capsys.readouterr().out == "a no longer requires c\n"
+
+    # The cycle is gone, so the write that was refused now lands.
+    assert main(["mark", "a", "1", "true", "--state", str(state_path)]) == 0
+    assert json.loads(state_path.read_text())["conditions"]["a"][0]["truth"] is True

@@ -330,10 +330,15 @@ def test_ac12_case5_self_link_is_rejected_as_a_cycle(tmp_path, capsys):
         pytest.param(["edit-condition", "a", "1", "renamed"], id="edit-condition"),
         pytest.param(["delete-condition", "a", "1", "--yes"], id="delete-condition"),
         pytest.param(["link", "a", "b"], id="link"),
-        # unlink and delete-matter are in the list on purpose (F-6): they are
-        # refused even though the write they were asked for would have removed
-        # the cycle.
-        pytest.param(["unlink", "a", "b"], id="unlink"),
+        # delete-matter is in the list on purpose (F-6): it is refused even
+        # though the write it was asked for would have removed the cycle. It
+        # reads draft.index to name the dependents that block a non-cascading
+        # delete, and no index of a cyclic graph exists.
+        #
+        # unlink is NOT in this list, and that is the whole of the widening:
+        # see test_unlink_repairs_a_cyclic_file_identically_on_both_surfaces
+        # below, and test_one_unlink_does_not_widen_the_permission_on_either
+        # _surface, which pins these same six still refusing afterwards.
         pytest.param(["delete-matter", "a", "--yes", "--cascade"], id="delete-matter"),
     ],
 )
@@ -351,8 +356,10 @@ def test_ac12_case6_every_write_verb_refuses_an_already_cyclic_file(
     assert web_rejected is True
     assert cli_rejected is web_rejected
     assert api_error.status == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert str(api_error) == "state dependency graph contains a cycle"
-    assert "state dependency graph contains a cycle" in stderr
+    # Both surfaces name the same cycle, because it is the same rule object
+    # building the same message. CYCLIC is (a, b) plus (b, a).
+    assert str(api_error) == "state dependency graph contains a cycle: a -> b -> a"
+    assert "state dependency graph contains a cycle: a -> b -> a" in stderr
     assert cli_path.read_bytes() == web_path.read_bytes() == original
 
 
@@ -643,3 +650,157 @@ def test_ac13_the_fallback_condition_label_appears_in_exactly_one_source_file():
     # the rules-layer extraction and are out of scope here; this guard covers
     # the indexed label that rules.normalize_condition owns.
     assert files_containing("Unlabeled condition ") == ["rules.py"]
+
+
+# ---------------------------------------------------------------------------
+# Repairing a cyclic file -- the one write both surfaces allow through
+#
+# AC-12 case 6 above pins that a file which already contains a cycle refuses
+# every write on both surfaces. `unlink` / DELETE /api/dependencies is the
+# single exception, and it has to be an exception on BOTH surfaces or the
+# parity contract is broken by the one feature that repairs the file.
+# ---------------------------------------------------------------------------
+
+
+THREE_CYCLE = {
+    "matters": ["a", "b", "c"],
+    "conditions": {
+        "a": [{"label": "a done", "truth": False}],
+        "b": [{"label": "b done", "truth": False}],
+        "c": [{"label": "c done", "truth": False}],
+    },
+    # a -> b -> c -> a, named in exactly that form by the refusal message.
+    "dependencies": [["a", "b"], ["b", "c"], ["c", "a"]],
+}
+
+TWO_CYCLES = {
+    "matters": ["a", "b", "x", "y"],
+    "conditions": {
+        "a": [{"label": "a done", "truth": False}],
+        "b": [{"label": "b done", "truth": False}],
+        "x": [{"label": "x done", "truth": False}],
+        "y": [{"label": "y done", "truth": False}],
+    },
+    "dependencies": [["a", "b"], ["b", "a"], ["x", "y"], ["y", "x"]],
+}
+
+
+def test_unlink_repairs_a_cyclic_file_identically_on_both_surfaces(tmp_path, capsys):
+    cli_path, web_path, _original = two_states(tmp_path, THREE_CYCLE)
+
+    # The named cycle's closing arrow is `c -> a`: c is the prerequisite, a
+    # is the dependent. The CLI takes the dependent first, the web payload
+    # names both endpoints, and both must reach the same edge.
+    cli_rejected, stdout = cli_decision(
+        capsys, ["unlink", "a", "c", "--state", str(cli_path)]
+    )
+    web_rejected, api_error = web_decision(
+        lambda: web.remove_dependency(web_path, {"source": "c", "target": "a"})
+    )
+
+    assert cli_rejected is False
+    assert web_rejected is False
+    assert cli_rejected is web_rejected
+    assert api_error is None
+    assert stdout == "a no longer requires c\n"
+
+    assert cli_path.read_bytes() == web_path.read_bytes()
+    assert json.loads(cli_path.read_text()) == {
+        "schema_version": 2,
+        "matters": ["a", "b", "c"],
+        "conditions": {
+            "a": [{"label": "a done", "truth": False}],
+            "b": [{"label": "b done", "truth": False}],
+            "c": [{"label": "c done", "truth": False}],
+        },
+        "dependencies": [["a", "b"], ["b", "c"]],
+    }
+
+    # And the repair is real on both: a write that was refused now lands,
+    # identically.
+    cli_decision(capsys, ["mark", "a", "1", "true", "--state", str(cli_path)])
+    web.update_conditions(web_path, "a", {"index": 0, "truth": True})
+
+    assert cli_path.read_bytes() == web_path.read_bytes()
+    assert json.loads(cli_path.read_text())["conditions"]["a"] == [
+        {"label": "a done", "truth": True}
+    ]
+
+
+def test_unlink_repairs_a_self_loop_identically_on_both_surfaces(tmp_path, capsys):
+    cli_path, web_path, _original = two_states(
+        tmp_path,
+        {
+            "matters": ["a"],
+            "conditions": {"a": [{"label": "a done", "truth": False}]},
+            "dependencies": [["a", "a"]],
+        },
+    )
+
+    cli_rejected, stdout = cli_decision(
+        capsys, ["unlink", "a", "a", "--state", str(cli_path)]
+    )
+    web_rejected, api_error = web_decision(
+        lambda: web.remove_dependency(web_path, {"source": "a", "target": "a"})
+    )
+
+    assert cli_rejected is False
+    assert web_rejected is False
+    assert cli_rejected is web_rejected
+    assert api_error is None
+    assert stdout == "a no longer requires a\n"
+    assert cli_path.read_bytes() == web_path.read_bytes()
+    assert json.loads(cli_path.read_text())["dependencies"] == []
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        pytest.param(["mark", "a", "1", "true"], id="mark"),
+        pytest.param(["add-condition", "a", "ship it"], id="add-condition"),
+        pytest.param(["edit-condition", "a", "1", "renamed"], id="edit-condition"),
+        pytest.param(["delete-condition", "a", "1", "--yes"], id="delete-condition"),
+        pytest.param(["link", "a", "b"], id="link"),
+        pytest.param(["delete-matter", "a", "--yes", "--cascade"], id="delete-matter"),
+    ],
+)
+def test_one_unlink_does_not_widen_the_permission_on_either_surface(
+    tmp_path, capsys, argv
+):
+    # Two independent cycles, so one unlink cannot finish the repair. Every
+    # other write must still refuse afterwards, on both surfaces, and must
+    # now name the cycle that is left rather than the one just removed.
+    cli_path, web_path, _original = two_states(tmp_path, TWO_CYCLES)
+
+    cli_unlink_rejected, _stdout = cli_decision(
+        capsys, ["unlink", "b", "a", "--state", str(cli_path)]
+    )
+    web_unlink_rejected, web_unlink_error = web_decision(
+        lambda: web.remove_dependency(web_path, {"source": "a", "target": "b"})
+    )
+    assert cli_unlink_rejected is False
+
+    # The web removal lands, but the graph it would answer with is still
+    # cyclic, so the DELETE reports 422 while having written the file.
+    assert web_unlink_rejected is True
+    assert web_unlink_error.status == HTTPStatus.UNPROCESSABLE_ENTITY
+    after_unlink = cli_path.read_bytes()
+    assert after_unlink == web_path.read_bytes()
+    assert json.loads(cli_path.read_text())["dependencies"] == [
+        ["b", "a"],
+        ["x", "y"],
+        ["y", "x"],
+    ]
+
+    cli_rejected, stderr = cli_decision(capsys, argv + ["--state", str(cli_path)])
+    web_rejected, api_error = web_decision(
+        lambda: web.create_matter(web_path, {"title": "x"})
+    )
+
+    assert cli_rejected is True
+    assert web_rejected is True
+    assert cli_rejected is web_rejected
+    assert api_error.status == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert str(api_error) == "state dependency graph contains a cycle: x -> y -> x"
+    assert "state dependency graph contains a cycle: x -> y -> x" in stderr
+    assert cli_path.read_bytes() == web_path.read_bytes() == after_unlink

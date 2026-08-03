@@ -7,6 +7,7 @@ import mimetypes
 import os
 import pty
 import re
+import secrets
 import select
 import signal
 import subprocess
@@ -21,7 +22,7 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
 from . import rules
 from .layout import build_overview_layout
@@ -38,6 +39,56 @@ TERMINAL_WORKSPACE_ENV = "MATTERS_TERMINAL_WORKSPACE"
 MAX_TERMINAL_CHUNKS = 1000
 LOCAL_API_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 WILDCARD_API_HOSTS = frozenset({"0.0.0.0", "::", ""})
+
+# The API grants an interactive shell, so it is authenticated. The Host and
+# Origin checks below stay, but they only describe where a request claims to
+# come from; anything that can open a socket to the port omits Origin and
+# passes them. The token is what identifies the caller.
+API_TOKEN_BYTES = 32
+API_TOKEN_QUERY_PARAM = "token"
+# Deliberately identical for a missing token and a wrong one: the response
+# must not tell a prober which of the two it is.
+API_UNAUTHORIZED_MESSAGE = "unauthorized"
+# The only paths that may carry the token in the query string. This is the
+# document request that ``serve`` opens; app.js moves the token into memory
+# and strips it from the address bar before it makes an API call.
+PAGE_LOAD_PATHS = frozenset({"/", "/index.html"})
+
+# Every response carries this. The page imports four ES modules and one
+# stylesheet from cdn.jsdelivr.net (app.js:1-4, index.html:7), so that exact
+# origin is allowed for scripts and styles and nothing else is allowed at all.
+#
+# MITIGATION, NOT A FIX: this narrows what a compromise of those CDN packages
+# can reach (no eval, no exfiltration to a third-party origin, no framing),
+# but code from jsdelivr still runs same-origin with a server that hands out
+# shells. Vendoring those assets into web_assets/ is the actual fix and is
+# tracked separately -- it has licensing and packaging implications. Do not
+# read this header as settling that question.
+#
+# 'unsafe-inline' appears for styles only, and it is load-bearing rather than
+# cautious. Verified in a browser on 2026-08-03: dropping it makes cytoscape
+# log "container has style position:static and so can not use UI extensions
+# properly" and the graph renders with its node labels overlapping. Keep it.
+# script-src stays strict -- that is the directive that would turn a CDN
+# compromise into code execution, and it needs neither inline nor eval.
+# 'unsafe-inline' appears for styles only: xterm.js and cytoscape both inject
+# stylesheets at runtime, and a style-src that breaks the UI would be removed
+# by the next person to touch this. script-src stays strict, which is the
+# directive that matters for turning a CDN compromise into shell access.
+CONTENT_SECURITY_POLICY = "; ".join(
+    (
+        "default-src 'none'",
+        "script-src 'self' https://cdn.jsdelivr.net",
+        "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'",
+        "font-src 'self' https://cdn.jsdelivr.net",
+        "img-src 'self' data:",
+        "connect-src 'self'",
+        "base-uri 'none'",
+        "form-action 'none'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+    )
+)
 
 
 class ApiError(ValueError):
@@ -511,6 +562,77 @@ def is_local_api_host(host):
         return False
 
 
+def is_remote_bind_host(host):
+    """True when binding ``host`` would put the UI on a non-loopback address.
+
+    Wildcards answer False: they keep today's behaviour, and
+    ``api_host_allowlist`` already collapses a wildcard bind to loopback-only
+    for the Host check. A concrete LAN address does not -- it widens the
+    allowlist to exactly that address, so every client on the network passes
+    the origin check. That is the case this predicate exists to catch.
+    """
+
+    normalized = normalize_http_host(host)
+    if normalized in WILDCARD_API_HOSTS:
+        return False
+    return not is_local_api_host(normalized)
+
+
+def generate_api_token():
+    """Mint the per-run API token.
+
+    Lives only in this process: it is never written to disk, never logged,
+    and never printed except inside the launch URL.
+    """
+
+    return secrets.token_urlsafe(API_TOKEN_BYTES)
+
+
+def api_tokens_match(presented, expected):
+    """Constant-time token comparison that is total over its inputs.
+
+    ``secrets.compare_digest`` refuses non-ASCII ``str``, and request headers
+    arrive latin-1 decoded, so both sides are encoded first: a header full of
+    high bytes must answer False, not raise past the ApiError handler and
+    turn a rejected request into a 500.
+    """
+
+    if not presented or not expected:
+        return False
+    return secrets.compare_digest(
+        presented.encode("utf-8", "surrogatepass"),
+        expected.encode("utf-8", "surrogatepass"),
+    )
+
+
+def request_api_token(authorization_header, path):
+    """Read the token a request presents.
+
+    ``Authorization: Bearer <token>`` is the only transport an ``/api/``
+    request may use. The initial document request may also carry
+    ``?token=``, because the launch URL is how the browser first receives
+    it. Honouring the query parameter on any other path would put the token
+    into ``/api/`` URLs, where it would leak through Referer to the CDN
+    origins the page loads code from.
+    """
+
+    scheme, _, value = (authorization_header or "").partition(" ")
+    if scheme.lower() == "bearer" and value.strip():
+        return value.strip()
+
+    parsed = urlparse(path or "")
+    if parsed.path in PAGE_LOAD_PATHS:
+        return parse_qs(parsed.query).get(API_TOKEN_QUERY_PARAM, [None])[0] or None
+    return None
+
+
+def launch_url(host, port, api_token):
+    """The URL ``serve`` prints and opens: the browser's only source of token."""
+
+    query = urlencode({API_TOKEN_QUERY_PARAM: api_token})
+    return f"http://{browser_host_for_bind(host)}:{port}/?{query}"
+
+
 def serve(
     state_path=None,
     host=DEFAULT_WEB_HOST,
@@ -529,14 +651,18 @@ def serve(
         default_workspace=terminal_workspace,
         default_shell=terminal_shell,
     )
+    api_token = generate_api_token()
     handler = partial(
         MattersWebHandler,
         state_paths=state_paths,
         terminal_manager=terminal_manager,
+        api_token=api_token,
     )
     server = ThreadingHTTPServer((host, port), handler)
     server.api_host_allowlist = api_host_allowlist(host, server.server_address[0])
-    url = f"http://{browser_host_for_bind(host)}:{server.server_port}/"
+    # The launch URL is the one place the token is ever rendered. Everything
+    # else printed below stays token-free, and nothing writes it to disk.
+    url = launch_url(host, server.server_port, api_token)
     print(f"Serving matters web UI at {url}")
     print(f"State file: {resolved_state_path}")
     print(f"Terminal workspace: {terminal_workspace}")
@@ -552,9 +678,20 @@ def serve(
 
 
 class MattersWebHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, state_paths=None, terminal_manager=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        state_paths=None,
+        terminal_manager=None,
+        api_token=None,
+        **kwargs,
+    ):
         self.state_paths = state_paths or StatePathStore()
         self.terminal_manager = terminal_manager or TerminalManager()
+        # No fallback and no generated default: a handler wired without a
+        # token answers 401 to every /api/ request. Failing closed is the
+        # point -- the alternative is a server that quietly serves shells.
+        self.api_token = api_token or None
         super().__init__(*args, directory=str(web_assets_path()), **kwargs)
 
     def log_message(self, format, *args):
@@ -564,7 +701,7 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         try:
             if parsed.path.startswith("/api/"):
-                self.require_same_origin_request()
+                self.require_api_request()
             if parsed.path == "/api/state":
                 self.write_json(graph_payload(self.current_state_path()))
                 return
@@ -622,12 +759,16 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
 
     def do_PATCH(self):
         parsed = urlparse(self.path)
-        match = re.fullmatch(r"/api/matters/([^/]+)/conditions", parsed.path)
-        if not match:
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
-        matter_id = unquote(match.group(1))
         try:
+            # Ahead of the 404 on purpose: an unauthenticated caller must not
+            # be able to map which /api/ paths exist.
+            if parsed.path.startswith("/api/"):
+                self.require_api_token()
+            match = re.fullmatch(r"/api/matters/([^/]+)/conditions", parsed.path)
+            if not match:
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            matter_id = unquote(match.group(1))
             self.require_api_mutation_request()
             self.write_json(update_conditions(self.current_state_path(), matter_id, self.read_json()))
         except ApiError as error:
@@ -657,9 +798,28 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             return "text/javascript"
         return mimetypes.guess_type(path)[0] or "application/octet-stream"
 
+    def end_headers(self):
+        # Every response: assets, JSON, and the errors http.server writes
+        # itself all funnel through here, so none of them can ship without
+        # the policy.
+        self.send_header("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+        self.send_header("Referrer-Policy", "no-referrer")
+        super().end_headers()
+
     def require_api_mutation_request(self):
-        self.require_same_origin_request()
+        self.require_api_request()
         self.require_json_content_type()
+
+    def require_api_request(self):
+        # Token first: authentication decides whether the caller may be told
+        # anything at all, including whether its Host header was acceptable.
+        self.require_api_token()
+        self.require_same_origin_request()
+
+    def require_api_token(self):
+        presented = request_api_token(self.headers.get("Authorization"), self.path)
+        if not api_tokens_match(presented, self.api_token):
+            raise ApiError(API_UNAUTHORIZED_MESSAGE, HTTPStatus.UNAUTHORIZED)
 
     def require_same_origin_request(self):
         request_origin = self.request_origin()

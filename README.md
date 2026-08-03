@@ -175,6 +175,33 @@ The command panel is local and engine-backed in this first version. It does not
 launch or control Codex, Claude, or other agents directly yet; those integrations
 can be added through a future adapter layer.
 
+### Terminal and access control
+
+The browser UI includes a terminal. The **Terminal** button in the toolbar opens
+a real interactive shell (`$SHELL`, or `/bin/sh`) running on the machine that
+started `matters web`, as the user who started it, in the state file's directory
+by default. Anything typed there runs with your privileges: the UI is an agent
+cockpit, not only a graph viewer.
+
+Two things keep that shell where it belongs:
+
+- **Loopback only by default.** `matters web` binds `127.0.0.1`, so only this
+  machine can reach it.
+- **A per-run API token.** The server mints a random token at startup and every
+  `/api/` request must present it. The token appears only in the launch URL that
+  `matters web` prints and opens, is never written to disk, and changes on every
+  restart. Open that URL — a browser pointed at the bare address will load the
+  page but get `401` on every API call. The page keeps the token in memory and
+  removes it from the address bar, so copying the URL out of the browser after
+  it loads does not share it. Sharing the printed launch URL does.
+
+`--allow-remote-access` is required before `--host` will accept a non-loopback
+address. Without it, a non-loopback `--host` is refused. With it, the graph UI
+and the shell become reachable from every host that can reach that address, and
+`matters web` prints a warning saying so. Only pass it on a network you control,
+and remember the launch URL is then a credential for code execution on this
+machine.
+
 ## Extraction Proposals
 
 `matters extract` turns source text into candidate matters and dependency candidates. It always prints a proposal and does not save anything to the state file.

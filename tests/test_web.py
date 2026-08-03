@@ -1,10 +1,13 @@
+import contextlib
 import http.client
 import json
+import re
 import threading
 from functools import partial
 from http import HTTPStatus
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -13,10 +16,14 @@ from matters.cli import main
 from matters.web import (
     ApiError,
     add_dependency,
+    api_tokens_match,
     create_matter,
     graph_payload,
+    is_remote_bind_host,
+    launch_url,
     MattersWebHandler,
     remove_dependency,
+    request_api_token,
     resolve_terminal_workspace,
     run_command,
     StatePathStore,
@@ -27,6 +34,11 @@ from matters.web import (
 
 
 ASSETS = Path(__file__).parents[1] / "src" / "matters" / "web_assets"
+
+# Stands in for the random token `serve` mints. Tests that exercise
+# authentication pass `token=` explicitly; every other test gets a valid one
+# from the helper, because the token requirement is not what they are about.
+VALID_TOKEN = "test-token-0123456789"
 
 
 def write_state(path, data=None):
@@ -45,19 +57,31 @@ def write_state(path, data=None):
     )
 
 
-def api_request(state_path, method, path, body="", headers=None):
+def api_request(state_path, method, path, body="", headers=None, token=VALID_TOKEN):
+    """Make one request against a throwaway server.
+
+    ``token`` defaults to the server's own token, so callers that are testing
+    something other than authentication keep asserting exactly what they
+    asserted before. Pass ``token=None`` to send no Authorization header.
+    """
+
     handler = partial(
         MattersWebHandler,
         state_paths=StatePathStore(state_path),
         terminal_manager=TerminalManager(default_workspace=state_path.parent),
+        api_token=VALID_TOKEN,
     )
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        request_headers = headers(server.server_port) if callable(headers) else headers
+        request_headers = dict(
+            (headers(server.server_port) if callable(headers) else headers) or {}
+        )
+        if token is not None:
+            request_headers.setdefault("Authorization", f"Bearer {token}")
         conn = http.client.HTTPConnection("127.0.0.1", server.server_port)
-        conn.request(method, path, body=body, headers=request_headers or {})
+        conn.request(method, path, body=body, headers=request_headers)
         response = conn.getresponse()
         response_body = response.read()
         return response.status, response_body
@@ -65,6 +89,86 @@ def api_request(state_path, method, path, body="", headers=None):
         server.shutdown()
         server.server_close()
         thread.join(timeout=1)
+
+
+def api_response(state_path, method, path, body="", headers=None, token=VALID_TOKEN):
+    """Same as ``api_request`` but keeps the response headers too."""
+
+    handler = partial(
+        MattersWebHandler,
+        state_paths=StatePathStore(state_path),
+        terminal_manager=TerminalManager(default_workspace=state_path.parent),
+        api_token=VALID_TOKEN,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request_headers = dict(
+            (headers(server.server_port) if callable(headers) else headers) or {}
+        )
+        if token is not None:
+            request_headers.setdefault("Authorization", f"Bearer {token}")
+        conn = http.client.HTTPConnection("127.0.0.1", server.server_port)
+        conn.request(method, path, body=body, headers=request_headers)
+        response = conn.getresponse()
+        return response.status, dict(response.getheaders()), response.read()
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=1)
+
+
+@contextlib.contextmanager
+def running_server(monkeypatch, state_path, **kwargs):
+    """Run the real ``serve`` entry point and yield its launch URL.
+
+    The launch URL is the only place the token is published, so the tests
+    read it the same way a person does.
+    """
+
+    opened = []
+    ready = threading.Event()
+    captured = {}
+    real_server_class = web.ThreadingHTTPServer
+
+    def capture_server(address, handler):
+        server = real_server_class(address, handler)
+        captured["server"] = server
+        return server
+
+    def capture_open(url):
+        opened.append(url)
+        ready.set()
+        return True
+
+    monkeypatch.setattr(web, "ThreadingHTTPServer", capture_server)
+    monkeypatch.setattr(web.webbrowser, "open", capture_open)
+    thread = threading.Thread(
+        target=web.serve,
+        kwargs={"state_path": state_path, "host": "127.0.0.1", "port": 0, **kwargs},
+        daemon=True,
+    )
+    thread.start()
+    assert ready.wait(5), "serve did not reach the browser launch"
+    try:
+        yield opened[0]
+    finally:
+        captured["server"].shutdown()
+        thread.join(timeout=5)
+
+
+def launch_url_parts(url):
+    parsed = urlparse(url)
+    token = parse_qs(parsed.query).get("token", [""])[0]
+    return parsed.port, token
+
+
+def live_request(port, method, path, body=None, headers=None):
+    conn = http.client.HTTPConnection("127.0.0.1", port)
+    conn.request(method, path, body=body, headers=headers or {})
+    response = conn.getresponse()
+    return response.status, dict(response.getheaders()), response.read()
 
 
 def test_graph_payload_includes_derived_status(tmp_path):
@@ -565,6 +669,332 @@ def test_terminal_manager_rejects_missing_workspace(tmp_path):
 
     with pytest.raises(ApiError, match="terminal workspace does not exist"):
         manager.create(workspace=tmp_path / "missing")
+
+
+def test_api_request_without_token_is_unauthorized(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    status, body = api_request(state_path, "GET", "/api/state", token=None)
+
+    assert status == HTTPStatus.UNAUTHORIZED
+    assert json.loads(body) == {"error": "unauthorized"}
+
+
+def test_terminal_session_cannot_be_created_without_token(tmp_path):
+    """The defect itself: a socket to the port used to be a shell."""
+
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+    terminal_manager = TerminalManager(default_workspace=tmp_path)
+    handler = partial(
+        MattersWebHandler,
+        state_paths=StatePathStore(state_path),
+        terminal_manager=terminal_manager,
+        api_token=VALID_TOKEN,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        status, _headers, body = live_request(
+            server.server_port,
+            "POST",
+            "/api/terminal/sessions",
+            body=json.dumps({"rows": 24, "cols": 100}),
+            headers={"Content-Type": "application/json"},
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=1)
+        terminal_manager.close_all()
+
+    assert status == HTTPStatus.UNAUTHORIZED
+    assert json.loads(body) == {"error": "unauthorized"}
+    assert terminal_manager.sessions == {}
+
+
+def test_api_request_with_wrong_token_is_unauthorized(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    missing_status, missing_body = api_request(
+        state_path, "GET", "/api/state", token=None
+    )
+    wrong_status, wrong_body = api_request(
+        state_path, "GET", "/api/state", token="not-the-token"
+    )
+
+    assert wrong_status == missing_status == HTTPStatus.UNAUTHORIZED
+    # Identical response: a prober must not learn which of the two it sent.
+    assert wrong_body == missing_body
+
+
+def test_api_request_with_wrong_length_token_is_unauthorized(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    status, body = api_request(
+        state_path, "GET", "/api/state", token=VALID_TOKEN + "x"
+    )
+
+    assert status == HTTPStatus.UNAUTHORIZED
+    assert json.loads(body) == {"error": "unauthorized"}
+
+
+def test_api_request_with_valid_token_succeeds(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    status, body = api_request(state_path, "GET", "/api/state", token=VALID_TOKEN)
+
+    assert status == HTTPStatus.OK
+    assert [node["id"] for node in json.loads(body)["nodes"]] == ["a", "b"]
+
+
+def test_terminal_write_and_output_require_a_token(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    input_status, input_body = api_request(
+        state_path,
+        "POST",
+        "/api/terminal/sessions/whatever/input",
+        body=json.dumps({"data": "id\n"}),
+        headers={"Content-Type": "application/json"},
+        token=None,
+    )
+    output_status, output_body = api_request(
+        state_path, "GET", "/api/terminal/sessions/whatever/output?seq=0", token=None
+    )
+
+    assert input_status == output_status == HTTPStatus.UNAUTHORIZED
+    assert json.loads(input_body) == json.loads(output_body) == {"error": "unauthorized"}
+
+
+def test_query_parameter_token_is_rejected_on_api_paths(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    status, body = api_request(
+        state_path, "GET", f"/api/state?token={VALID_TOKEN}", token=None
+    )
+
+    assert status == HTTPStatus.UNAUTHORIZED
+    assert json.loads(body) == {"error": "unauthorized"}
+
+
+def test_request_api_token_reads_header_and_page_load_query_only():
+    assert request_api_token("Bearer abc123", "/api/state") == "abc123"
+    assert request_api_token("bearer abc123", "/api/state") == "abc123"
+    assert request_api_token(None, "/?token=abc123") == "abc123"
+    assert request_api_token(None, "/index.html?token=abc123") == "abc123"
+    # Anywhere else the query parameter is ignored, so the token never has to
+    # appear in an /api/ URL and cannot leak through Referer.
+    assert request_api_token(None, "/api/state?token=abc123") is None
+    assert request_api_token(None, "/app.js?token=abc123") is None
+    assert request_api_token(None, "/api/state") is None
+    assert request_api_token("Basic abc123", "/api/state") is None
+
+
+def test_api_tokens_match_rejects_absent_and_non_ascii_tokens():
+    assert api_tokens_match("abc", "abc") is True
+    assert api_tokens_match("abc", "abd") is False
+    assert api_tokens_match(None, "abc") is False
+    assert api_tokens_match("", "abc") is False
+    assert api_tokens_match("abc", None) is False
+    # Headers arrive latin-1 decoded; a high-byte token must answer False and
+    # not raise out of the request handler.
+    assert api_tokens_match("\xff\xfe", "abc") is False
+
+
+def test_static_assets_load_without_a_token(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    for path, needle in (("/", b"<title>matters graph</title>"), ("/app.js", b"async function api(")):
+        status, body = api_request(state_path, "GET", path, token=None)
+        assert status == HTTPStatus.OK
+        assert needle in body
+
+
+def test_content_security_policy_is_sent_on_assets_and_api_responses(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    asset_status, asset_headers, _ = api_response(state_path, "GET", "/", token=None)
+    api_status, api_headers, _ = api_response(state_path, "GET", "/api/state")
+
+    assert asset_status == HTTPStatus.OK
+    assert api_status == HTTPStatus.OK
+    for headers in (asset_headers, api_headers):
+        policy = headers["Content-Security-Policy"]
+        assert "default-src 'none'" in policy
+        assert "script-src 'self' https://cdn.jsdelivr.net" in policy
+        assert "connect-src 'self'" in policy
+        assert "frame-ancestors 'none'" in policy
+        assert "object-src 'none'" in policy
+        assert "unsafe-eval" not in policy
+
+
+def test_content_security_policy_is_sent_on_unauthorized_responses(tmp_path):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    status, headers, _ = api_response(state_path, "GET", "/api/state", token=None)
+
+    assert status == HTTPStatus.UNAUTHORIZED
+    assert "default-src 'none'" in headers["Content-Security-Policy"]
+
+
+def test_launch_url_carries_the_token_that_unlocks_the_api(tmp_path, monkeypatch):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    with running_server(monkeypatch, state_path) as url:
+        port, token = launch_url_parts(url)
+
+        assert token
+        assert token not in ("", "None")
+        assert launch_url("127.0.0.1", port, token) == url
+
+        asset_status, _headers, asset_body = live_request(port, "GET", "/")
+        assert asset_status == HTTPStatus.OK
+        assert b"<title>matters graph</title>" in asset_body
+
+        unauthorized, _headers, _body = live_request(port, "GET", "/api/state")
+        assert unauthorized == HTTPStatus.UNAUTHORIZED
+
+        authorized, _headers, body = live_request(
+            port, "GET", "/api/state", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert authorized == HTTPStatus.OK
+        assert [node["id"] for node in json.loads(body)["nodes"]] == ["a", "b"]
+
+
+def test_serve_never_prints_or_writes_the_token_outside_the_launch_url(
+    tmp_path, monkeypatch, capsys
+):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+    before = state_path.read_bytes()
+
+    with running_server(monkeypatch, state_path) as url:
+        port, token = launch_url_parts(url)
+        live_request(port, "GET", "/")
+
+    printed = capsys.readouterr()
+    lines_with_token = [line for line in printed.out.splitlines() if token in line]
+
+    assert lines_with_token == [f"Serving matters web UI at {url}"]
+    assert token not in printed.err
+    assert state_path.read_bytes() == before
+    written = [
+        path
+        for path in tmp_path.rglob("*")
+        if path.is_file() and token.encode() in path.read_bytes()
+    ]
+    assert written == []
+
+
+def test_serve_mints_a_fresh_token_per_run(tmp_path, monkeypatch):
+    state_path = tmp_path / "matters.json"
+    write_state(state_path)
+
+    with running_server(monkeypatch, state_path) as first_url:
+        _port, first_token = launch_url_parts(first_url)
+    with running_server(monkeypatch, state_path) as second_url:
+        _port, second_token = launch_url_parts(second_url)
+
+    assert first_token != second_token
+    assert re.fullmatch(r"[A-Za-z0-9_-]{32,}", first_token)
+
+
+def test_is_remote_bind_host_flags_only_concrete_non_loopback_addresses():
+    assert is_remote_bind_host("192.168.1.10") is True
+    assert is_remote_bind_host("example.test") is True
+    assert is_remote_bind_host("127.0.0.1") is False
+    assert is_remote_bind_host("127.0.0.2") is False
+    assert is_remote_bind_host("localhost") is False
+    assert is_remote_bind_host("::1") is False
+    # Wildcards keep today's behaviour.
+    assert is_remote_bind_host("0.0.0.0") is False
+    assert is_remote_bind_host("::") is False
+
+
+def test_cli_refuses_non_loopback_host_without_opt_in(monkeypatch, capsys):
+    called = {}
+
+    def fake_serve(**kwargs):
+        called.update(kwargs)
+
+    monkeypatch.setattr("matters.web.serve", fake_serve)
+
+    with pytest.raises(SystemExit) as error:
+        main(["web", "--host", "192.168.1.10", "--port", "0", "--no-open"])
+
+    assert error.value.code == 2
+    assert called == {}
+    message = capsys.readouterr().err
+    assert "--allow-remote-access" in message
+    assert "192.168.1.10" in message
+
+
+def test_cli_allows_non_loopback_host_with_opt_in_and_warns(monkeypatch, capsys):
+    called = {}
+
+    def fake_serve(**kwargs):
+        called.update(kwargs)
+
+    monkeypatch.setattr("matters.web.serve", fake_serve)
+
+    assert (
+        main(
+            [
+                "web",
+                "--host",
+                "192.168.1.10",
+                "--port",
+                "0",
+                "--no-open",
+                "--allow-remote-access",
+            ]
+        )
+        == 0
+    )
+    assert called["host"] == "192.168.1.10"
+    warning = capsys.readouterr().err
+    assert "WARNING" in warning
+    assert "192.168.1.10" in warning
+    assert "shell" in warning
+
+
+def test_cli_keeps_loopback_and_wildcard_hosts_without_opt_in(monkeypatch, capsys):
+    called = {}
+
+    def fake_serve(**kwargs):
+        called.update(kwargs)
+
+    monkeypatch.setattr("matters.web.serve", fake_serve)
+
+    for host in ("127.0.0.1", "localhost", "0.0.0.0"):
+        called.clear()
+        assert main(["web", "--host", host, "--port", "0", "--no-open"]) == 0
+        assert called["host"] == host
+    assert capsys.readouterr().err == ""
+
+
+def test_web_assets_send_the_token_from_one_place_and_strip_it_from_the_url():
+    app = (ASSETS / "app.js").read_text()
+
+    assert "function readApiToken()" in app
+    assert 'params.get("token")' in app
+    assert "window.history.replaceState(" in app
+    assert 'headers.Authorization = `Bearer ${apiToken}`' in app
+    # One wrapper, not eighteen call sites.
+    assert app.count("Bearer ${apiToken}") == 1
+    assert app.count("async function api(path, options = {})") == 1
 
 
 def test_web_assets_offer_focus_and_deterministic_overview():

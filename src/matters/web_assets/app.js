@@ -68,10 +68,37 @@ const liveRegion = document.querySelector("#view-live-region");
 const overviewButton = document.querySelector("#show-overview");
 const backOverviewButton = document.querySelector("#back-overview");
 
+// The server hands the token over exactly once, in the launch URL. Take it
+// into memory and strip it from the address bar straight away so it does not
+// sit in a visible URL, get copied out of a screenshot, or ride along in a
+// bookmark. Every /api/ call sends it as a bearer header from here on.
+const apiToken = readApiToken();
+
+function readApiToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (!token) return "";
+  params.delete("token");
+  const query = params.toString();
+  window.history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
+  );
+  return token;
+}
+
 async function api(path, options = {}) {
+  // The one place every API call passes through: the header goes on here,
+  // not at the call sites.
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+  if (apiToken) headers.Authorization = `Bearer ${apiToken}`;
   const response = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
-    ...options
+    ...options,
+    headers
   });
   const payload = await responsePayload(response);
   if (!response.ok) {

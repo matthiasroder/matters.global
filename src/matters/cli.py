@@ -196,12 +196,27 @@ def main(argv=None):
     web_parser = subparsers.add_parser(
         "web", parents=[state_parent], help="Start the local browser graph UI."
     )
-    web_parser.add_argument("--host", default="127.0.0.1", help="Host to bind.")
+    web_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help=(
+            "Host to bind. Loopback by default. A non-loopback address is "
+            "refused unless --allow-remote-access is passed."
+        ),
+    )
     web_parser.add_argument("--port", type=int, default=8765, help="Port to bind.")
     web_parser.add_argument(
         "--no-open",
         action="store_true",
         help="Do not open the browser automatically.",
+    )
+    web_parser.add_argument(
+        "--allow-remote-access",
+        action="store_true",
+        help=(
+            "Permit --host to bind a non-loopback address, exposing the web UI "
+            "and its interactive shell to anyone who can reach that address."
+        ),
     )
     web_parser.add_argument(
         "--terminal-workspace",
@@ -402,7 +417,28 @@ def main(argv=None):
         return 0
 
     if args.command == "web":
-        from .web import serve
+        from .web import is_remote_bind_host, serve
+
+        # `matters web` serves an interactive shell. Loopback keeps that on
+        # this machine; a concrete LAN address also widens the Host allowlist
+        # to exactly that address, so the origin check stops filtering the
+        # network. Refuse it unless the caller said the risky words.
+        if is_remote_bind_host(args.host):
+            if not args.allow_remote_access:
+                parser.error(
+                    f"--host {args.host} is not a loopback address. matters web "
+                    "serves an interactive shell running as your user; binding a "
+                    "non-loopback address offers it to every host that can reach "
+                    "that address. Pass --allow-remote-access to do this anyway."
+                )
+            print(
+                f"WARNING: matters web is bound to {args.host}, not loopback. "
+                "The graph UI and an interactive shell running as your user are "
+                "reachable from every host that can reach that address. The "
+                "launch URL below carries the API token that unlocks them; "
+                "anyone who obtains it gets code execution on this machine.",
+                file=sys.stderr,
+            )
 
         serve(
             state_path=args.state,

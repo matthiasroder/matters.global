@@ -16,7 +16,7 @@
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="#why">Why</a>
         <a href="#how">How it works</a>
-        <a href="#quick-start">Quick Start</a>
+        <a href="#quick-start">Try now (no-code)</a>
         <a href="#public">Public matters</a>
       </nav>
     </header>
@@ -28,11 +28,11 @@
           <p class="kicker">A map for unsolved matters</p>
           <h1 id="hero-title">matters.global</h1>
           <p class="hero-copy">
-            Mapping matters and their dependencies, so we can use creativity to solve problems
-            and see what can be unblocked next.
+            Mapping matters and their dependencies so you can see what is blocking progress
+            and get to the next move faster.
           </p>
           <div class="hero-actions" aria-label="Primary actions">
-            <a class="button primary" href="#quick-start">Quick Start</a>
+            <a class="button primary" href="#quick-start">Try now (no-code)</a>
             <a class="button secondary" href="#why">Understand the idea</a>
           </div>
         </div>
@@ -88,22 +88,35 @@
       <section id="quick-start" class="section quick-start" aria-labelledby="quick-start-title">
         <div class="section-label">Quick Start</div>
         <div class="section-body">
-          <h2 id="quick-start-title">Install the system, start your agent, and describe what matters.</h2>
+          <h2 id="quick-start-title">Choose your path: no-code first, then optional agent setup.</h2>
           <p>
-            matters.global is most useful through an AI agent. The command line stores and computes
-            the graph; Codex or Claude helps you name matters, define conditions, discover
-            dependencies, and decide what to work on next.
+            matters.global works without code at first. Start by writing down 3-5 candidate matters in
+            any note, then move to the CLI path when you want Codex or Claude to build and maintain
+            the graph for you.
           </p>
 
           <div class="quick-grid" aria-label="Quick start workflow">
             <article class="quick-step">
               <span>01</span>
+              <h3>Try the no-code walkthrough</h3>
+              <p>
+                Open a note and draft your first map in this format. You can do this in five minutes
+                without any terminal tools:
+              </p>
+              <pre><code>Matter | Resolution condition | Required before</code></pre>
+              <pre><code>Publish a first public walkthrough | Published and visible to at least one outside person | -
+Invite outside collaborators | Public walkthrough published
+Explain core concepts with examples | Public walkthrough published</code></pre>
+            </article>
+
+            <article class="quick-step">
+              <span>02</span>
               <h3>Install matters.global</h3>
               <pre><code>python3 -m pip install git+https://github.com/matthiasroder/matters.global.git</code></pre>
             </article>
 
             <article class="quick-step">
-              <span>02</span>
+              <span>03</span>
               <h3>Start your agent</h3>
               <pre><code>cd your-workspace
 codex
@@ -112,7 +125,7 @@ codex
             </article>
 
             <article class="quick-step">
-              <span>03</span>
+              <span>04</span>
               <h3>Use the system</h3>
               <pre><code>Help me turn this into matters:
 publish the first walkthrough,

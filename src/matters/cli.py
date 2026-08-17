@@ -52,6 +52,9 @@ def main(argv=None):
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser(
+        "init", parents=[state_parent], help="Create a canonical empty state file."
+    )
+    subparsers.add_parser(
         "state-path", parents=[state_parent], help="Print the resolved state path."
     )
     subparsers.add_parser(
@@ -395,6 +398,14 @@ def main(argv=None):
     )
 
     args = parser.parse_args(argv)
+
+    if args.command == "init":
+        try:
+            path = rules.initialize_state(args.state)
+        except (RuleError, ValueError, OSError) as error:
+            parser.error(error_message(error))
+        print(f"initialized empty matters graph: {path}")
+        return 0
 
     if args.command == "config":
         try:

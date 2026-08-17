@@ -177,6 +177,20 @@ class StateDraft:
         return self.matters, self.conditions, self.dependencies
 
 
+def initialize_state(state_path):
+    """Create one canonical empty state without overwriting an existing file."""
+
+    path = resolve_state_path(state_path)
+    with state_lock(path):
+        if path.exists():
+            raise RuleError(f"state file already exists: {path}", "already_exists")
+        try:
+            save_state(set(), {}, set(), path=path)
+        except (OSError, ValueError) as error:
+            raise RuleError(str(error)) from error
+    return path
+
+
 def load_state_or_rule_error(path, load=None):
     """Load state, translating every failure mode into a ``RuleError``."""
 

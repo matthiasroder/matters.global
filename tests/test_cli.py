@@ -5,6 +5,31 @@ import pytest
 from matters.cli import main
 
 
+def test_cli_init_creates_canonical_empty_state_without_overwriting(tmp_path, capsys):
+    state_path = tmp_path / ".matters" / "matters.json"
+
+    assert main(["init", "--state", str(state_path)]) == 0
+
+    assert capsys.readouterr().out == (
+        f"initialized empty matters graph: {state_path}\n"
+    )
+    expected = {
+        "schema_version": 2,
+        "matters": [],
+        "conditions": {},
+        "dependencies": [],
+    }
+    assert json.loads(state_path.read_text()) == expected
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(["init", "--state", str(state_path)])
+
+    assert error.value.code == 2
+    assert f"state file already exists: {state_path}" in capsys.readouterr().err
+    assert state_path.read_bytes() == original
+
+
 def test_cli_accepts_state_after_command(tmp_path, capsys):
     state_path = tmp_path / "matters.json"
     state_path.write_text(

@@ -158,6 +158,7 @@ Do not persist exploratory conversation by default. Persist when the user is man
 - Compute all derived concepts from the loaded graph.
 - Let the CLI own JSON persistence at the resolved state path; pass `--state <path>` when the user wants a different file. Do not open the state file for writing.
 - Map every persisted change to one of these commands. All of them accept `--state <path>` and `--config <path>` before or after the subcommand.
+  - Initialize a canonical empty graph: `matters init --state <path>`
   - Create matters, their first conditions, and a prerequisite chain: `matters create 'goal (condition) > prerequisite'`
   - Set a condition true or false: `matters mark <matter> <condition-ref> <true|false>`
   - Add a condition: `matters add-condition <matter> <label>`

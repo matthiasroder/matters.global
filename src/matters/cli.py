@@ -458,6 +458,7 @@ def main(argv=None):
             open_browser=not args.no_open,
             terminal_workspace=args.terminal_workspace,
             terminal_shell=args.terminal_shell,
+            allow_remote_access=args.allow_remote_access,
         )
         return 0
 

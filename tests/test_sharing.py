@@ -123,3 +123,16 @@ def test_merge_public_state_rejects_dependency_cycle():
                 ],
             },
         )
+
+
+@pytest.mark.parametrize("public", [False, True])
+def test_public_merge_accepts_deep_acyclic_graph(public):
+    matters = {f"n{i:05}" for i in range(5000)}
+    edges = {(f"n{i:05}", f"n{i + 1:05}") for i in range(4999)}
+    visibility = {matter: "public" for matter in matters} if public else {}
+    incoming = public_state(matters, {}, edges, visibility)
+
+    result = merge_public_state(matters, {}, edges, visibility, incoming)
+
+    assert set(result["matters"]) == matters
+    assert {tuple(edge) for edge in result["dependencies"]} == edges

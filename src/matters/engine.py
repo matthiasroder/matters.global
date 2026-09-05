@@ -95,39 +95,3 @@ def prerequisites(matter, dependencies):
 
 def dependents(matter, dependencies):
     return {b for a, b in dependencies if a == matter}
-
-
-def has_dependency_cycle(dependencies):
-    """Report whether ``dependencies`` contains a cycle. Scheduled to go.
-
-    The second of two cycle detectors left in the codebase, down from three:
-    ``rules.has_cycle`` (via :class:`~matters.graph_index.GraphIndex`) is the
-    one every other caller uses, and it names the offending cycle instead of
-    answering yes/no. This one survives for exactly one caller,
-    ``sharing.merge_public_state``, which takes a bare edge list and has no
-    matters set to build an index from. Rewriting ``sharing`` is separately
-    scheduled work and takes the count to one; until then this is a known
-    duplicate, not an oversight. Do not add callers.
-    """
-
-    outgoing = {}
-    for source, target in dependencies:
-        outgoing.setdefault(source, set()).add(target)
-
-    visiting = set()
-    visited = set()
-
-    def visit(node):
-        if node in visiting:
-            return True
-        if node in visited:
-            return False
-        visiting.add(node)
-        for target in outgoing.get(node, ()):
-            if visit(target):
-                return True
-        visiting.remove(node)
-        visited.add(node)
-        return False
-
-    return any(visit(node) for node in outgoing)

@@ -53,6 +53,10 @@ python -m pip install -e '.[test,providers]'
 python -m pytest
 ```
 
+With Node.js installed, pytest also runs the browser API and terminal lifecycle
+tests. They can be run separately with `node --test tests/web_app.test.cjs`.
+Tests isolate Matters model configuration from the developer's user settings.
+
 Core installation does not include provider SDKs. Install `.[openai]`,
 `.[anthropic]`, or `.[providers]` for the corresponding API adapters. The
 `codex-cli` adapter has no additional Python dependency.
@@ -201,6 +205,42 @@ and the shell become reachable from every host that can reach that address, and
 `matters web` prints a warning saying so. Only pass it on a network you control,
 and remember the launch URL is then a credential for code execution on this
 machine.
+
+Wildcard binds also require the remote-access flag:
+
+```sh
+matters web --host 0.0.0.0 --allow-remote-access --state project.matters.json
+```
+
+On another machine, replace `127.0.0.1` in the printed launch URL with this
+server's LAN IP, preserving the port and token. The API accepts the concrete
+destination IP of the connection and still checks the token and request origin.
+
+Graph edits carry the identity of the graph displayed in the browser. If another
+tab switches the active graph, stale edits are rejected; use **Switch graph** to
+select the intended file again. API clients must send the `graph_id` returned by
+`GET /api/state` as the `X-Matters-Graph` header on matter, condition, dependency,
+and command requests. A missing or mismatched identity returns HTTP 409 without
+applying the edit.
+
+## Python reconciliation API
+
+`reconcile_candidates` requires the existing dependency graph as a keyword
+argument, including an explicit empty set for a graph without edges:
+
+```python
+matters, conditions, id_map, new_edges, flips = reconcile_candidates(
+    candidates, matters, conditions, store, embedder,
+    dependencies=dependencies,
+)
+dependencies |= set(new_edges)
+```
+
+It rejects an already cyclic input graph and skips relationships that would
+create a cycle, including any condition changes attached to those relationships.
+Each accepted edge is included when validating subsequent candidates. The public
+`matters.has_dependency_cycle` helper now uses the same iterative graph engine;
+its implementation lives in `matters.graph_index`.
 
 ## Extraction Proposals
 

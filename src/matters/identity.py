@@ -19,6 +19,7 @@ import math
 import os
 import re
 
+from .graph_index import DependencyCycleError, GraphIndex
 from .llm import GenerationError, StructuredRequest, resolve_generator
 from .llm.legacy import LEGACY_DEFAULT_MODEL, coerce_generator
 
@@ -523,6 +524,7 @@ def reconcile_candidates(
     store,
     embedder,
     *,
+    dependencies,
     generator=None,
     llm_client=None,
     floor=CANDIDATE_FLOOR,
@@ -540,9 +542,15 @@ def reconcile_candidates(
       - LINK      -> add a directed dependency edge between the two matters
       - DISTINCT  -> the new matter is added on its own
     new_edges is a list of (prerequisite, dependent); flips records what changed.
+    ``dependencies`` must contain the existing graph's edges. Cycle-forming
+    relationships are skipped, including their associated condition flips.
     Without a configured or injected generator, only very-high-similarity SAME
     merges happen.
     """
+    matters = set(matters)
+    conditions = dict(conditions)
+    accepted_dependencies = set(dependencies)
+    GraphIndex(matters, conditions, accepted_dependencies)
     injected = generator if generator is not None else llm_client
     selection = resolve_generator(
         "reconciliation",
@@ -553,8 +561,6 @@ def reconcile_candidates(
     )
     semantic_generator = selection.generator if selection else None
 
-    matters = set(matters)
-    conditions = dict(conditions)
     id_map = {}
     new_edges = []
     flips = []
@@ -635,6 +641,20 @@ def reconcile_candidates(
                 pass
 
         for nid, rel in results:
+            edge = None
+            if rel.relation == "resolves" or (
+                rel.relation == "link" and rel.direction == "new_before_existing"
+            ):
+                edge = (cid, nid)
+            elif rel.relation == "link" and rel.direction == "existing_before_new":
+                edge = (nid, cid)
+            if edge is None:
+                continue
+            try:
+                GraphIndex(matters, conditions, accepted_dependencies | {edge})
+            except DependencyCycleError:
+                continue
+
             if rel.relation == "resolves":
                 existing = conditions.get(nid)
                 if existing and not all(c.get("truth") for c in existing):
@@ -646,12 +666,11 @@ def reconcile_candidates(
                             flipped.append(idx)
                     if flipped:
                         conditions[nid] = conds
-                        new_edges.append((cid, nid))
+                        accepted_dependencies.add(edge)
+                        new_edges.append(edge)
                         flips.append({"matter": nid, "by": cid, "conditions": flipped})
             elif rel.relation == "link":
-                if rel.direction == "new_before_existing":
-                    new_edges.append((cid, nid))
-                elif rel.direction == "existing_before_new":
-                    new_edges.append((nid, cid))
+                accepted_dependencies.add(edge)
+                new_edges.append(edge)
 
     return matters, conditions, id_map, new_edges, flips

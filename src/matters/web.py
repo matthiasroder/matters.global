@@ -1,6 +1,7 @@
 """Local web UI server for matters graphs."""
 
 import fcntl
+import hashlib
 import ipaddress
 import json
 import mimetypes
@@ -49,6 +50,7 @@ API_TOKEN_QUERY_PARAM = "token"
 # Deliberately identical for a missing token and a wrong one: the response
 # must not tell a prober which of the two it is.
 API_UNAUTHORIZED_MESSAGE = "unauthorized"
+GRAPH_ID_HEADER = "X-Matters-Graph"
 # The only paths that may carry the token in the query string. This is the
 # document request that ``serve`` opens; app.js moves the token into memory
 # and strips it from the address bar before it makes an API call.
@@ -143,6 +145,7 @@ def graph_payload(state_path=None):
         )
 
     return {
+        "graph_id": graph_identity(state_path),
         "state_path": str(resolve_state_path(state_path)),
         "nodes": nodes,
         "edges": [
@@ -450,6 +453,11 @@ def safe_int(value, default):
         return default
 
 
+def graph_identity(state_path):
+    path = str(resolve_state_path(state_path).resolve())
+    return hashlib.sha256(path.encode("utf-8")).hexdigest()
+
+
 class StatePathStore:
     def __init__(self, state_path=None):
         self._path = resolve_state_path(state_path)
@@ -457,6 +465,15 @@ class StatePathStore:
 
     def current(self):
         with self._lock:
+            return self._path
+
+    def for_request(self, graph_id):
+        with self._lock:
+            if not graph_id or graph_id != graph_identity(self._path):
+                raise ApiError(
+                    "The active graph changed. Use Switch graph to select it again before editing.",
+                    HTTPStatus.CONFLICT,
+                )
             return self._path
 
     def switch(self, state_path):
@@ -563,18 +580,11 @@ def is_local_api_host(host):
 
 
 def is_remote_bind_host(host):
-    """True when binding ``host`` would put the UI on a non-loopback address.
-
-    Wildcards answer False: they keep today's behaviour, and
-    ``api_host_allowlist`` already collapses a wildcard bind to loopback-only
-    for the Host check. A concrete LAN address does not -- it widens the
-    allowlist to exactly that address, so every client on the network passes
-    the origin check. That is the case this predicate exists to catch.
-    """
+    """True for non-loopback addresses, including wildcard binds."""
 
     normalized = normalize_http_host(host)
     if normalized in WILDCARD_API_HOSTS:
-        return False
+        return True
     return not is_local_api_host(normalized)
 
 
@@ -640,6 +650,7 @@ def serve(
     open_browser=True,
     terminal_workspace=None,
     terminal_shell=None,
+    allow_remote_access=False,
 ):
     resolved_state_path = resolve_state_path(state_path)
     state_paths = StatePathStore(resolved_state_path)
@@ -660,6 +671,7 @@ def serve(
     )
     server = ThreadingHTTPServer((host, port), handler)
     server.api_host_allowlist = api_host_allowlist(host, server.server_address[0])
+    server.allow_remote_access = allow_remote_access
     # The launch URL is the one place the token is ever rendered. Everything
     # else printed below stays token-free, and nothing writes it to disk.
     url = launch_url(host, server.server_port, api_token)
@@ -725,16 +737,16 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             if parsed.path.startswith("/api/"):
                 self.require_api_mutation_request()
             if parsed.path == "/api/matters":
-                self.write_json(create_matter(self.current_state_path(), self.read_json()), HTTPStatus.CREATED)
+                self.write_json(create_matter(self.request_state_path(), self.read_json()), HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/dependencies":
-                self.write_json(add_dependency(self.current_state_path(), self.read_json()), HTTPStatus.CREATED)
+                self.write_json(add_dependency(self.request_state_path(), self.read_json()), HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/state":
                 self.write_json(switch_state_path(self.state_paths, self.read_json()))
                 return
             if parsed.path == "/api/command":
-                self.write_json(run_command(self.current_state_path(), self.read_json()))
+                self.write_json(run_command(self.request_state_path(), self.read_json()))
                 return
             if parsed.path == "/api/terminal/sessions":
                 payload = self.read_json()
@@ -770,7 +782,7 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
                 return
             matter_id = unquote(match.group(1))
             self.require_api_mutation_request()
-            self.write_json(update_conditions(self.current_state_path(), matter_id, self.read_json()))
+            self.write_json(update_conditions(self.request_state_path(), matter_id, self.read_json()))
         except ApiError as error:
             self.write_error(error)
 
@@ -786,12 +798,15 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             if parsed.path != "/api/dependencies":
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
-            self.write_json(remove_dependency(self.current_state_path(), self.read_json()))
+            self.write_json(remove_dependency(self.request_state_path(), self.read_json()))
         except ApiError as error:
             self.write_error(error)
 
     def current_state_path(self):
         return self.state_paths.current()
+
+    def request_state_path(self):
+        return self.state_paths.for_request(self.headers.get(GRAPH_ID_HEADER))
 
     def guess_type(self, path):
         if path.endswith(".js"):
@@ -854,9 +869,19 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
 
     def allowed_api_hosts(self):
         configured_hosts = getattr(self.server, "api_host_allowlist", None)
-        if configured_hosts is not None:
-            return configured_hosts
-        return api_host_allowlist(self.server.server_address[0], self.server.server_address[0])
+        bound_host = self.server.server_address[0]
+        hosts = set(
+            configured_hosts if configured_hosts is not None
+            else api_host_allowlist(bound_host, bound_host)
+        )
+        if (
+            getattr(self.server, "allow_remote_access", False)
+            and normalize_http_host(bound_host) in WILDCARD_API_HOSTS
+        ):
+            # The socket's local destination is a concrete interface address,
+            # unlike Host, which is supplied by the caller.
+            hosts.add(normalize_http_host(self.connection.getsockname()[0]))
+        return frozenset(hosts)
 
     def require_json_content_type(self):
         content_type = self.headers.get("Content-Type", "")

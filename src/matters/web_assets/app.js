@@ -96,6 +96,7 @@ async function api(path, options = {}) {
     ...(options.headers || {})
   };
   if (apiToken) headers.Authorization = `Bearer ${apiToken}`;
+  if (state.graph?.graph_id) headers["X-Matters-Graph"] = state.graph.graph_id;
   const response = await fetch(path, {
     ...options,
     headers
@@ -695,7 +696,11 @@ function renderInspector() {
     toggle.type = "button";
     toggle.textContent = condition.truth ? "True" : "False";
     toggle.className = condition.truth ? "secondary" : "";
-    toggle.addEventListener("click", () => toggleCondition(node.id, index));
+    toggle.addEventListener("click", () => {
+      toggleCondition(node.id, index).catch((error) => {
+        setOperationOutput("error", error.message);
+      });
+    });
     const label = document.createElement("input");
     label.value = condition.label;
     label.setAttribute("aria-label", "Condition label");
@@ -703,7 +708,9 @@ function renderInspector() {
     save.type = "button";
     save.textContent = "Save";
     save.addEventListener("click", () => {
-      updateCondition(node.id, index, label.value, condition.truth);
+      updateCondition(node.id, index, label.value, condition.truth).catch((error) => {
+        setOperationOutput("error", error.message);
+      });
     });
     item.append(toggle, label, save);
     conditionList.append(item);
@@ -717,7 +724,9 @@ function renderInspector() {
   `;
   addForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    addCondition(node.id, addForm.elements.label.value);
+    addCondition(node.id, addForm.elements.label.value).catch((error) => {
+      setOperationOutput("error", error.message);
+    });
     addForm.reset();
   });
 
@@ -1249,6 +1258,7 @@ async function restartTerminal() {
     }).catch(() => {});
   }
   await createTerminalSession();
+  startTerminalPolling();
 }
 
 function startTerminalPolling() {
@@ -1259,11 +1269,13 @@ function startTerminalPolling() {
 
 async function pollTerminal() {
   if (!state.terminalSessionId || state.terminalPolling) return;
+  const sessionId = state.terminalSessionId;
   state.terminalPolling = true;
   try {
     const payload = await api(
-      `/api/terminal/sessions/${encodeURIComponent(state.terminalSessionId)}/output?seq=${state.terminalSeq}`
+      `/api/terminal/sessions/${encodeURIComponent(sessionId)}/output?seq=${state.terminalSeq}`
     );
+    if (sessionId !== state.terminalSessionId) return;
     payload.chunks.forEach((chunk) => {
       state.terminal.write(chunk.data);
       state.terminalSeq = chunk.seq;
@@ -1274,6 +1286,7 @@ async function pollTerminal() {
       state.terminalPollTimer = null;
     }
   } catch (error) {
+    if (sessionId !== state.terminalSessionId) return;
     terminalStatus.textContent = error.message;
     window.clearInterval(state.terminalPollTimer);
     state.terminalPollTimer = null;

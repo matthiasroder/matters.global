@@ -339,6 +339,17 @@ class GraphIndex:
 # ---------------------------------------------------------------------------
 
 
+def has_dependency_cycle(dependencies):
+    """Check a bare edge set with the same iterative validator as graph reads."""
+    dependencies = set(dependencies)
+    matters = {matter for edge in dependencies for matter in edge}
+    try:
+        GraphIndex(matters, {}, dependencies)
+    except DependencyCycleError:
+        return True
+    return False
+
+
 def resolved(matter, matters, conditions, dependencies):
     """Return whether ``matter`` is resolved."""
 

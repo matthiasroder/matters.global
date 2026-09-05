@@ -11,17 +11,13 @@ from matters import (
     reconcile_candidates,
 )
 from matters.identity import _candidate_text
+from matters.graph_index import DependencyCycleError, GraphIndex
 from matters.llm import AuthenticationError, Readiness, StructuredResult
 
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Anthropic-shaped injected clients are deprecated.*:DeprecationWarning"
 )
-
-
-@pytest.fixture(autouse=True)
-def isolate_user_llm_config(tmp_path, monkeypatch):
-    monkeypatch.setattr("matters.llm.config.user_config_dir", lambda _name: str(tmp_path))
 
 
 class StubEmbedder:
@@ -222,6 +218,7 @@ def test_reconcile_same_merges():
     m, c, id_map, edges, flips = reconcile_candidates(
         [APRIME], {A["id"]}, {A["id"]: [{"label": "c", "truth": False}]}, store, emb,
         llm_client=fake_classifier("same"),
+        dependencies=set(),
     )
     assert id_map[APRIME["id"]] == A["id"]
     assert APRIME["id"] not in m
@@ -234,6 +231,7 @@ def test_reconcile_resolves_flips_condition_and_adds_edge():
     m, c, id_map, edges, flips = reconcile_candidates(
         [APRIME], {A["id"]}, conditions, store, emb,
         llm_client=fake_classifier("resolves", satisfied=[1]),
+        dependencies=set(),
     )
     assert APRIME["id"] in m  # new node kept
     assert c[A["id"]][0]["truth"] is True   # condition 1 flipped
@@ -247,6 +245,7 @@ def test_reconcile_resolves_skips_already_resolved_matter():
     _, c, _, edges, flips = reconcile_candidates(
         [APRIME], {A["id"]}, {A["id"]: [{"label": "done", "truth": True}]}, store, emb,
         llm_client=fake_classifier("resolves", satisfied=[1]),
+        dependencies=set(),
     )
     assert flips == []
     assert edges == []
@@ -257,6 +256,7 @@ def test_reconcile_link_adds_directed_edge_both_ways():
     _, _, _, edges, _ = reconcile_candidates(
         [APRIME], {A["id"]}, {A["id"]: [{"label": "c", "truth": False}]}, store, emb,
         llm_client=fake_classifier("link", direction="new_before_existing"),
+        dependencies=set(),
     )
     assert (APRIME["id"], A["id"]) in edges
 
@@ -264,6 +264,7 @@ def test_reconcile_link_adds_directed_edge_both_ways():
     _, _, _, edges2, _ = reconcile_candidates(
         [APRIME], {A["id"]}, {A["id"]: [{"label": "c", "truth": False}]}, store2, emb2,
         llm_client=fake_classifier("link", direction="existing_before_new"),
+        dependencies=set(),
     )
     assert (A["id"], APRIME["id"]) in edges2
 
@@ -273,6 +274,7 @@ def test_reconcile_distinct_keeps_new_no_edge():
     m, _, id_map, edges, flips = reconcile_candidates(
         [APRIME], {A["id"]}, {A["id"]: [{"label": "c", "truth": False}]}, store, emb,
         llm_client=fake_classifier("distinct"),
+        dependencies=set(),
     )
     assert APRIME["id"] in m and id_map[APRIME["id"]] == APRIME["id"]
     assert edges == [] and flips == []
@@ -283,6 +285,7 @@ def test_reconcile_no_llm_merges_only_on_high_similarity():
     _, _, id_map, _, _ = reconcile_candidates(
         [APRIME], {A["id"]}, {A["id"]: [{"label": "c", "truth": False}]}, store, emb,
         llm_client=None,
+        dependencies=set(),
     )
     assert id_map[APRIME["id"]] == A["id"]  # cos ~0.98 >= high -> merge
 
@@ -290,6 +293,7 @@ def test_reconcile_no_llm_merges_only_on_high_similarity():
     _, _, id_map2, _, _ = reconcile_candidates(
         [C], {A["id"]}, {A["id"]: [{"label": "c", "truth": False}]}, store2, emb2,
         llm_client=None,
+        dependencies=set(),
     )
     assert id_map2[C["id"]] == C["id"]  # cos 0.8 < high -> new
 
@@ -327,6 +331,7 @@ def test_reconciliation_uses_provider_neutral_generator():
         store,
         emb,
         generator=generator,
+        dependencies=set(),
     )
 
     assert [request.operation for request in generator.requests] == ["reconciliation"]
@@ -354,6 +359,7 @@ def test_reconciliation_skip_fallback_handles_provider_failure():
         store,
         emb,
         generator=UnavailableGenerator(),
+        dependencies=set(),
     )
 
     assert C["id"] in matters
@@ -375,7 +381,8 @@ def test_guard_blocks_same_across_role_status_even_when_llm_says_same():
     }
     m, _, id_map, edges, flips = reconcile_candidates(
         [new_q], {A["id"]}, {A["id"]: [{"label": "done", "truth": True}]}, store, emb,
-        llm_client=fake_classifier("same"),  # LLM wrongly says same
+        llm_client=fake_classifier("same"),  # LLM wrongly says same,
+        dependencies=set(),
     )
     assert id_map["assoc_cloud_method"] == "assoc_cloud_method"  # guard kept it separate
     assert "assoc_cloud_method" in m
@@ -394,5 +401,88 @@ def test_guard_allows_same_role_merge():
     _, _, id_map, _, _ = reconcile_candidates(
         [new_m], {A["id"]}, {A["id"]: [{"label": "done", "truth": True}]}, store, emb,
         llm_client=fake_classifier("same"),
+        dependencies=set(),
     )
     assert id_map["assoc_cloud_method"] == A["id"]  # same kind+status -> merges
+
+
+def reconcile_with_relationships(candidates, matters, dependencies, neighbours, relations):
+    """Exercise reconciliation with deterministic similarity and model decisions."""
+    neighbours = iter(neighbours)
+    relations = iter(relations)
+    store = SimpleNamespace(
+        nearest=lambda *_args, **_kwargs: next(neighbours),
+        text_of=lambda matter: matter,
+        add=lambda *_args: None,
+    )
+    embedder = SimpleNamespace(embed=lambda texts: [[1.0] for _ in texts])
+
+    def generate(**_kwargs):
+        relation, direction = next(relations)
+        return SimpleNamespace(content=[SimpleNamespace(type="text", text=json.dumps({
+            "relation": relation,
+            "direction": direction,
+            "satisfied_condition_indices": [1] if relation == "resolves" else [],
+            "reason": "test relationship",
+        }))])
+
+    return reconcile_candidates(
+        [cand(matter, matter) for matter in candidates],
+        set(matters),
+        {matter: [{"label": "done", "truth": False}] for matter in matters},
+        store,
+        embedder,
+        dependencies=dependencies,
+        llm_client=SimpleNamespace(messages=SimpleNamespace(create=generate)),
+    )
+
+
+def test_reconciliation_rejects_cycle_through_multiple_neighbours():
+    dependencies = {("a", "b")}
+    matters, conditions, _, edges, _ = reconcile_with_relationships(
+        ["c"], ["a", "b"], dependencies,
+        [[("a", 0.9), ("b", 0.8)]],
+        [("link", "new_before_existing"), ("link", "existing_before_new")],
+    )
+
+    assert edges == [("c", "a")]
+    assert GraphIndex(matters, conditions, dependencies | set(edges))
+    assert dependencies == {("a", "b")}
+
+
+def test_reconciliation_does_not_flip_conditions_for_rejected_resolution():
+    dependencies = {("a", "b")}
+    matters, conditions, _, edges, flips = reconcile_with_relationships(
+        ["c"], ["a", "b"], dependencies,
+        [[("b", 0.9), ("a", 0.8)]],
+        [("link", "existing_before_new"), ("resolves", "none")],
+    )
+
+    assert edges == [("b", "c")]
+    assert flips == []
+    assert conditions["a"][0]["truth"] is False
+    assert GraphIndex(matters, conditions, dependencies | set(edges))
+
+
+def test_reconciliation_checks_edges_accepted_for_earlier_candidates():
+    matters, conditions, _, edges, _ = reconcile_with_relationships(
+        ["b", "c"], ["a"], set(),
+        [[("a", 0.9)], [("a", 0.9), ("b", 0.8)]],
+        [("link", "existing_before_new"), ("link", "new_before_existing"),
+         ("link", "existing_before_new")],
+    )
+
+    assert edges == [("a", "b"), ("c", "a")]
+    assert GraphIndex(matters, conditions, set(edges))
+
+
+def test_reconciliation_refuses_invalid_existing_graph_before_calling_model():
+    with pytest.raises(DependencyCycleError):
+        reconcile_with_relationships(
+            ["c"], ["a", "b"], {("a", "b"), ("b", "a")}, [], [],
+        )
+
+
+def test_reconciliation_requires_existing_dependencies():
+    with pytest.raises(TypeError, match="dependencies"):
+        reconcile_candidates([], set(), {}, None, None)

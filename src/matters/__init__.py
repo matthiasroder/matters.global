@@ -24,7 +24,6 @@ from .engine import (
     condition_label,
     create_condition,
     dependents,
-    has_dependency_cycle,
     normalize_conditions,
     prerequisites,
     serialize_condition,
@@ -38,6 +37,7 @@ from .extraction import (
 )
 from .graph_index import (
     DependencyCycleError,
+    has_dependency_cycle,
     descendants,
     frontier,
     horizon,

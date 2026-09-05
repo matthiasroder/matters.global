@@ -80,6 +80,7 @@ def api_request(state_path, method, path, body="", headers=None, token=VALID_TOK
         )
         if token is not None:
             request_headers.setdefault("Authorization", f"Bearer {token}")
+        request_headers.setdefault(web.GRAPH_ID_HEADER, web.graph_identity(state_path))
         conn = http.client.HTTPConnection("127.0.0.1", server.server_port)
         conn.request(method, path, body=body, headers=request_headers)
         response = conn.getresponse()
@@ -109,6 +110,7 @@ def api_response(state_path, method, path, body="", headers=None, token=VALID_TO
         )
         if token is not None:
             request_headers.setdefault("Authorization", f"Bearer {token}")
+        request_headers.setdefault(web.GRAPH_ID_HEADER, web.graph_identity(state_path))
         conn = http.client.HTTPConnection("127.0.0.1", server.server_port)
         conn.request(method, path, body=body, headers=request_headers)
         response = conn.getresponse()
@@ -183,6 +185,7 @@ def test_graph_payload_includes_derived_status(tmp_path):
     assert nodes["b"]["prerequisites"] == ["a"]
     assert payload["edges"] == [{"source": "a", "target": "b"}]
     assert set(payload) == {
+        "graph_id",
         "state_path",
         "nodes",
         "edges",
@@ -627,6 +630,7 @@ def test_cli_registers_web_command(monkeypatch):
         "open_browser": False,
         "terminal_workspace": None,
         "terminal_shell": None,
+        "allow_remote_access": False,
     }
 
 
@@ -911,19 +915,19 @@ def test_serve_mints_a_fresh_token_per_run(tmp_path, monkeypatch):
     assert re.fullmatch(r"[A-Za-z0-9_-]{32,}", first_token)
 
 
-def test_is_remote_bind_host_flags_only_concrete_non_loopback_addresses():
+def test_is_remote_bind_host_flags_non_loopback_and_wildcard_addresses():
     assert is_remote_bind_host("192.168.1.10") is True
     assert is_remote_bind_host("example.test") is True
     assert is_remote_bind_host("127.0.0.1") is False
     assert is_remote_bind_host("127.0.0.2") is False
     assert is_remote_bind_host("localhost") is False
     assert is_remote_bind_host("::1") is False
-    # Wildcards keep today's behaviour.
-    assert is_remote_bind_host("0.0.0.0") is False
-    assert is_remote_bind_host("::") is False
+    assert is_remote_bind_host("0.0.0.0") is True
+    assert is_remote_bind_host("::") is True
 
 
-def test_cli_refuses_non_loopback_host_without_opt_in(monkeypatch, capsys):
+@pytest.mark.parametrize("host", ["192.168.1.10", "0.0.0.0", "::"])
+def test_cli_refuses_non_loopback_host_without_opt_in(monkeypatch, capsys, host):
     called = {}
 
     def fake_serve(**kwargs):
@@ -932,16 +936,17 @@ def test_cli_refuses_non_loopback_host_without_opt_in(monkeypatch, capsys):
     monkeypatch.setattr("matters.web.serve", fake_serve)
 
     with pytest.raises(SystemExit) as error:
-        main(["web", "--host", "192.168.1.10", "--port", "0", "--no-open"])
+        main(["web", "--host", host, "--port", "0", "--no-open"])
 
     assert error.value.code == 2
     assert called == {}
     message = capsys.readouterr().err
     assert "--allow-remote-access" in message
-    assert "192.168.1.10" in message
+    assert host in message
 
 
-def test_cli_allows_non_loopback_host_with_opt_in_and_warns(monkeypatch, capsys):
+@pytest.mark.parametrize("host", ["192.168.1.10", "0.0.0.0"])
+def test_cli_allows_non_loopback_host_with_opt_in_and_warns(monkeypatch, capsys, host):
     called = {}
 
     def fake_serve(**kwargs):
@@ -954,7 +959,7 @@ def test_cli_allows_non_loopback_host_with_opt_in_and_warns(monkeypatch, capsys)
             [
                 "web",
                 "--host",
-                "192.168.1.10",
+                host,
                 "--port",
                 "0",
                 "--no-open",
@@ -963,14 +968,15 @@ def test_cli_allows_non_loopback_host_with_opt_in_and_warns(monkeypatch, capsys)
         )
         == 0
     )
-    assert called["host"] == "192.168.1.10"
+    assert called["host"] == host
+    assert called["allow_remote_access"] is True
     warning = capsys.readouterr().err
     assert "WARNING" in warning
-    assert "192.168.1.10" in warning
+    assert host in warning
     assert "shell" in warning
 
 
-def test_cli_keeps_loopback_and_wildcard_hosts_without_opt_in(monkeypatch, capsys):
+def test_cli_keeps_loopback_hosts_without_opt_in(monkeypatch, capsys):
     called = {}
 
     def fake_serve(**kwargs):
@@ -978,7 +984,7 @@ def test_cli_keeps_loopback_and_wildcard_hosts_without_opt_in(monkeypatch, capsy
 
     monkeypatch.setattr("matters.web.serve", fake_serve)
 
-    for host in ("127.0.0.1", "localhost", "0.0.0.0"):
+    for host in ("127.0.0.1", "localhost"):
         called.clear()
         assert main(["web", "--host", host, "--port", "0", "--no-open"]) == 0
         assert called["host"] == host
@@ -1072,3 +1078,111 @@ def test_web_assets_offer_focus_and_deterministic_overview():
     assert "function switchGraphStateErrorMessage(error)" in app
     assert "Restart the matters web server" in app
     assert "webgl-fallback" not in html
+
+
+@pytest.mark.parametrize("method, endpoint, payload", [
+    ("POST", "/api/matters", {"title": "new matter"}),
+    ("POST", "/api/dependencies", {"source": "b", "target": "a"}),
+    ("DELETE", "/api/dependencies", {"source": "a", "target": "b"}),
+    ("PATCH", "/api/matters/b/conditions", {"action": "toggle", "index": 0}),
+    ("POST", "/api/command", {"text": "create new matter (done)"}),
+    ("POST", "/api/command", {"text": "universe"}),
+])
+def test_stale_tab_cannot_edit_or_query_another_graph(
+    tmp_path, monkeypatch, method, endpoint, payload
+):
+    first, second = tmp_path / "first.json", tmp_path / "second.json"
+    write_state(first)
+    write_state(second)
+    before = {path: path.read_bytes() for path in (first, second)}
+    with running_server(monkeypatch, first) as url:
+        port, token = launch_url_parts(url)
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        status, _, body = live_request(port, "GET", "/api/state", headers=headers)
+        assert status == 200
+        first_id = json.loads(body)["graph_id"]
+        status, _, body = live_request(
+            port, "POST", "/api/state", json.dumps({"state_path": str(second)}), headers
+        )
+        assert status == 200
+        second_id = json.loads(body)["graph_id"]
+        assert first_id != second_id
+
+        status, _, body = live_request(
+            port, method, endpoint, json.dumps(payload),
+            {**headers, web.GRAPH_ID_HEADER: first_id},
+        )
+        assert status == 409
+        assert "active graph changed" in json.loads(body)["error"]
+        assert {path: path.read_bytes() for path in (first, second)} == before
+
+        status, _, body = live_request(
+            port, "PATCH", "/api/matters/b/conditions",
+            json.dumps({"action": "toggle", "index": 0}),
+            {**headers, web.GRAPH_ID_HEADER: second_id},
+        )
+        assert status == 200
+        assert json.loads(body)["graph_id"] == second_id
+    assert first.read_bytes() == before[first]
+    assert json.loads(second.read_text())["conditions"]["b"][0]["truth"] is True
+
+
+def test_graph_mutation_requires_explicit_graph_identity(tmp_path, monkeypatch):
+    path = tmp_path / "matters.json"
+    write_state(path)
+    before = path.read_bytes()
+    with running_server(monkeypatch, path) as url:
+        port, token = launch_url_parts(url)
+        status, _, _ = live_request(
+            port, "POST", "/api/matters", json.dumps({"title": "unbound edit"}),
+            {"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+    assert status == 409
+    assert path.read_bytes() == before
+
+
+def test_graph_request_keeps_its_validated_path_during_a_switch(tmp_path):
+    first, second = tmp_path / "first.json", tmp_path / "second.json"
+    write_state(first)
+    write_state(second)
+    store = StatePathStore(first)
+    selected = store.for_request(graph_payload(first)["graph_id"])
+    store.switch(second)
+
+    result = update_conditions(selected, "b", {"action": "toggle", "index": 0})
+
+    assert result["graph_id"] == graph_payload(first)["graph_id"]
+    assert json.loads(first.read_text())["conditions"]["b"][0]["truth"] is True
+    assert json.loads(second.read_text())["conditions"]["b"][0]["truth"] is False
+
+
+@pytest.mark.parametrize("allow_remote_access", [False, True])
+def test_wildcard_remote_access_uses_the_actual_socket_destination(
+    tmp_path, monkeypatch, allow_remote_access
+):
+    path = tmp_path / "matters.json"
+    write_state(path)
+    # Exclude the usual loopback names so a successful HTTP request must
+    # have been admitted through its actual socket destination.
+    monkeypatch.setattr(web, "api_host_allowlist", lambda *_args: frozenset())
+    with running_server(
+        monkeypatch, path, host="0.0.0.0", allow_remote_access=allow_remote_access
+    ) as url:
+        port, token = launch_url_parts(url)
+        for host, origin, bearer, expected in [
+            ("127.0.0.1", "127.0.0.1", token, 200 if allow_remote_access else 403),
+            ("attacker.test", "attacker.test", token, 403),
+            ("127.0.0.1", "attacker.test", token, 403),
+            ("192.0.2.10", "192.0.2.10", token, 403),
+            ("127.0.0.1", "127.0.0.1", "wrong-token", 401),
+        ]:
+            conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+            conn.request("GET", "/api/state", headers={
+                "Host": f"{host}:{port}",
+                "Origin": f"http://{origin}:{port}",
+                "Authorization": f"Bearer {bearer}",
+            })
+            response = conn.getresponse()
+            response.read()
+            conn.close()
+            assert response.status == expected

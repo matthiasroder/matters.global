@@ -93,6 +93,12 @@ def test_has_dependency_cycle_detects_cycles():
     assert not has_dependency_cycle({("a", "b"), ("b", "c")})
 
 
+def test_public_cycle_helper_handles_deep_graphs():
+    edges = {(str(i), str(i + 1)) for i in range(5000)}
+    assert not has_dependency_cycle(edges)
+    assert has_dependency_cycle(edges | {("5000", "0")})
+
+
 def test_engine_does_not_import_graph_index():
     """D8: the import runs one way and must keep running one way.
 

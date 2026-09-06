@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>matters graph</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
-    <link rel="stylesheet" href="styles.css?v=overview-v4">
+    <link rel="stylesheet" href="styles.css?v=cloud-v1">
   </head>
   <body>
     <div class="app-shell">
@@ -29,7 +30,8 @@
             <option value="all">All graph</option>
             <option value="custom" hidden>Focused</option>
           </select>
-          <button id="show-overview" type="button" aria-pressed="false">Overview</button>
+          <button id="show-overview" type="button" aria-pressed="false">3D cloud</button>
+          <button id="show-focus" type="button">2D focus</button>
           <button id="back-overview" type="button" hidden>Back to overview</button>
           <button id="show-universe" type="button">Universe</button>
           <button id="show-unlock" type="button">Unlock</button>
@@ -110,6 +112,6 @@
       <div id="view-live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     </div>
 
-    <script type="module" src="app.js?v=overview-v4"></script>
+    <script type="module" src="app.js?v=cloud-v1"></script>
   </body>
 </html>

@@ -6,9 +6,10 @@ import pytest
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is not installed")
-def test_browser_api_and_terminal_lifecycle():
+@pytest.mark.parametrize("test_file", ["web_app.test.cjs", "cloud_layout.test.mjs"])
+def test_browser_javascript(test_file):
     result = subprocess.run(
-        ["node", "--test", str(Path(__file__).with_name("web_app.test.cjs"))],
+        ["node", "--test", str(Path(__file__).with_name(test_file))],
         capture_output=True,
         text=True,
         timeout=30,

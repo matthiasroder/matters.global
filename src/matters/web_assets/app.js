@@ -212,17 +212,31 @@ function initGraph() {
   window.addEventListener("resize", resizeGraph);
 }
 
-function initOverview() {
+async function initOverview() {
   try {
-    state.overviewRenderer = createOverviewRenderer({
+    const { createCloudRenderer } = await import("./cloud-renderer.js?v=cloud-v1");
+    state.overviewRenderer = createCloudRenderer({
       container: overviewElement,
       reducedMotion: state.reducedMotion,
       onSelect: handleOverviewSelection,
       onError: overviewUnavailable
     });
   } catch (error) {
-    overviewUnavailable(error);
+    try {
+      state.overviewRenderer = createOverviewRenderer({
+        container: overviewElement,
+        reducedMotion: state.reducedMotion,
+        onSelect: handleOverviewSelection,
+        onError: overviewUnavailable
+      });
+      overviewButton.textContent = "Overview";
+    } catch (fallbackError) {
+      overviewUnavailable(fallbackError);
+      return;
+    }
   }
+  state.view = "overview";
+  if (state.graph) render();
 }
 
 function overviewUnavailable(error) {
@@ -394,14 +408,17 @@ function syncViewControls() {
   overviewElement.hidden = !overview;
   overviewButton.setAttribute("aria-pressed", String(Boolean(overview)));
   overviewButton.disabled = !state.overviewRenderer || Boolean(overview);
+  document.querySelector("#show-focus").disabled = !overview;
   backOverviewButton.hidden = state.view !== "focus" || !state.overviewSession;
   scopeFilter.disabled = Boolean(overview);
+  state.overviewRenderer?.setVisible?.(Boolean(overview));
 }
 
 function updateOverviewRenderer() {
   if (!state.overviewRenderer || !state.graph) return;
   const derivedActive = state.derivedHighlightActive;
   state.overviewRenderer.setModel({
+    graphId: state.graph.graph_id || state.graph.state_path,
     nodes: state.graph.nodes,
     edges: state.graph.edges,
     selectedId: state.selectedId,
@@ -659,7 +676,8 @@ function renderInspector() {
   inspector.replaceChildren();
 
   const title = document.createElement("h3");
-  title.textContent = node.id;
+  title.textContent = node.label.charAt(0).toUpperCase() + node.label.slice(1);
+  title.title = node.id;
 
   const badges = document.createElement("div");
   badges.className = "badge-row";
@@ -673,7 +691,7 @@ function renderInspector() {
   if (state.view === "overview") {
     const focusHere = document.createElement("button");
     focusHere.type = "button";
-    focusHere.textContent = "Focus here";
+    focusHere.textContent = "Open 2D focus";
     focusHere.addEventListener("click", focusHereFromOverview);
     overviewActions.append(focusHere);
 
@@ -681,7 +699,9 @@ function renderInspector() {
     if (coordinates) {
       const metadata = document.createElement("span");
       metadata.className = "overview-metadata";
-      metadata.textContent = `Orbit ${coordinates.orbit_level} · Depth ${coordinates.depth} · ${coordinates.downstream_impact} downstream`;
+      metadata.textContent = state.overviewRenderer?.cloud
+        ? `${node.prerequisites.length} prerequisites · ${node.dependents.length} dependents`
+        : `Orbit ${coordinates.orbit_level} · Depth ${coordinates.depth} · ${coordinates.downstream_impact} downstream`;
       overviewActions.append(metadata);
     }
   }
@@ -701,8 +721,9 @@ function renderInspector() {
         setOperationOutput("error", error.message);
       });
     });
-    const label = document.createElement("input");
+    const label = document.createElement("textarea");
     label.value = condition.label;
+    label.rows = Math.min(5, Math.max(2, Math.ceil(condition.label.length / 30)));
     label.setAttribute("aria-label", "Condition label");
     const save = document.createElement("button");
     save.type = "button";
@@ -753,9 +774,16 @@ function linkSpans(ids) {
     return [empty];
   }
   return ids.map((id) => {
-    const span = document.createElement("span");
-    span.textContent = id;
-    return span;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "dependency-link";
+    const label = nodeById(id)?.label || id.replaceAll("_", " ");
+    button.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    button.addEventListener("click", () => {
+      if (state.view === "overview") handleOverviewSelection(id);
+      else { focusNode(id); renderInspector(); updateOperationButtons(); }
+    });
+    return button;
   });
 }
 
@@ -1495,6 +1523,12 @@ document.querySelector("#remove-dependency").addEventListener("click", async () 
   } catch (error) {
     setOperationOutput("error", error.message);
   }
+});
+
+document.querySelector("#show-focus").addEventListener("click", () => {
+  if (!state.graph) return;
+  if (state.selectedId) focusHereFromOverview();
+  else { state.view = "focus"; render(); }
 });
 
 initGraph();

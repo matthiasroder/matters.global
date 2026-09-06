@@ -142,26 +142,30 @@ Run a local web UI to inspect and edit the real matters graph in a browser:
 matters web --state examples/matters.example.json
 ```
 
-The UI shows matters in a Cytoscape.js-powered directed graph, with dependency
-edges drawn as arrows from prerequisite matters to dependent matters. Large
-graphs open in an Attention scope: high-impact actionable matters and the
-matters they unlock, rather than an unreadable all-node hairball. The graph
-scope menu can switch between Attention, Universe, and All graph.
+The default **3D cloud** uses 3d-force-graph 1.80.0 to place matters in stable
+topic neighborhoods. Drag to orbit, scroll to zoom, and right-drag to pan.
+Click a neighborhood to approach it, or select a matter to frame its dependency
+context and inspect its conditions. Search and status filters dim nonmatches
+without moving nodes. Labels become visible as you approach; selected and
+connected matters receive priority when labels would overlap.
 
-The default **Focus** view uses Cytoscape and a readable Dagre dependency
-layout. Selecting a matter shows its prerequisite context and direct
-dependents. **Overview** is an explicit, stable spatial atlas of every matter
-and dependency: drag to rotate, Shift-drag to pan, use the wheel or toolbar to
-zoom, and select a matter to emphasize its complete prerequisite ancestry.
-**Focus here** moves from that selection into the dependency view; **Back to
-overview** restores the previous overview camera and selection. Search and
-status filters fade nonmatches in Overview without rearranging the atlas. Its
-solar-system layout gives each independent prerequisite family a representative
-terminal goal as its system centre, arranges related matters on orbital rings,
-and places cross-system joins between their contributing suns. Large graphs
-open as a landmark map of system centres; zooming reveals inner orbits and then
-the complete systems. The UI also supports node inspection, condition toggles,
-matter creation, and dependency creation/removal in either view.
+Neighborhoods are inferred from recurring words in matter IDs and nearby
+dependencies. They are display groupings, not new dependency edges. Positions,
+topic assignments, and the camera are stored per graph in the browser's local
+storage. Existing positions survive condition changes and new matters. Clearing
+browser storage discards this display state; the source Matters file is never
+changed by arranging or navigating the cloud. If browser storage is unavailable,
+the scene still works with deterministic positions for the current graph.
+
+**2D focus** uses Cytoscape and Dagre for a directed dependency diagram. Arrows
+point from prerequisites to dependents. **Open 2D focus** in the inspector
+shows the selected matter's dependency context; **Back to overview** restores
+the cloud camera and selection. The 2D scope menu offers Attention, Universe,
+and All graph. Both views support condition updates and graph editing.
+
+If WebGL or the cloud module cannot load, the existing canvas Overview remains
+available. It uses the deterministic goal-centered solar-system layout. The
+standalone `matters view` command continues to use that canvas renderer.
 
 The top toolbar and the chat-style command panel both expose common graph
 operations:

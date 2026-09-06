@@ -1009,7 +1009,7 @@ def test_web_assets_offer_focus_and_deterministic_overview():
     renderer = (ASSETS / "map-renderer.js").read_text()
 
     assert '<div id="graph"' in html
-    assert '<script type="module" src="app.js?v=overview-v4"></script>' in html
+    assert '<script type="module" src="app.js?v=cloud-v1"></script>' in html
     assert 'from "./map-renderer.js?v=overview-v4"' in app
     assert '<details class="panel-section disclosure">' in html
     assert "<summary>Create Matter</summary>" in html
@@ -1035,9 +1035,9 @@ def test_web_assets_offer_focus_and_deterministic_overview():
     assert "new Terminal" in app
     assert "cytoscape@3.34.0" in app
     assert "cytoscape-dagre@4.0.0" in app
-    assert "3d-force-graph" not in app + renderer
-    assert "three@" not in app + renderer
-    assert 'href="styles.css?v=overview-v4"' in html
+    assert 'import("./cloud-renderer.js?v=cloud-v1")' in app
+    assert 'id="show-focus"' in html
+    assert 'href="styles.css?v=cloud-v1"' in html
     assert "[hidden]" in (ASSETS / "styles.css").read_text()
     assert "cytoscape({" in app
     assert "cytoscape.use(dagre)" in app

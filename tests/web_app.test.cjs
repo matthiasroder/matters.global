@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync(
   path.join(__dirname, "../src/matters/web_assets/app.js"), "utf8"
-).replace(/^import .*;\n/gm, "");
+).replace(/^import .*;\n/gm, "").replace(/^initOverview\(\);$/m, "");
 
 function response(payload) {
   return {

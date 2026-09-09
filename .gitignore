@@ -11,3 +11,5 @@ dist/
 .dolt/
 *.db
 .beads-credential-key
+
+artifacts/verification/matters/

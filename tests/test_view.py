@@ -576,3 +576,97 @@ def test_view_takes_no_lock_and_leaves_the_state_file_alone(
         "matters.json",
         "pages",
     ]
+
+
+def test_view_png_writes_beside_the_html_and_stays_out_of_the_browser(
+    tmp_path, monkeypatch, capsys
+):
+    """A chat client attaches the PNG. `--png` must not launch anything."""
+
+    state_path = write_state(tmp_path / "matters.json")
+    html_path = tmp_path / "pages" / "c.html"
+    opened = []
+    monkeypatch.setattr(webbrowser, "open", opened.append)
+
+    assert (
+        main(
+            [
+                "view",
+                "c",
+                "--state",
+                str(state_path),
+                "--output",
+                str(html_path),
+                "--png",
+                "--no-open",
+            ]
+        )
+        == 0
+    )
+
+    png_path = html_path.with_suffix(".png")
+    captured = capsys.readouterr()
+    assert captured.out == (
+        "c: 4 matters, 3 dependencies\n"
+        f"wrote {html_path}\n"
+        f"wrote {png_path}\n"
+    )
+    assert opened == []
+    assert png_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    assert html_path.exists()
+
+
+def test_view_png_uses_the_path_it_was_given_and_still_opens_html(
+    tmp_path, monkeypatch, capsys
+):
+    state_path = write_state(tmp_path / "matters.json")
+    html_path = tmp_path / "c.html"
+    png_path = tmp_path / "shots" / "c.png"
+    opened = []
+    monkeypatch.setattr(webbrowser, "open", opened.append)
+
+    assert (
+        main(
+            [
+                "view",
+                "c",
+                "--state",
+                str(state_path),
+                "--output",
+                str(html_path),
+                "--png",
+                str(png_path),
+            ]
+        )
+        == 0
+    )
+
+    capsys.readouterr()
+    assert opened == [html_path.resolve().as_uri()]
+    assert png_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_view_png_is_not_written_for_an_unknown_matter(tmp_path, capsys):
+    state_path = write_state(tmp_path / "matters.json")
+    html_path = tmp_path / "pages" / "nope.html"
+    png_path = tmp_path / "pages" / "nope.png"
+
+    with pytest.raises(SystemExit) as error:
+        main(
+            [
+                "view",
+                "nope",
+                "--state",
+                str(state_path),
+                "--output",
+                str(html_path),
+                "--png",
+                str(png_path),
+                "--no-open",
+            ]
+        )
+
+    assert error.value.code == 2
+    assert "unknown matter: nope" in capsys.readouterr().err
+    assert not html_path.exists()
+    assert not png_path.exists()

@@ -37,14 +37,17 @@ In this example `send_proposal` is in the universe because its prerequisite is r
 ## Layout
 
 ```text
-src/matters/         # reusable Python package
-skills/matters/      # agent skill instructions
-examples/            # non-personal example state
-scripts/             # repository maintenance scripts
-tests/               # engine and storage tests
+src/matters/          # reusable Python package
+skills/matters/       # agent skill instructions
+skills/matters-coach/ # coaching skill for goals, planning, and next steps
+examples/             # non-personal example state
+scripts/              # repository maintenance scripts
+tests/                # engine and storage tests
 ```
 
-The skill is intentionally thin. Shared behavior belongs in `src/matters`, not in a skill directory.
+The skills are intentionally thin. Shared behavior belongs in `src/matters`, not in a skill directory.
+
+[skills/matters/SKILL.md](skills/matters/SKILL.md) is the persistence and write skill. [skills/matters-coach/SKILL.md](skills/matters-coach/SKILL.md) is the coaching layer for a chat assistant: a first goal, what to do next, progress, notes, and a weekly review. It defers to the matters skill for every write.
 
 ## Local Development
 
@@ -166,6 +169,8 @@ and All graph. Both views support condition updates and graph editing.
 If WebGL or the cloud module cannot load, the existing canvas Overview remains
 available. It uses the deterministic goal-centered solar-system layout. The
 standalone `matters view` command continues to use that canvas renderer.
+Pass `--no-open` to write the HTML without launching a browser, and `--png`
+to also write an image a chat client can attach.
 
 The top toolbar and the chat-style command panel both expose common graph
 operations:

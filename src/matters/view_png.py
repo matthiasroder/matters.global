@@ -69,8 +69,8 @@ def rasterize_view(payload, *, width=PNG_WIDTH, height=PNG_HEIGHT):
         x0, y0, x1, y1 = _shorten(
             source[0], source[1], target[0], target[1], _NODE_RADIUS + 2, _FOCUS_RADIUS + 6
         )
-        _stroke(pixels, width, height, x0, y0, x1, y1, EDGE, radius=1.4)
-        _arrow(pixels, width, height, x0, y0, x1, y1, EDGE)
+        _stroke(pixels, width, height, x0, y0, x1, y1, EDGE, radius=1.6)
+        _arrow(pixels, width, height, x0, y0, x1, y1, INK)
 
     focus_id = payload.get("matter")
     for node in nodes:
@@ -309,8 +309,8 @@ def _arrow(pixels, width, height, x0, y0, x1, y1, color):
     ux, uy = dx / length, dy / length
     px, py = -uy, ux
     tip = (x1, y1)
-    left = (x1 - ux * 12 + px * 5, y1 - uy * 12 + py * 5)
-    right = (x1 - ux * 12 - px * 5, y1 - uy * 12 - py * 5)
+    left = (x1 - ux * 22 + px * 9, y1 - uy * 22 + py * 9)
+    right = (x1 - ux * 22 - px * 9, y1 - uy * 22 - py * 9)
     _fill_triangle(pixels, width, height, tip, left, right, color)
 
 

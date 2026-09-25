@@ -125,6 +125,163 @@ def test_cli_create_writes_shorthand_dependency_chain(tmp_path, capsys):
     }
 
 
+def test_cli_create_treats_each_argument_as_its_own_chain(tmp_path, capsys):
+    """Separate prerequisites are separate arguments, not one joined chain."""
+
+    state_path = tmp_path / "matters.json"
+    state_path.write_text(
+        json.dumps({"matters": [], "conditions": {}, "dependencies": []})
+    )
+
+    assert (
+        main(
+            [
+                "create",
+                "launch a small newsletter (first issue sent to 20 subscribers) > pick a platform",
+                "launch a small newsletter > write issue one",
+                "--state",
+                str(state_path),
+            ]
+        )
+        == 0
+    )
+
+    output = capsys.readouterr().out
+    assert "pick_a_platform_launch_a_small_newsletter" not in output
+    assert json.loads(state_path.read_text()) == {
+        "schema_version": 2,
+        "matters": [
+            "launch_a_small_newsletter",
+            "pick_a_platform",
+            "write_issue_one",
+        ],
+        "conditions": {
+            "launch_a_small_newsletter": [
+                {
+                    "label": "first issue sent to 20 subscribers",
+                    "truth": False,
+                }
+            ],
+            "pick_a_platform": [
+                {"label": "Resolved: pick a platform", "truth": False}
+            ],
+            "write_issue_one": [
+                {"label": "Resolved: write issue one", "truth": False}
+            ],
+        },
+        "dependencies": [
+            ["pick_a_platform", "launch_a_small_newsletter"],
+            ["write_issue_one", "launch_a_small_newsletter"],
+        ],
+    }
+
+
+def test_cli_create_reuses_an_existing_head(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    state_path.write_text(
+        json.dumps({"matters": [], "conditions": {}, "dependencies": []})
+    )
+    assert (
+        main(
+            [
+                "create",
+                "launch a small newsletter (first issue sent to 20 subscribers)",
+                "--state",
+                str(state_path),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    assert (
+        main(
+            [
+                "create",
+                "launch a small newsletter (some other condition) > write issue one",
+                "--state",
+                str(state_path),
+            ]
+        )
+        == 0
+    )
+
+    output = capsys.readouterr().out
+    assert "write_issue_one -> launch_a_small_newsletter" in output
+    assert "- launch_a_small_newsletter:" not in output
+    state = json.loads(state_path.read_text())
+    assert state["conditions"]["launch_a_small_newsletter"] == [
+        {"label": "first issue sent to 20 subscribers", "truth": False}
+    ]
+    assert state["dependencies"] == [
+        ["write_issue_one", "launch_a_small_newsletter"]
+    ]
+    assert "write_issue_one" in state["matters"]
+
+
+def test_cli_create_still_refuses_an_existing_non_head(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "matters": ["write_issue_one"],
+                "conditions": {
+                    "write_issue_one": [{"label": "Resolved: write issue one", "truth": False}]
+                },
+                "dependencies": [],
+            }
+        )
+    )
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(
+            [
+                "create",
+                "launch a small newsletter > write issue one",
+                "--state",
+                str(state_path),
+            ]
+        )
+
+    assert error.value.code == 2
+    assert "matter already exists: write_issue_one" in capsys.readouterr().err
+    assert state_path.read_bytes() == original
+
+
+def test_cli_create_rolls_back_when_a_later_chain_cannot_reuse(tmp_path, capsys):
+    state_path = tmp_path / "matters.json"
+    state_path.write_text(
+        json.dumps({"matters": [], "conditions": {}, "dependencies": []})
+    )
+    original = state_path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main(
+            [
+                "create",
+                "goal > shared prerequisite",
+                "other goal > shared prerequisite",
+                "--state",
+                str(state_path),
+            ]
+        )
+
+    assert error.value.code == 2
+    assert "matter already exists: shared_prerequisite" in capsys.readouterr().err
+    assert state_path.read_bytes() == original
+
+
+def test_cli_create_help_documents_separate_chains(capsys):
+    with pytest.raises(SystemExit) as error:
+        main(["create", "--help"])
+
+    assert error.value.code == 0
+    text = capsys.readouterr().out
+    assert "Each argument is its own chain" in text
+    assert "reused" in text
+
+
 def test_cli_extract_reads_text_file_without_saving(tmp_path, capsys):
     state_path = tmp_path / "matters.json"
     source_path = tmp_path / "notes.txt"
@@ -2322,10 +2479,14 @@ def test_cli_universe_repair_hint_makes_universe_answer(tmp_path, capsys):
     assert capsys.readouterr().out == "a\n"
 
 
-def test_cli_frontier_and_horizon_still_print_nothing_for_a_real_empty_answer(
+def test_cli_frontier_names_an_empty_answer_and_horizon_stays_quiet(
     tmp_path, capsys
 ):
-    """Exit 0 and no output is now reserved for a genuinely empty answer."""
+    """An empty frontier is a real answer, so it is a sentence rather than silence.
+
+    Horizon keeps the blank line: only frontier was silent in a way a person
+    could not tell from a failed command.
+    """
 
     state_path = tmp_path / "matters.json"
     state_path.write_text(
@@ -2339,7 +2500,7 @@ def test_cli_frontier_and_horizon_still_print_nothing_for_a_real_empty_answer(
     )
 
     assert main(["frontier", "lonely", "--state", str(state_path)]) == 0
-    assert capsys.readouterr().out == ""
+    assert capsys.readouterr().out == "nothing newly unlocked by lonely\n"
 
     assert main(["horizon", "lonely", "--state", str(state_path)]) == 0
     assert capsys.readouterr().out == ""

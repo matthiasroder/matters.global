@@ -554,27 +554,48 @@ def resolve_condition_ref(matter_id, current, ref):
 
 
 def create_matters_from_expression(expression, matters, conditions, dependencies):
+    """Create one dependency chain from ``expression``.
+
+    The leftmost matter is the head. When that head already exists it is
+    reused unchanged, so a goal can gain another prerequisite without being
+    created again. A matter that already exists anywhere else in the chain
+    is still an error. A chain of one matter that already exists is an error
+    too: reuse is only how an existing head picks up a new prerequisite.
+
+    Returns the matters this call actually created, head first when it is new.
+    """
+
     parsed_matters = parse_create_expression(expression)
     ids = [matter["id"] for matter in parsed_matters]
     duplicate_ids = sorted({matter_id for matter_id in ids if ids.count(matter_id) > 1})
     if duplicate_ids:
         raise ValueError("duplicate matter ids in expression: " + ", ".join(duplicate_ids))
 
-    existing_ids = sorted(set(ids) & matters)
+    head, rest = parsed_matters[0], parsed_matters[1:]
+    existing_ids = sorted(matter["id"] for matter in rest if matter["id"] in matters)
     if existing_ids:
         raise ValueError("matter already exists: " + ", ".join(existing_ids))
+    if not rest and head["id"] in matters:
+        raise ValueError("matter already exists: " + head["id"])
 
-    for parsed_matter in parsed_matters:
-        matter_id = parsed_matter["id"]
-        matters.add(matter_id)
-        conditions[matter_id] = [
-            {"label": parsed_matter["condition"], "truth": False}
-        ]
+    created = []
+    if head["id"] not in matters:
+        _store_created_matter(head, matters, conditions)
+        created.append(head)
+    for parsed_matter in rest:
+        _store_created_matter(parsed_matter, matters, conditions)
+        created.append(parsed_matter)
 
     for prerequisite, dependent in zip(parsed_matters[1:], parsed_matters):
         dependencies.add((prerequisite["id"], dependent["id"]))
 
-    return parsed_matters
+    return created
+
+
+def _store_created_matter(parsed_matter, matters, conditions):
+    matter_id = parsed_matter["id"]
+    matters.add(matter_id)
+    conditions[matter_id] = [{"label": parsed_matter["condition"], "truth": False}]
 
 
 def parse_create_expression(expression):

@@ -7,9 +7,15 @@ description: >-
 
 # matters coach
 
-Read the `matters` skill before doing anything else. In this repository it is `skills/matters/SKILL.md`. It owns the graph model, every read and write, confirmation, and what may be persisted. This skill does not restate those rules. When a step here changes the graph, follow that skill. If the two files disagree, follow the matters skill.
+Read the `matters` skill before doing anything else. In this repository it is `skills/matters/SKILL.md`. It owns the graph model, every read and write, the one-yes batch, and what may be persisted. This skill does not restate those rules. The next section is only the words used to show a batch. When a step here changes the graph, follow the matters skill. If the two files disagree on a write, follow the matters skill.
 
 Help one person turn goals into a matters graph and choose a next step. The `matters` CLI is the only way to read or change the graph.
+
+## What they see before a write
+
+One yes covers the batch of non-destructive writes. The matters skill defines that batch. Show a short plain-language list, one line per change, using human titles, not ids or flags: "mark 'book the venue' as done", "add 'send invites', which waits on the venue". Exact commands only if they ask or have said they want to see commands. After the yes, run exactly the commands that match that list, and no others.
+
+A delete, or removing a matter's last condition, is its own yes. Say what will be lost. For a last condition, say the matter then counts as resolved and unblocks whatever depends on it.
 
 ## Setup (once per computer)
 
@@ -49,7 +55,7 @@ Ask one question at a time, and wait for the answer:
 2. "When it's done, what will be observably true? Something you could check, like a number, a date, or a thing that exists."
 3. "What has to happen before that?" Keep asking until there are 2 to 5 prerequisites, or they say that's enough.
 
-Run `matters list` and point out an existing matter that overlaps. Propose one `matters create 'goal (observable condition) > prerequisite > earlier prerequisite'` command. The chain reads left to right as "depends on". Add a `matters link` only when an existing matter really has to be resolved first or really waits on this goal. Confirm that proposal the way the matters skill requires.
+Run `matters list` and point out an existing matter that overlaps. Put the goal, the observable condition, and what it waits on in the plain-language list. The write is one `matters create` chain (left to right means "depends on"), plus a `matters link` only when an existing matter really has to be resolved first or really waits on this goal.
 
 After the write lands, show the picture, then run `matters unlock` and give the single best next step: the first actionable matter in that report. Say whether it needs them, or whether you could draft something for them.
 
@@ -61,7 +67,7 @@ Run `matters unlock`. Lead with the single best next step, then at most two more
 
 ## Progress
 
-They report something they did. Propose `matters mark` only for an observable fact they stated. Confirm and apply the writes the way the matters skill requires. After they land, run `matters frontier` on each matter you marked and say what is newly unlocked. If nothing is, say that.
+They report something they did. A line in the list may mark a matter done only for an observable fact they stated. After the writes land, run `matters frontier` on each matter you marked and say what is newly unlocked. If nothing is, say that.
 
 ## Notes
 

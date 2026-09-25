@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from . import rules
 from .llm_extraction import build_extraction_proposal
@@ -24,10 +25,16 @@ from .sharing import merge_public_state, public_state
 from .storage import load_state, resolve_state_path
 from .tots import TotsError, build_tots_proposal
 from .view import open_view, write_view
+from .view_png import write_view_png
 
 
 # One string, two parsers: the root parser and the per-subcommand parent must
 # say the same thing about the same flag (R7).
+# ``--png`` with no path means "beside the HTML file". A unique sentinel keeps
+# that distinct from a real path the caller typed.
+_PNG_BESIDE_HTML = object()
+
+
 STATE_HELP = (
     "Path to matters JSON state file. Write commands lock an empty sidecar "
     "file named .<state-file-name>.lock alongside it, which you may want to "
@@ -259,7 +266,20 @@ def main(argv=None):
     view_parser.add_argument(
         "--no-open",
         action="store_true",
-        help="Write the file without opening it in a browser.",
+        help="Write the HTML file without opening it in a browser.",
+    )
+    view_parser.add_argument(
+        "--png",
+        nargs="?",
+        const=_PNG_BESIDE_HTML,
+        default=None,
+        metavar="PATH",
+        help=(
+            "Also write a PNG of the same picture, for a chat client that "
+            "cannot open HTML. Omit PATH to write it next to the HTML file "
+            "with a .png suffix. Pass --no-open so nothing tries to launch "
+            "a browser."
+        ),
     )
 
     condition_ref_help = (
@@ -621,6 +641,17 @@ def main(argv=None):
                 f"{rules.format_cycle(payload['cycle'])}"
             )
         print(f"wrote {path}")
+        if args.png is not None:
+            png_path = (
+                Path(path).with_suffix(".png")
+                if args.png is _PNG_BESIDE_HTML
+                else Path(args.png).expanduser()
+            )
+            try:
+                written_png = write_view_png(payload, png_path)
+            except OSError as error:
+                parser.error(error_message(error))
+            print(f"wrote {written_png}")
         if not args.no_open:
             open_view(path)
         return 0

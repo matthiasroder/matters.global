@@ -50,7 +50,7 @@ Use this workflow when the user asks to unlock, advance, resolve, or work toward
 5. For each prioritized matter, propose concrete actions aimed at making false conditions true.
 6. Separate work the agent can start autonomously from work that requires human confirmation, external access, payment, sending, publishing, or a decision.
 7. Return a short proposal or progress report.
-8. Do not change persisted state unless the user explicitly asked you to update it, or unless you can verify that a condition has become true through completed work in the current task.
+8. Do not change persisted state until the user confirms the writes. When completed work in the current task makes a condition verifiably true, include that `matters mark` in the batch you show and still wait for the one yes. A delete, or removing a matter's last condition, is not part of that batch and needs its own approval. Follow Persistence Behavior.
 
 ## Extraction Workflow
 
@@ -62,8 +62,8 @@ Extraction has two engines. The LLM engine runs when an `extraction` model profi
 2. Extract candidate matters with stable ids, clear names, short descriptions, and observable resolution conditions with truth states grounded in the source. Resolved findings or delivered methods may have true conditions; open questions, gaps, risks, or goals should retain false conditions for what remains unresolved.
 3. Compare candidates against existing matters in the selected state file.
 4. Propose possible dependencies where names, topics, or conditions overlap, but do not silently add them.
-5. Show the proposed candidates, conditions, and dependency candidates to the user for confirmation.
-6. Persist only after explicit confirmation, unless the user has already asked for an update and every change is directly verifiable. Persist through the write commands in Implementation Guidance, never by editing the state file.
+5. Show the proposed candidates, conditions, and dependency candidates to the user, together with the exact write commands.
+6. Persist only after one yes for that batch of non-destructive writes. Do not skip the yes because the user asked for the update or because a change is directly verifiable. A delete, or removing a matter's last condition, is not part of the batch and needs its own approval. Persist through the write commands in Implementation Guidance, never by editing the state file. Follow Persistence Behavior.
 
 ## ToTs Exploration Workflow
 
@@ -133,16 +133,18 @@ When the user asks about or mentions a matter in a matter-management context:
    - If required information is missing, ask concise follow-up questions before creating anything.
 
 4. Before writing, show the exact change and the exact commands that will make it.
-   - Show the matter, named conditions, and dependencies that will be added, changed, or removed.
+   - Show every matter, named condition, and dependency that will be added, changed, or removed.
    - Show the `matters` commands you intend to run, verbatim, including `--state`.
-   - Ask the user to confirm or correct the proposed change, then wait for the answer.
-   - Do not persist unconfirmed changes, and do not run a write command that has not been confirmed. Confirmation is per change, not a standing permission for the session.
+   - When the person reports progress or asks for an update, show all of the proposed non-destructive writes together and take one yes for that whole batch. The same one-yes batch applies to any other set of non-destructive writes you propose together, including a new goal and the matters saved from an extraction.
+   - One yes covers only the commands in the batch you just showed. It is not a standing permission for later writes, and it never covers a command you did not show.
+   - Do not persist unconfirmed changes, and do not run a write command that has not been confirmed. There is no exception for a change you can already verify: show it in the batch and wait for the yes.
+   - A deletion is never part of the batch. `matters delete-matter`, and a `matters delete-condition` that removes a matter's last condition, each need their own separate approval. Say what will be removed. For a last condition, say that an empty matter counts as resolved and unblocks everything that depends on it. Wait for a yes that is only about that deletion before you pass `--yes`.
 
-5. Once the user confirms, run the confirmed write commands, one per change, in the order shown.
+5. Once the user confirms a batch, run every command in that batch, in the order shown. Each change is still its own `matters` command.
    - Create the matter, its first condition, and any prerequisite chain in one step with `matters create 'goal (condition) > prerequisite' --state <path>`.
    - Then use `matters add-condition`, `matters mark`, `matters edit-condition`, `matters delete-condition`, `matters link`, `matters unlink`, and `matters delete-matter` for the remaining changes, as mapped in Implementation Guidance.
    - Address a condition by the 1-based number `matters show` prints, or by its exact label; when two conditions on a matter share a label the command refuses and lists the candidates, so use the number instead.
-   - Destructive writes need `--yes`: `matters delete-matter`, and a `matters delete-condition` that removes a matter's last condition. Emptying a matter's conditions silently makes it resolved and unblocks whatever depended on it, so state that consequence and get explicit approval before passing `--yes`.
+   - Destructive writes need `--yes`: `matters delete-matter`, and a `matters delete-condition` that removes a matter's last condition. Pass `--yes` only after the separate approval in step 4. Emptying a matter's conditions makes it resolved and unblocks whatever depended on it.
    - `matters delete-matter` refuses while other matters depend on the target and names them. Either `matters unlink` those edges first or, with the user's separate approval, pass `--cascade` to delete the matter together with its incident dependency edges.
    - Each write prints one line describing what changed; relay it. A command that changes nothing, such as marking a condition that is already true or linking an edge that already exists, still exits 0 and leaves the file untouched.
    - A rejected command exits non-zero with a one-line reason on stderr and leaves the file byte-identical. Report the reason and fix the input; never work around it by editing the JSON.

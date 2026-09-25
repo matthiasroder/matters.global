@@ -62,7 +62,7 @@ Extraction has two engines. The LLM engine runs when an `extraction` model profi
 2. Extract candidate matters with stable ids, clear names, short descriptions, and observable resolution conditions with truth states grounded in the source. Resolved findings or delivered methods may have true conditions; open questions, gaps, risks, or goals should retain false conditions for what remains unresolved.
 3. Compare candidates against existing matters in the selected state file.
 4. Propose possible dependencies where names, topics, or conditions overlap, but do not silently add them.
-5. Show the proposed candidates, conditions, and dependency candidates to the user, together with the exact write commands.
+5. Show the proposed candidates, conditions, and dependency candidates to the user as the batch in Persistence Behavior.
 6. Persist only after one yes for that batch of non-destructive writes. Do not skip the yes because the user asked for the update or because a change is directly verifiable. A delete, or removing a matter's last condition, is not part of the batch and needs its own approval. Persist through the write commands in Implementation Guidance, never by editing the state file. Follow Persistence Behavior.
 
 ## ToTs Exploration Workflow
@@ -132,13 +132,14 @@ When the user asks about or mentions a matter in a matter-management context:
      - If no dependency is found, include `No dependencies` in the proposal before saving.
    - If required information is missing, ask concise follow-up questions before creating anything.
 
-4. Before writing, show the exact change and the exact commands that will make it.
-   - Show every matter, named condition, and dependency that will be added, changed, or removed.
-   - Show the `matters` commands you intend to run, verbatim, including `--state`.
+4. Before writing, show the batch and take one yes.
+   - Present it as a short plain-language list, one line per change, using each matter's human title, not ids or flags. For example: "mark 'book the venue' as done", "add 'send invites', which waits on the venue".
+   - Show the exact commands only if the person asks, has said they want to see commands, or is clearly technical or working in a terminal. A chat assistant defaults to the plain-language list.
+   - Run exactly the commands that match the list you showed. Do not add a write you did not show.
    - When the person reports progress or asks for an update, show all of the proposed non-destructive writes together and take one yes for that whole batch. The same one-yes batch applies to any other set of non-destructive writes you propose together, including a new goal and the matters saved from an extraction.
    - One yes covers only the commands in the batch you just showed. It is not a standing permission for later writes, and it never covers a command you did not show.
    - Do not persist unconfirmed changes, and do not run a write command that has not been confirmed. There is no exception for a change you can already verify: show it in the batch and wait for the yes.
-   - A deletion is never part of the batch. `matters delete-matter`, and a `matters delete-condition` that removes a matter's last condition, each need their own separate approval. Say what will be removed. For a last condition, say that an empty matter counts as resolved and unblocks everything that depends on it. Wait for a yes that is only about that deletion before you pass `--yes`.
+   - A deletion is never part of the batch. Deleting a matter, or removing a matter's last condition, each needs its own separate yes, in plain words, saying what will be lost. For a last condition, say that an empty matter counts as resolved and unblocks everything that depends on it. Wait for a yes that is only about that deletion before you pass `--yes`.
 
 5. Once the user confirms a batch, run every command in that batch, in the order shown. Each change is still its own `matters` command.
    - Create the matter, its first condition, and any prerequisite chain in one step with `matters create 'goal (condition) > prerequisite' --state <path>`.

@@ -55,7 +55,13 @@ Ask one question at a time, and wait for the answer:
 2. "When it's done, what will be observably true? Something you could check, like a number, a date, or a thing that exists."
 3. "What has to happen before that?" Keep asking until there are 2 to 5 prerequisites, or they say that's enough.
 
-Run `matters list` and point out an existing matter that overlaps. Put the goal, the observable condition, and what it waits on in the plain-language list. The write is one `matters create` chain (left to right means "depends on"), plus a `matters link` only when an existing matter really has to be resolved first or really waits on this goal.
+Run `matters list` and point out an existing matter that overlaps. Put the goal, the observable condition, and what it waits on in the plain-language list. Give a goal its separate prerequisites in one `matters create`, one chain per argument. Left to right inside a single argument means "depends on". An existing matter at the head of a chain is reused, so the goal is named on every chain and is not created twice:
+
+```sh
+matters create 'goal (condition) > first prerequisite' 'goal > second prerequisite' --state <path>
+```
+
+Use `matters link` only when an existing matter really has to be resolved first or really waits on this goal. Do not join separate prerequisites into one `>` chain.
 
 After the write lands, show the picture, then run `matters unlock` and give the single best next step: the first actionable matter in that report. Say whether it needs them, or whether you could draft something for them.
 

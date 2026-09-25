@@ -42,6 +42,19 @@ def test_extraction_accepts_pdf_text_source():
     assert candidates[0]["description"] == "Problem extracted from source."
 
 
+def test_extraction_recognizes_todo_marker_lines():
+    candidates = extract_candidate_matters(
+        "Todo: write issue one\nAgent: Todo: send the draft\n",
+        source_type="notes",
+    )
+
+    assert [candidate["id"] for candidate in candidates] == [
+        "write_issue_one",
+        "send_the_draft",
+    ]
+    assert candidates[0]["description"] == "Todo extracted from source."
+
+
 def test_extraction_accepts_speaker_prefixed_conversation_markers():
     candidates = extract_candidate_matters(
         "Matthias: I want a graph that shows what creativity research can unlock.\n"

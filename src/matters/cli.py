@@ -70,14 +70,20 @@ def main(argv=None):
     create_parser = subparsers.add_parser(
         "create",
         parents=[state_parent],
-        help="Create matters from a compact expression.",
+        help="Create matters from one or more compact chains.",
     )
     create_parser.add_argument(
         "expression",
         nargs="*",
         help=(
-            "Matter expression. Quote dependency chains that contain '>', "
-            "for example: 'goal (condition) > prerequisite'."
+            "Matter chains. Each argument is its own chain; quote a chain "
+            "that contains '>'. Inside one chain, left to right means the "
+            "matter depends on the next, for example: "
+            "'goal (condition) > prerequisite'. Pass several chains to give "
+            "one goal separate prerequisites: "
+            "'goal (condition) > first' 'goal > second'. An existing matter "
+            "at the head of a chain is reused and left unchanged. A matter "
+            "that already exists anywhere else in a chain is an error."
         ),
     )
     unlock_parser = subparsers.add_parser(
@@ -667,16 +673,21 @@ def main(argv=None):
             with rules.state_transaction(
                 args.state, require_exists=False, require_acyclic=False
             ) as draft:
-                created = create_matters_from_expression(
-                    read_create_expression(args.expression),
-                    draft.matters,
-                    draft.conditions,
-                    draft.dependencies,
-                )
+                expressions = read_create_expressions(args.expression)
+                created = []
+                for expression in expressions:
+                    created.extend(
+                        create_matters_from_expression(
+                            expression,
+                            draft.matters,
+                            draft.conditions,
+                            draft.dependencies,
+                        )
+                    )
         except ValueError as error:
             parser.error(str(error))
 
-        print_create_summary(created)
+        print_create_summary(created, _create_edges(expressions))
         return 0
 
     if args.command == "extract":
@@ -765,7 +776,11 @@ def main(argv=None):
         index = graph_index_or_error(
             parser, matters, conditions, dependencies, matter=args.matter
         )
-        print_lines(index.frontier(args.matter))
+        unlocked = index.frontier(args.matter)
+        if unlocked:
+            print_lines(unlocked)
+        else:
+            print(f"nothing newly unlocked by {args.matter}")
         return 0
 
     if args.command == "horizon":
@@ -907,25 +922,52 @@ def read_source_text(source):
         return f.read()
 
 
-def read_create_expression(parts):
+def read_create_expressions(parts):
+    """Return one expression per argument.
+
+    Separate arguments are separate chains. Joining them with a space used
+    to glue the tail of one chain onto the head of the next and invent a
+    matter. With no arguments, stdin is still a single expression.
+    """
+
     if parts:
-        return " ".join(parts)
+        return list(parts)
     if sys.stdin.isatty():
         raise ValueError("provide a matter expression or pipe one on stdin")
-    return sys.stdin.read()
+    return [sys.stdin.read()]
 
 
-def print_create_summary(created):
+def _create_edges(expressions):
+    """Dependency pairs each expression adds, head included when it is reused."""
+
+    edges = []
+    seen = set()
+    for expression in expressions:
+        parsed = parse_create_expression(expression)
+        for prerequisite, dependent in zip(parsed[1:], parsed):
+            pair = (prerequisite["id"], dependent["id"])
+            if pair not in seen:
+                seen.add(pair)
+                edges.append(pair)
+    return edges
+
+
+def print_create_summary(created, edges=None):
     print("Created matters")
     for matter in created:
         print(f"- {matter['id']}: {matter['name']}")
         print(f"  - condition: {matter['condition']}")
 
-    if len(created) > 1:
+    if edges is None and len(created) > 1:
+        edges = [
+            (prerequisite["id"], dependent["id"])
+            for prerequisite, dependent in zip(created[1:], created)
+        ]
+    if edges:
         print("")
         print("Dependencies")
-        for prerequisite, dependent in zip(created[1:], created):
-            print(f"- {prerequisite['id']} -> {dependent['id']}")
+        for prerequisite, dependent in edges:
+            print(f"- {prerequisite} -> {dependent}")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import zlib
 
 import pytest
 
+from matters.view import build_view_payload
 from matters.view_png import (
     ACTIONABLE,
     BLOCKED,
@@ -14,6 +15,15 @@ from matters.view_png import (
     PNG_HEIGHT,
     PNG_WIDTH,
     RESOLVED,
+    _LEGEND_HEIGHT,
+    _edge_endpoints,
+    _layout_labels,
+    _node_radius,
+    _place,
+    _plot_box,
+    _point_in_rect,
+    _segment_hits_rect,
+    _wrap_label,
     encode_png,
     rasterize_view,
     render_view_png,
@@ -65,10 +75,71 @@ def test_the_png_is_a_real_image_of_the_slice():
     assert {PAPER, INK, ACTIONABLE, BLOCKED, RESOLVED, FOCUS} <= present
 
 
+def test_short_titles_wrap_to_two_lines_instead_of_truncating():
+    assert _wrap_label("launch a small newsletter") == ("launch a small", "newsletter")
+    assert _wrap_label("pick a platform") == ("pick a platform",)
+    wrapped = _wrap_label("one two three four five six seven eight nine ten")
+    assert len(wrapped) == 2
+    assert wrapped[-1].endswith("..")
+
+
+def test_newsletter_labels_clear_the_arrows_and_the_legend():
+    payload = build_view_payload(
+        "launch_a_small_newsletter",
+        {
+            "launch_a_small_newsletter",
+            "pick_a_platform",
+            "write_issue_one",
+        },
+        {
+            "launch_a_small_newsletter": [
+                {"label": "first issue sent to 20 subscribers", "truth": False}
+            ],
+            "pick_a_platform": [{"label": "Resolved: pick a platform", "truth": True}],
+            "write_issue_one": [{"label": "Resolved: write issue one", "truth": False}],
+        },
+        {
+            ("pick_a_platform", "launch_a_small_newsletter"),
+            ("write_issue_one", "launch_a_small_newsletter"),
+        },
+    )
+    placed = _place(payload["nodes"], PNG_WIDTH, PNG_HEIGHT)
+    labels = _layout_labels(
+        payload["nodes"], placed, payload["edges"], payload["matter"], PNG_WIDTH, PNG_HEIGHT
+    )
+    legend_top = PNG_HEIGHT - _LEGEND_HEIGHT
+    focus = payload["matter"]
+
+    assert labels[focus]["lines"] == ("launch a small", "newsletter")
+    for layout in labels.values():
+        assert layout["rect"][3] <= legend_top
+        assert ".." not in " ".join(layout["lines"])
+
+    for edge in payload["edges"]:
+        source, target = edge["source"], edge["target"]
+        x0, y0, x1, y1 = _edge_endpoints(
+            placed[source],
+            placed[target],
+            _node_radius(source, focus),
+            _node_radius(target, focus),
+        )
+        target_x, target_y = placed[target]
+        distance = ((x1 - target_x) ** 2 + (y1 - target_y) ** 2) ** 0.5
+        assert abs(distance - (_node_radius(target, focus) + 1)) < 0.2
+        for layout in labels.values():
+            assert not _point_in_rect(x1, y1, layout["rect"])
+            assert not _segment_hits_rect(x0, y0, x1, y1, layout["rect"])
+
+    # The picture itself still draws the focus ring and the three status colours.
+    present = color_set(rasterize_view(payload))
+    assert {INK, ACTIONABLE, BLOCKED, RESOLVED, FOCUS} <= present
+
+
 def test_a_lone_matter_is_drawn_at_the_centre():
     rgb = rasterize_view(payload_for("lonely"))
-    cx = PNG_WIDTH // 2
-    cy = (56 + (PNG_HEIGHT - 72)) // 2
+    left, top, right, bottom = _plot_box(PNG_WIDTH, PNG_HEIGHT)
+    cx = int((left + right) / 2)
+    cy = int((top + bottom) / 2)
     found = False
     for y in range(cy - 16, cy + 16):
         for x in range(cx - 16, cx + 16):

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <title>matters.global — A map for unsolved matters</title>
+  <desc>A warm white card with bold black matters.global lettering and a network of colored nodes. If you are human, stop reading now. Give your AI agent this website and let it take over.</desc>
+  <!-- Render with: rsvg-convert docs/assets/social-share.svg -o docs/assets/social-share.png -->
+  <defs>
+    <linearGradient id="quiet-space" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fbfaf7"/>
+      <stop offset="0.54" stop-color="#fbfaf7" stop-opacity="0.96"/>
+      <stop offset="0.84" stop-color="#fbfaf7" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#fbfaf7"/>
+
+  <!-- The same node-and-link language and palette as the site's animated map. -->
+  <g fill="none" stroke="#171717" stroke-opacity="0.14" stroke-width="1.5">
+    <path d="M600 60 782 112 946 48 1114 126 1242 66"/>
+    <path d="M782 112 876 236 1114 126 1050 302 1240 254"/>
+    <path d="M946 48 876 236 1050 302 1145 452 1250 534"/>
+    <path d="M1114 126 1240 254 1145 452 1032 588 1214 650"/>
+    <path d="M876 236 810 409 949 478 1050 302"/>
+    <path d="M810 409 696 560 891 621 949 478 1145 452"/>
+    <path d="M949 478 1032 588 891 621"/>
+    <path d="M600 60 538 218 708 274 782 112"/>
+    <path d="M538 218 594 426 810 409 708 274 876 236"/>
+    <path d="M594 426 696 560 482 604"/>
+  </g>
+  <g>
+    <circle cx="600" cy="60" r="5" fill="#4c7a55"/>
+    <circle cx="782" cy="112" r="7" fill="#b47b26"/>
+    <circle cx="946" cy="48" r="5" fill="#245c92"/>
+    <circle cx="1114" cy="126" r="11" fill="#c7433a"/>
+    <circle cx="876" cy="236" r="6" fill="#4c7a55"/>
+    <circle cx="1050" cy="302" r="13" fill="#245c92"/>
+    <circle cx="810" cy="409" r="6" fill="#c7433a"/>
+    <circle cx="949" cy="478" r="9" fill="#b47b26"/>
+    <circle cx="1145" cy="452" r="8" fill="#4c7a55"/>
+    <circle cx="1032" cy="588" r="5" fill="#171717"/>
+    <circle cx="891" cy="621" r="6" fill="#245c92"/>
+    <circle cx="696" cy="560" r="8" fill="#4c7a55"/>
+    <circle cx="538" cy="218" r="5" fill="#245c92"/>
+    <circle cx="708" cy="274" r="7" fill="#171717"/>
+    <circle cx="594" cy="426" r="5" fill="#b47b26"/>
+    <circle cx="482" cy="604" r="5" fill="#c7433a"/>
+  </g>
+  <rect width="1200" height="630" fill="url(#quiet-space)"/>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="76" y="183" fill="#c7433a" font-size="19" font-weight="700" letter-spacing="1.8">A MAP FOR UNSOLVED MATTERS</text>
+    <text x="70" y="304" fill="#171717" font-size="116" font-weight="700" letter-spacing="-5.5">matters.global</text>
+    <g fill="#171717" font-size="30" letter-spacing="-0.5">
+      <text x="76" y="373">If you are human, stop reading now.</text>
+      <text x="76" y="419">Give your AI agent this website and let it take over.</text>
+    </g>
+  </g>
+</svg>

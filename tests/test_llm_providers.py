@@ -698,3 +698,64 @@ def test_programmatic_provider_registration_is_lazy():
     assert calls == []
     assert create_generator(custom_profile, environ={"X": "Y"}) is expected
     assert calls == [("test", {"X": "Y"})]
+
+
+@pytest.mark.parametrize("adapter,provider", [(OpenAIGenerator, "openai-api"), (AnthropicGenerator, "anthropic-api")])
+def test_api_generator_reuses_owned_client_and_closes_once(adapter, provider, monkeypatch):
+    created = []
+    closed = []
+    response = SimpleNamespace(status="completed", output_text='{"answer": true}', output=[], usage=None,
+                               stop_reason="end_turn", content=[SimpleNamespace(type="text", text='{"answer": true}')])
+    endpoint = FakeResponses(response)
+    client = SimpleNamespace(responses=endpoint, messages=endpoint, close=lambda: closed.append(True))
+    generator = adapter(profile(provider), environ={"TEST_PROVIDER_KEY": "test"})
+    monkeypatch.setattr(generator, "_new_client", lambda _operation: created.append(client) or client)
+    monkeypatch.setattr(generator, "check", lambda: SimpleNamespace(dependency_available=True, credential_available=True))
+    with generator:
+        for _ in range(5):
+            assert generator.generate(request()).data["answer"] is True
+    generator.close()
+    assert created == [client]
+    assert closed == [True]
+
+
+@pytest.mark.parametrize("adapter,provider", [(OpenAIGenerator, "openai-api"), (AnthropicGenerator, "anthropic-api")])
+def test_api_generator_never_closes_injected_client(adapter, provider):
+    closed = []
+    client = SimpleNamespace(close=lambda: closed.append(True))
+    with adapter(profile(provider), client=client) as generator:
+        generator.close()
+    assert closed == []
+
+
+def test_extraction_closes_owned_generator_on_failure(monkeypatch):
+    import matters.llm_extraction as extraction
+    from matters.llm.factory import GeneratorSelection
+
+    closed = []
+
+    def fail(_request):
+        raise GenerationError("fake", "extraction")
+
+    generator = SimpleNamespace(generate=fail, close=lambda: closed.append(True))
+    selection = GeneratorSelection(generator, "test", "fake", "fake", "marker")
+    monkeypatch.setattr(extraction, "resolve_generator", lambda *_args, **_kwargs: selection)
+    assert extraction.build_extraction_proposal("Goal: Test")["engine"] == "marker"
+    assert closed == [True]
+
+
+def test_tots_closes_owned_generator_on_failure(monkeypatch):
+    import matters.tots as tots
+    from matters.llm.factory import GeneratorSelection
+
+    closed = []
+
+    def fail(_request):
+        raise GenerationError("fake", "tots")
+
+    generator = SimpleNamespace(generate=fail, close=lambda: closed.append(True))
+    selection = GeneratorSelection(generator, "test", "fake", "fake", "error")
+    monkeypatch.setattr(tots, "resolve_generator", lambda *_args, **_kwargs: selection)
+    with pytest.raises(tots.TotsError):
+        tots.build_tots_proposal("a", {"a"}, {"a": [{"label": "open", "truth": False}]}, set())
+    assert closed == [True]

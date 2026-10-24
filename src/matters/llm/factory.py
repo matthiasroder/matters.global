@@ -28,6 +28,16 @@ class GeneratorSelection:
     provider: str
     model: str
     on_unavailable: str
+    owns_generator: bool = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        if self.owns_generator:
+            close = getattr(self.generator, "close", None)
+            if close is not None:
+                close()
 
 
 def register_provider(provider: str, builder: ProviderBuilder, *, replace=False):
@@ -80,6 +90,7 @@ def resolve_generator(
             generator.provider,
             generator.model,
             DEFAULT_FALLBACKS[workflow],
+            owns_generator=False,
         )
     config = load_config(config_path, environ=environ)
     resolved = resolve_workflow(

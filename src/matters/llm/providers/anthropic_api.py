@@ -28,6 +28,7 @@ class AnthropicGenerator:
         self.model = profile.model
         self.environ = dict(os.environ if environ is None else environ)
         self._client = client
+        self._owns_client = client is None
 
     def check(self):
         dependency = self._client is not None or importlib.util.find_spec("anthropic") is not None
@@ -50,7 +51,9 @@ class AnthropicGenerator:
             raise DependencyUnavailableError(self.provider, request.operation)
         if not readiness.credential_available:
             raise AuthenticationError(self.provider, request.operation)
-        client = self._client or self._new_client(request.operation)
+        if self._client is None:
+            self._client = self._new_client(request.operation)
+        client = self._client
         try:
             response = client.messages.create(
                 model=self.model,
@@ -88,6 +91,18 @@ class AnthropicGenerator:
                 self.provider, request.operation
             ) from None
         return StructuredResult(data, self.provider, self.model, usage)
+
+    def close(self):
+        """Release an owned connection pool; injected clients belong to callers."""
+        if self._owns_client and self._client is not None:
+            client, self._client = self._client, None
+            client.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        self.close()
 
     def _new_client(self, operation):
         try:

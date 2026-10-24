@@ -17,7 +17,8 @@ import urllib.parse
 import urllib.request
 
 from matters import build_extraction_proposal, save_state
-from matters.llm_extraction import DEFAULT_MODEL
+from matters.llm import resolve_generator
+from matters.llm_extraction import DEFAULT_MODEL, EXTRACTION_SCHEMA, SYSTEM_PROMPT
 
 AUTHOR_ID = "3000599"  # Yoed N. Kenett (Technion), h-index 43
 WORK_DIR = os.environ.get(
@@ -167,6 +168,10 @@ def summarize_extraction_cache(paper):
             "dependency_candidates": len(proposal.get("dependency_candidates", [])),
             "status_counts": status_counts,
             "condition_truth_counts": truth_counts,
+            "cache_inputs": proposal.get("cache_inputs"),
+            "input_sha256": proposal.get("input_sha256"),
+            "source_matches_current_paper": (proposal.get("cache_inputs") or {}).get("source_sha256")
+            == stable_hash(f"{paper['title']}\n\n{paper['abstract']}"),
         }
     )
     return summary
@@ -181,12 +186,13 @@ def condition_truth_counts(conditions):
     return counts
 
 
-def write_manifest(corpus, selected, matters, conditions, edges, provenance):
+def write_manifest(corpus, selected, matters, conditions, edges, provenance, *, replay_cache=False):
     with_abstract = [paper for paper in corpus if paper["abstract"]]
     manifest = {
         "schema_version": 1,
         "kind": "creativity_matters_graph_extraction_run",
         "author_id": AUTHOR_ID,
+        "cache_mode": "replay" if replay_cache else "validate_inputs",
         "extract_cap": EXTRACT_CAP,
         "models": {
             "extraction": os.environ.get("MATTERS_EXTRACT_MODEL") or DEFAULT_MODEL,
@@ -243,17 +249,44 @@ def has_path(edges, start, goal):
     return False
 
 
-def extract_paper(paper, client, existing_matters):
+def extraction_cache_inputs(paper, client, existing_matters):
+    """Describe all semantic inputs; credentials are never cache metadata."""
+    selection = resolve_generator("extraction", injected=client)
+    model = None
+    if selection is not None:
+        with selection:
+            model = {"provider": selection.provider, "profile": selection.profile,
+                     "model": selection.model}
+    return {
+        "schema_version": 1,
+        "source_type": "paper",
+        "source_sha256": stable_hash(f"{paper['title']}\n\n{paper['abstract']}"),
+        "paper": dict(paper),
+        "model": model,
+        "prompt_sha256": stable_hash(SYSTEM_PROMPT),
+        "schema_sha256": stable_hash(EXTRACTION_SCHEMA),
+        "existing_matters": sorted(existing_matters),
+    }
+
+
+def extract_paper(paper, client, existing_matters, *, replay_cache=False):
     """Return (proposal, was_cached). Caches each paper's LLM proposal so an
     interrupted run resumes instead of re-extracting, and a single failing call
     is retried then skipped rather than killing the whole run."""
     cache_path = os.path.join(EXTRACT_DIR, f"{paper['paperId']}.json")
+    inputs = None if replay_cache else extraction_cache_inputs(paper, client, existing_matters)
+    fingerprint = (
+        stable_hash({key: value for key, value in inputs.items() if key != "paper"})
+        if inputs is not None else None
+    )
     if os.path.exists(cache_path):
         with open(cache_path) as handle:
             proposal = json.load(handle)
-        if cache_is_current(proposal):
+        if cache_is_current(proposal) and (replay_cache or proposal.get("input_sha256") == fingerprint):
             return proposal, True
         log(f"      ignoring stale extraction cache: {paper['paperId']}")
+    if replay_cache:
+        raise ValueError(f"no valid extraction cache to replay for {paper['paperId']}")
 
     last_reason = None
     for attempt in range(4):
@@ -264,6 +297,7 @@ def extract_paper(paper, client, existing_matters):
             client=client,
         )
         if proposal.get("engine") == "llm" and cache_is_current(proposal):
+            proposal = {**proposal, "cache_inputs": inputs, "input_sha256": fingerprint}
             os.makedirs(EXTRACT_DIR, exist_ok=True)
             tmp = cache_path + ".tmp"
             with open(tmp, "w") as handle:
@@ -291,9 +325,9 @@ def cache_is_current(proposal):
             return False
         condition_truths = []
         for condition in candidate.get("conditions", []):
-            if not isinstance(condition, dict) or "truth" not in condition:
+            if not isinstance(condition, dict) or not isinstance(condition.get("truth"), bool):
                 return False
-            condition_truths.append(bool(condition["truth"]))
+            condition_truths.append(condition["truth"])
         if status == "resolved" and not all(condition_truths):
             return False
         if status == "open" and condition_truths and all(condition_truths):
@@ -301,7 +335,7 @@ def cache_is_current(proposal):
     return True
 
 
-def build_graph(selected, client):
+def build_graph(selected, client, *, replay_cache=False):
     matters = []
     conditions = {}
     provenance = {}
@@ -309,7 +343,10 @@ def build_graph(selected, client):
     cached = 0
 
     for index, paper in enumerate(selected, 1):
-        proposal, was_cached = extract_paper(paper, client, matters)
+        if replay_cache:
+            proposal, was_cached = extract_paper(paper, client, matters, replay_cache=True)
+        else:
+            proposal, was_cached = extract_paper(paper, client, matters)
         cached += int(was_cached)
         log(
             f"  [{index}/{len(selected)}] "
@@ -317,6 +354,8 @@ def build_graph(selected, client):
         )
         if proposal is None:
             continue
+        recorded_paper = (proposal.get("cache_inputs") or {}).get("paper")
+        source_paper = recorded_paper or ({} if replay_cache else paper)
         for candidate in proposal["candidates"]:
             cid = candidate["id"]
             if cid in conditions:
@@ -329,10 +368,13 @@ def build_graph(selected, client):
                 "kind": candidate.get("kind", ""),
                 "status": candidate.get("status", ""),
                 "source_type": candidate.get("source_type", ""),
-                "paper": paper["title"],
+                "paper": source_paper.get("title"),
                 "paperId": paper["paperId"],
-                "year": paper["year"],
-                "doi": paper["doi"],
+                "year": source_paper.get("year"),
+                "doi": source_paper.get("doi"),
+                "extraction_input_sha256": proposal.get("input_sha256"),
+                "cache_replay": replay_cache,
+                "source_verified": recorded_paper is not None or not replay_cache,
             }
         pending_deps.extend(proposal.get("dependency_candidates", []))
         if not was_cached:
@@ -361,22 +403,27 @@ def main():
         f"Corpus: {len(corpus)} papers total, {len(with_abstract)} with abstracts."
     )
 
-    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+    replay_cache = os.environ.get("CREATIVITY_MATTERS_REPLAY_CACHE") == "1"
+    if not replay_cache and not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         log("\nNO ANTHROPIC KEY in environment — corpus is ready, extraction skipped.")
         log("Set ANTHROPIC_API_KEY and re-run this script to build the graph.")
         return 0
 
-    import anthropic
-
-    client = anthropic.Anthropic()
     selected = select_for_extraction(corpus)
     log(f"\nExtracting matters from top {len(selected)} papers by citation count...")
-    matters, conditions, edges, provenance = build_graph(selected, client)
+    if replay_cache:
+        matters, conditions, edges, provenance = build_graph(selected, None, replay_cache=True)
+    else:
+        import anthropic
+
+        with anthropic.Anthropic() as client:
+            matters, conditions, edges, provenance = build_graph(selected, client)
 
     save_state(matters, conditions, edges, path=GRAPH_PATH)
     with open(PROVENANCE_PATH, "w") as handle:
         json.dump(provenance, handle, indent=2)
-    manifest = write_manifest(corpus, selected, matters, conditions, edges, provenance)
+    manifest = write_manifest(corpus, selected, matters, conditions, edges, provenance,
+                              replay_cache=replay_cache)
 
     log("\n=== DONE ===")
     log(f"Graph: {GRAPH_PATH}")

@@ -27,6 +27,9 @@ const GRAPH_VIEW = {
 
 const state = {
   graph: null,
+  graphEpoch: 0,
+  graphRequestId: 0,
+  acceptedGraphRequestId: 0,
   cy: null,
   view: "focus",
   scope: "attention",
@@ -46,7 +49,11 @@ const state = {
   terminalSessionId: null,
   terminalSeq: 0,
   terminalPollTimer: null,
-  terminalPolling: false
+  terminalPolling: false,
+  terminalPollDelay: null,
+  terminalIdlePolls: 0,
+  terminalInputGeneration: 0,
+  terminalInputTail: Promise.resolve()
 };
 
 const graphElement = document.querySelector("#graph");
@@ -89,6 +96,13 @@ function readApiToken() {
 }
 
 async function api(path, options = {}) {
+  const isGraphRequest = !path.startsWith("/api/terminal/");
+  const navigatesGraph = path === "/api/state";
+  if (navigatesGraph) state.graphEpoch += 1;
+  const epoch = state.graphEpoch;
+  const requestId = isGraphRequest ? ++state.graphRequestId : 0;
+  const displayedGraph = state.graph?.graph_id;
+  const displayedRevision = state.graph?.revision;
   // The one place every API call passes through: the header goes on here,
   // not at the call sites.
   const headers = {
@@ -97,16 +111,35 @@ async function api(path, options = {}) {
   };
   if (apiToken) headers.Authorization = `Bearer ${apiToken}`;
   if (state.graph?.graph_id) headers["X-Matters-Graph"] = state.graph.graph_id;
-  const response = await fetch(path, {
-    ...options,
-    headers
-  });
+  if (displayedRevision) headers["X-Matters-Revision"] = displayedRevision;
+  const superseded = () => isGraphRequest && (
+    epoch !== state.graphEpoch
+    || requestId < state.acceptedGraphRequestId
+    || (!navigatesGraph && displayedGraph !== state.graph?.graph_id)
+  );
+  let response;
+  try {
+    response = await fetch(path, { ...options, headers });
+  } catch (error) {
+    if (superseded()) return null;
+    throw error;
+  }
   const payload = await responsePayload(response);
+  if (superseded()) return null;
   if (!response.ok) {
     const error = new Error(apiErrorMessage(response, payload));
     error.status = response.status;
     error.payload = payload;
     throw error;
+  }
+  if (isGraphRequest) {
+    const graph = payload?.state || (payload?.nodes ? payload : null);
+    if (graph) {
+      state.acceptedGraphRequestId = requestId;
+    } else if (displayedRevision !== state.graph?.revision) {
+      // A report computed for an older snapshot must not replace newer context.
+      return null;
+    }
   }
   return payload;
 }
@@ -138,6 +171,7 @@ async function loadGraph() {
 }
 
 function acceptGraph(payload, { graphSwitch = false } = {}) {
+  if (!payload) return;
   state.graph = payload;
   rebuildGraphIndexes();
 
@@ -718,7 +752,7 @@ function renderInspector() {
     toggle.className = condition.truth ? "secondary" : "";
     toggle.addEventListener("click", () => {
       toggleCondition(node.id, index).catch((error) => {
-        setOperationOutput("error", error.message);
+        showGraphError(error);
       });
     });
     const label = document.createElement("textarea");
@@ -729,8 +763,8 @@ function renderInspector() {
     save.type = "button";
     save.textContent = "Save";
     save.addEventListener("click", () => {
-      updateCondition(node.id, index, label.value, condition.truth).catch((error) => {
-        setOperationOutput("error", error.message);
+      updateCondition(node.id, index, label.value).catch((error) => {
+        showGraphError(error);
       });
     });
     item.append(toggle, label, save);
@@ -746,7 +780,7 @@ function renderInspector() {
   addForm.addEventListener("submit", (event) => {
     event.preventDefault();
     addCondition(node.id, addForm.elements.label.value).catch((error) => {
-      setOperationOutput("error", error.message);
+      showGraphError(error);
     });
     addForm.reset();
   });
@@ -1072,11 +1106,11 @@ async function addCondition(matterId, label) {
   acceptGraph(payload);
 }
 
-async function updateCondition(matterId, index, label, conditionTruth) {
+async function updateCondition(matterId, index, label) {
   if (!label.trim()) return;
   const payload = await api(`/api/matters/${encodeURIComponent(matterId)}/conditions`, {
     method: "PATCH",
-    body: JSON.stringify({ index, label: label.trim(), truth: conditionTruth })
+    body: JSON.stringify({ index, label: label.trim() })
   });
   acceptGraph(payload);
 }
@@ -1087,21 +1121,24 @@ async function runCommand(text) {
       method: "POST",
       body: JSON.stringify({ text })
     });
+    if (!result) return;
     setOperationOutput(result.type || "matters", formatCommandResult(result));
     if (result.state) {
       acceptGraph(result.state);
     }
   } catch (error) {
-    setOperationOutput("error", error.message);
+    showGraphError(error);
   }
 }
 
 async function showDerivedScope(kind, matterId) {
+  const view = state.view;
   try {
     const result = await api("/api/command", {
       method: "POST",
       body: JSON.stringify({ text: `${kind} ${matterId}` })
     });
+    if (!result || state.selectedId !== matterId || state.view !== view) return;
     if (state.view === "overview") {
       state.selectedId = matterId;
       state.derivedHighlight = validIds(result.items);
@@ -1122,7 +1159,7 @@ async function showDerivedScope(kind, matterId) {
     updateOperationButtons();
     setOperationOutput(result.type || kind, formatCommandResult(result));
   } catch (error) {
-    setOperationOutput("error", error.message);
+    showGraphError(error);
   }
 }
 
@@ -1151,6 +1188,7 @@ async function switchGraphState(statePathValue) {
       method: "POST",
       body: JSON.stringify({ state_path: nextStatePath })
     });
+    if (!payload) return;
     state.scope = "attention";
     state.scopeIds = null;
     searchInput.value = "";
@@ -1194,6 +1232,23 @@ function setOperationOutput(role, text) {
   body.textContent = text;
   operationOutput.append(heading, body);
   return body;
+}
+
+function showGraphError(error) {
+  setOperationOutput("error", String(error.message));
+  if (error.status !== 409) return;
+  const refresh = document.createElement("button");
+  refresh.type = "button";
+  refresh.textContent = "Refresh graph";
+  refresh.addEventListener("click", async () => {
+    try {
+      await loadGraph();
+      setOperationOutput("graph", "Graph refreshed. Review the current conditions before editing.");
+    } catch (refreshError) {
+      showGraphError(refreshError);
+    }
+  });
+  operationOutput.append(refresh);
 }
 
 function announce(message) {
@@ -1247,6 +1302,7 @@ async function openTerminal() {
 function hideTerminal() {
   terminalDrawer.hidden = true;
   document.querySelector("#toggle-terminal").textContent = "Terminal";
+  if (state.terminalPollTimer) setTerminalPollInterval(2000);
   refreshLayout();
 }
 
@@ -1272,6 +1328,9 @@ async function createTerminalSession() {
   });
   state.terminalSessionId = session.id;
   state.terminalSeq = 0;
+  state.terminalInputTail = Promise.resolve();
+  state.terminalInputGeneration += 1;
+  state.terminalIdlePolls = 0;
   terminalStatus.textContent = session.workspace;
 }
 
@@ -1290,9 +1349,15 @@ async function restartTerminal() {
 }
 
 function startTerminalPolling() {
-  if (state.terminalPollTimer) return;
-  state.terminalPollTimer = window.setInterval(pollTerminal, 120);
+  setTerminalPollInterval(terminalDrawer.hidden || document.hidden ? 2000 : 120);
   pollTerminal();
+}
+
+function setTerminalPollInterval(delay) {
+  if (state.terminalPollTimer && state.terminalPollDelay === delay) return;
+  if (state.terminalPollTimer) window.clearInterval(state.terminalPollTimer);
+  state.terminalPollDelay = delay;
+  state.terminalPollTimer = window.setInterval(pollTerminal, delay);
 }
 
 async function pollTerminal() {
@@ -1309,9 +1374,17 @@ async function pollTerminal() {
       state.terminalSeq = chunk.seq;
     });
     if (payload.closed) {
-      terminalStatus.textContent = "terminal exited";
+      terminalStatus.textContent = payload.undelivered_bytes
+        ? `terminal exited with ${payload.undelivered_bytes} input bytes undelivered`
+        : "terminal exited";
       window.clearInterval(state.terminalPollTimer);
       state.terminalPollTimer = null;
+    } else {
+      state.terminalIdlePolls = payload.chunks.length ? 0 : state.terminalIdlePolls + 1;
+      setTerminalPollInterval(
+        terminalDrawer.hidden || document.hidden ? 2000
+          : state.terminalIdlePolls > 4 ? 1000 : 120
+      );
     }
   } catch (error) {
     if (sessionId !== state.terminalSessionId) return;
@@ -1323,16 +1396,28 @@ async function pollTerminal() {
   }
 }
 
-async function sendTerminalInput(data) {
-  if (!state.terminalSessionId) return;
-  try {
-    await api(`/api/terminal/sessions/${encodeURIComponent(state.terminalSessionId)}/input`, {
-      method: "POST",
-      body: JSON.stringify({ data })
+function sendTerminalInput(data) {
+  const sessionId = state.terminalSessionId;
+  const generation = state.terminalInputGeneration;
+  if (!sessionId) return Promise.resolve();
+  // Capture the session at enqueue time. A restart must never redirect
+  // keystrokes or a pending paste into the replacement shell.
+  state.terminalInputTail = state.terminalInputTail.then(async () => {
+    if (sessionId !== state.terminalSessionId || generation !== state.terminalInputGeneration) return;
+    state.terminalIdlePolls = 0;
+    if (state.terminalPollTimer && !terminalDrawer.hidden && !document.hidden) {
+      setTerminalPollInterval(120);
+    }
+    await api(`/api/terminal/sessions/${encodeURIComponent(sessionId)}/input`, {
+      method: "POST", body: JSON.stringify({ data })
     });
-  } catch (error) {
-    terminalStatus.textContent = error.message;
-  }
+  }).catch((error) => {
+    if (sessionId === state.terminalSessionId && generation === state.terminalInputGeneration) {
+      state.terminalInputGeneration += 1;
+      terminalStatus.textContent = `${error.message}. Queued input was cancelled; review the terminal before continuing.`;
+    }
+  });
+  return state.terminalInputTail;
 }
 
 async function resizeTerminal(rows, cols) {
@@ -1475,6 +1560,7 @@ document.querySelector("#create-matter-form").addEventListener("submit", async (
       method: "POST",
       body: JSON.stringify(payload)
     });
+    if (!graphPayload) return;
     state.selectedId = graphPayload.nodes.find((node) => node.id === createdId)?.id
       || graphPayload.nodes.at(-1)?.id;
     state.derivedHighlight.clear();
@@ -1486,7 +1572,7 @@ document.querySelector("#create-matter-form").addEventListener("submit", async (
     acceptGraph(graphPayload);
     setOperationOutput("matters", "Matter created.");
   } catch (error) {
-    setOperationOutput("error", error.message);
+    showGraphError(error);
   }
 });
 
@@ -1501,10 +1587,11 @@ dependencyForm.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify(payload)
     });
+    if (!graphPayload) return;
     acceptGraph(graphPayload);
     setOperationOutput("matters", `Added ${payload.source} -> ${payload.target}`);
   } catch (error) {
-    setOperationOutput("error", error.message);
+    showGraphError(error);
   }
 });
 
@@ -1518,10 +1605,11 @@ document.querySelector("#remove-dependency").addEventListener("click", async () 
       method: "DELETE",
       body: JSON.stringify(payload)
     });
+    if (!graphPayload) return;
     acceptGraph(graphPayload);
     setOperationOutput("matters", `Removed ${payload.source} -> ${payload.target}`);
   } catch (error) {
-    setOperationOutput("error", error.message);
+    showGraphError(error);
   }
 });
 
@@ -1534,7 +1622,7 @@ document.querySelector("#show-focus").addEventListener("click", () => {
 initGraph();
 initOverview();
 loadGraph().catch((error) => {
-  setOperationOutput("error", error.message);
+  showGraphError(error);
 });
 if (new URLSearchParams(window.location.search).has("terminal")) {
   openTerminal().catch((error) => {

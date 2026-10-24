@@ -183,10 +183,11 @@ def test_extract_paper_retries_invalid_llm_proposal(tmp_path, monkeypatch):
         existing_matters=[],
     )
 
-    assert proposal == valid
+    assert {key: proposal[key] for key in valid} == valid
+    assert proposal["input_sha256"]
     assert was_cached is False
     assert len(calls) == 2
-    assert json.loads((tmp_path / "paper-1.json").read_text()) == valid
+    assert json.loads((tmp_path / "paper-1.json").read_text()) == proposal
 
 
 def test_extraction_manifest_records_inputs_caches_and_output_hashes(tmp_path, monkeypatch):
@@ -323,3 +324,81 @@ def test_enrichment_cache_reuse_requires_matching_context(tmp_path):
 
     cache_path.write_text(json.dumps(proposals))
     assert enrich.load_cached_proposals(str(cache_path), context_sha) is None
+
+
+def valid_cached_proposal():
+    return {
+        "engine": "llm", "model": "model-one",
+        "candidates": [{"id": "finding", "name": "Finding", "kind": "finding", "status": "resolved",
+                        "conditions": [{"label": "Established", "truth": True}]}],
+        "dependency_candidates": [],
+    }
+
+
+def test_extraction_cache_requires_matching_semantic_inputs(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    pipeline = load_pipeline()
+    paper = {"paperId": "p", "title": "Original", "abstract": "Original claim", "citationCount": 1}
+    client = SimpleNamespace(provider="fake", model="model-one", check=lambda: None, generate=lambda _: None)
+    calls = []
+    monkeypatch.setattr(pipeline, "EXTRACT_DIR", str(tmp_path))
+    monkeypatch.setattr(pipeline, "build_extraction_proposal", lambda *a, **k: calls.append(k) or valid_cached_proposal())
+    first, cached = pipeline.extract_paper(paper, client, ["existing"])
+    assert not cached
+    assert pipeline.extract_paper(paper, client, ["existing"])[1]
+    assert len(calls) == 1
+    # Citation counts do not affect extraction and should not cost another call.
+    paper["citationCount"] = 9
+    assert pipeline.extract_paper(paper, client, ["existing"])[1]
+    paper["abstract"] = "Changed claim"
+    second, cached = pipeline.extract_paper(paper, client, ["existing"])
+    assert not cached and first["input_sha256"] != second["input_sha256"]
+    assert not pipeline.extract_paper(paper, client, ["different"])[1]
+    client.model = "model-two"
+    assert not pipeline.extract_paper(paper, client, ["different"])[1]
+    monkeypatch.setattr(pipeline, "SYSTEM_PROMPT", "New extraction instructions")
+    assert not pipeline.extract_paper(paper, client, ["different"])[1]
+    monkeypatch.setattr(pipeline, "EXTRACTION_SCHEMA", {"type": "object", "new_schema": True})
+    assert not pipeline.extract_paper(paper, client, ["different"])[1]
+    assert len(calls) == 6
+
+
+def test_extraction_replay_preserves_original_source_and_never_generates(tmp_path, monkeypatch):
+    pipeline = load_pipeline()
+    original = {"paperId": "p", "title": "Original title", "abstract": "Original claim", "year": 2025, "doi": "original-doi"}
+    monkeypatch.setattr(pipeline, "EXTRACT_DIR", str(tmp_path))
+    monkeypatch.setattr(pipeline, "build_extraction_proposal", lambda *a, **k: valid_cached_proposal())
+    proposal, _ = pipeline.extract_paper(original, None, [])
+    before = (tmp_path / "p.json").read_bytes()
+
+    def unexpected(*_a, **_k):
+        raise AssertionError("Replay must not select or invoke a model")
+
+    monkeypatch.setattr(pipeline, "build_extraction_proposal", unexpected)
+    monkeypatch.setattr(pipeline, "resolve_generator", unexpected)
+    changed = {**original, "title": "New title", "abstract": "New claim", "year": 2026, "doi": "new-doi"}
+    replayed, cached = pipeline.extract_paper(changed, None, [], replay_cache=True)
+    assert cached and replayed == proposal
+    _, _, _, provenance = pipeline.build_graph([changed], None, replay_cache=True)
+    assert provenance["finding"]["paper"] == "Original title"
+    assert provenance["finding"]["doi"] == "original-doi"
+    assert provenance["finding"]["cache_replay"] is True
+    assert (tmp_path / "p.json").read_bytes() == before
+    import pytest
+    with pytest.raises(ValueError, match="no valid extraction cache to replay"):
+        pipeline.extract_paper({**changed, "paperId": "missing"}, None, [], replay_cache=True)
+
+
+def test_legacy_cache_reextracts_normally_and_replay_marks_unknown_source(tmp_path, monkeypatch):
+    pipeline = load_pipeline()
+    paper = {"paperId": "p", "title": "Current", "abstract": "Current text", "year": 2026, "doi": None}
+    monkeypatch.setattr(pipeline, "EXTRACT_DIR", str(tmp_path))
+    (tmp_path / "p.json").write_text(json.dumps(valid_cached_proposal()))
+    _, _, _, provenance = pipeline.build_graph([paper], None, replay_cache=True)
+    assert provenance["finding"]["source_verified"] is False
+    assert provenance["finding"]["paper"] is None
+    calls = []
+    monkeypatch.setattr(pipeline, "build_extraction_proposal", lambda *a, **k: calls.append(True) or valid_cached_proposal())
+    _, cached = pipeline.extract_paper(paper, None, [])
+    assert cached is False and calls == [True]

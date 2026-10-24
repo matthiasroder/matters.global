@@ -89,7 +89,7 @@ unset VERIFY_LAUNCH_URL
 
 Require the retained server session to remain alive. The per-run bearer token ties this response to that launch. Confirm the browser displays the same scratch path and renders a graph. A 401 means the token is missing or stale. Open the full launch URL again. A bare reload loses the token because the app removes it from the address bar and keeps it only in memory.
 
-This doctor expects the seeded graph. During the graph-switching recipe, check the intentionally selected `second.json` path instead, then return to `matters.json` before running doctor again. For HTTP diagnostics of a mutation, `X-Matters-Graph` must match `graph_id`. Browser actions set that header themselves.
+This doctor expects the seeded graph. During the graph-switching recipe, check the intentionally selected `second.json` path instead, then return to `matters.json` before running doctor again. For HTTP diagnostics of a mutation, `X-Matters-Graph` must match `graph_id` and `X-Matters-Revision` must match the displayed payload's `revision`. Browser actions set both headers themselves. A stale revision must return 409 without changing state; refresh before retrying.
 
 ## Drive
 

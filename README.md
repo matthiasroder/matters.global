@@ -215,6 +215,12 @@ and the shell become reachable from every host that can reach that address, and
 and remember the launch URL is then a credential for code execution on this
 machine.
 
+Terminal input is queued in order with a 1 MiB limit; an input request either
+accepts the complete chunk or reports that the buffer is full. Exited sessions
+close their processes and PTYs immediately, retaining final output for one
+minute. A session without a browser heartbeat for one hour is closed. Hiding
+the terminal keeps a slower heartbeat, so it does not terminate running work.
+
 Wildcard binds also require the remote-access flag:
 
 ```sh
@@ -229,8 +235,12 @@ Graph edits carry the identity of the graph displayed in the browser. If another
 tab switches the active graph, stale edits are rejected; use **Switch graph** to
 select the intended file again. API clients must send the `graph_id` returned by
 `GET /api/state` as the `X-Matters-Graph` header on matter, condition, dependency,
-and command requests. A missing or mismatched identity returns HTTP 409 without
-applying the edit.
+and command requests. They must also send the returned `revision` as
+`X-Matters-Revision`. Writes compare that revision inside the file transaction,
+so a CLI edit or another tab cannot silently change which condition a positional
+edit addresses. Missing or stale preconditions return HTTP 409 without applying
+the edit. The browser offers **Refresh graph** so the user can review and retry.
+Condition truth values in API writes must be JSON booleans.
 
 ## Python reconciliation API
 
@@ -414,8 +424,8 @@ matters tots MATTER_ID \
 ```
 
 When both candidates remain viable, this smoke configuration currently makes
-six structured model calls: one generation, two reflections, one proximity
-clustering, and the same pairwise judgment in both presentation orders. The
+four structured model calls: one generation, one batched reflection, one proximity
+clustering, and one batch of pairwise judgments in both presentation orders. The
 default search can make substantially more calls because it adds candidates,
 expansion rounds, and ordered comparisons. `config check` is non-generating;
 `tots` is a live provider operation and may consume subscription or API quota.
@@ -467,6 +477,12 @@ layer (`src/matters/identity.py`), used by ingestion pipelines rather than the
 
 Reusable APIs: `get_embedder`, `EmbeddingStore`, `match_candidate`,
 `ingest_candidates`, and `reconcile_candidates`.
+
+Embedding sidecars record the embedding model identity and vector dimensions.
+Matching rejects incompatible models and populated legacy sidecars without this
+metadata. Rebuild explicitly from stored texts with `store.rebuild(embedder)`,
+then `store.save()`, before matching again. Custom embedders can expose a
+JSON-serializable `cache_identity` containing their model and revision.
 
 ## Public Sharing
 

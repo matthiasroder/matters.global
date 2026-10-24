@@ -73,7 +73,7 @@ def rasterize_view(payload, *, width=PNG_WIDTH, height=PNG_HEIGHT):
     focus_id = payload.get("matter")
     edges = list(payload.get("edges") or [])
     labels = _layout_labels(nodes, placed, edges, focus_id, width, height)
-    label_rects = [layout["rect"] for layout in labels.values()]
+    label_rects = _LabelOcclusion(layout["rect"] for layout in labels.values())
 
     for edge in edges:
         source = placed.get(edge["source"])
@@ -398,20 +398,72 @@ def _rects_overlap(one, other, pad=0):
 
 
 def _segment_hits_rect(x0, y0, x1, y1, rect, pad=0):
+    """Intersect the closed segment with the padded rectangle, without sampling."""
+
     left, top, right, bottom = rect[0] - pad, rect[1] - pad, rect[2] + pad, rect[3] + pad
-    length = math.hypot(x1 - x0, y1 - y0)
-    steps = max(1, int(length))
-    for step in range(steps + 1):
-        t = step / steps
-        x = x0 + (x1 - x0) * t
-        y = y0 + (y1 - y0) * t
-        if left <= x <= right and top <= y <= bottom:
-            return True
-    return False
+    start, end = 0.0, 1.0
+    for origin, delta, low, high in (
+        (x0, x1 - x0, left, right),
+        (y0, y1 - y0, top, bottom),
+    ):
+        if delta == 0:
+            if origin < low or origin > high:
+                return False
+            continue
+        enter, leave = (low - origin) / delta, (high - origin) / delta
+        if enter > leave:
+            enter, leave = leave, enter
+        start, end = max(start, enter), min(end, leave)
+        if start > end:
+            return False
+    return True
 
 
 def _point_in_rect(x, y, rect):
     return rect[0] <= x < rect[2] and rect[1] <= y < rect[3]
+
+
+class _LabelOcclusion:
+    """Index label rectangles once for exact, subpixel drawing queries.
+
+    A fully covered cell needs no rectangle checks. Boundary cells retain the
+    original rectangles, preserving their half-open bounds for stroke samples
+    and arrow pixel centres alike.
+    """
+
+    _CELL_SIZE = 32
+
+    def __init__(self, rectangles):
+        self.cells = {}
+        size = self._CELL_SIZE
+        for rect in rectangles:
+            left, top, right, bottom = rect
+            if right <= left or bottom <= top:
+                continue
+            for cy in range(math.floor(top / size), math.ceil(bottom / size)):
+                for cx in range(math.floor(left / size), math.ceil(right / size)):
+                    key = (cx, cy)
+                    if self.cells.get(key) is True:
+                        continue
+                    if (
+                        left <= cx * size and right >= (cx + 1) * size
+                        and top <= cy * size and bottom >= (cy + 1) * size
+                    ):
+                        self.cells[key] = True
+                    else:
+                        self.cells.setdefault(key, []).append(rect)
+
+    def contains(self, x, y):
+        cell = self.cells.get(
+            (math.floor(x / self._CELL_SIZE), math.floor(y / self._CELL_SIZE)), ()
+        )
+        return cell is True or any(_point_in_rect(x, y, rect) for rect in cell)
+
+
+def _occlusion_check(avoid):
+    if isinstance(avoid, _LabelOcclusion):
+        return avoid.contains
+    return lambda x, y: any(_point_in_rect(x, y, rect) for rect in avoid)
 
 
 def _edge_endpoints(source, target, source_radius, target_radius):
@@ -500,13 +552,14 @@ def _fill_circle(pixels, width, height, cx, cy, radius, color):
 
 
 def _stroke(pixels, width, height, x0, y0, x1, y1, color, radius, avoid=()):
+    is_avoided = _occlusion_check(avoid)
     length = math.hypot(x1 - x0, y1 - y0)
     steps = max(1, int(length))
     for step in range(steps + 1):
         t = step / steps
         x = x0 + (x1 - x0) * t
         y = y0 + (y1 - y0) * t
-        if any(_point_in_rect(x, y, rect) for rect in avoid):
+        if is_avoided(x, y):
             continue
         _fill_circle(pixels, width, height, x, y, radius, color)
 
@@ -519,6 +572,7 @@ def _arrow(pixels, width, height, x0, y0, x1, y1, color, avoid=()):
 
 
 def _fill_triangle(pixels, width, height, a, b, c, color, avoid=()):
+    is_avoided = _occlusion_check(avoid)
     xs = [a[0], b[0], c[0]]
     ys = [a[1], b[1], c[1]]
     min_x = max(0, int(min(xs)))
@@ -535,7 +589,7 @@ def _fill_triangle(pixels, width, height, a, b, c, color, avoid=()):
             w1 = _cross(c, a, point) / area
             w2 = _cross(a, b, point) / area
             if w0 >= 0 and w1 >= 0 and w2 >= 0:
-                if any(_point_in_rect(point[0], point[1], rect) for rect in avoid):
+                if is_avoided(point[0], point[1]):
                     continue
                 start = (py * width + px) * 3
                 pixels[start : start + 3] = color

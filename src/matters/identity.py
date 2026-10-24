@@ -14,6 +14,8 @@ when later evidence resolves an open matter) is slice 2.
 """
 
 import collections
+from contextlib import nullcontext
+import json
 import hashlib
 import math
 import os
@@ -49,6 +51,10 @@ class FakeEmbedder:
     def embed(self, texts):
         return [self._one(text) for text in texts]
 
+    @property
+    def cache_identity(self):
+        return {"model": "matters-fake-bag-of-words", "revision": "1", "dimension": self.dim}
+
     def _one(self, text):
         vec = [0.0] * self.dim
         for token in _tokens(text):
@@ -65,6 +71,7 @@ class LocalEmbedder:
             model_name or os.environ.get("MATTERS_EMBED_MODEL") or DEFAULT_EMBED_MODEL
         )
         self._model = None
+        self._cache_identity = None
 
     def _load(self):
         if self._model is None:
@@ -76,6 +83,29 @@ class LocalEmbedder:
     def embed(self, texts):
         vectors = self._load().encode(list(texts))
         return [_normalize([float(x) for x in vector]) for vector in vectors]
+
+    @property
+    def cache_identity(self):
+        """Fingerprint the loaded artifact once, including same-name updates."""
+        if self._cache_identity is None:
+            import numpy as np
+            from importlib.metadata import version
+
+            model = self._load()
+            digest = hashlib.sha256(model.tokenizer.to_str().encode())
+            digest.update(json.dumps(model.config, sort_keys=True).encode())
+            for name in ("embedding", "weights", "token_mapping"):
+                value = getattr(model, name, None)
+                if value is not None:
+                    array = np.ascontiguousarray(value)
+                    digest.update(str((name, array.shape, array.dtype.str)).encode())
+                    digest.update(memoryview(array).cast("B"))
+            self._cache_identity = {
+                "model": self.model_name,
+                "revision": digest.hexdigest(),
+                "backend": "model2vec:" + version("model2vec"),
+            }
+        return self._cache_identity
 
 
 def get_embedder():
@@ -96,12 +126,41 @@ def get_embedder():
 # --------------------------------------------------------------------------- #
 
 
+class EmbeddingCompatibilityError(ValueError):
+    """Stored vectors cannot safely be compared with this embedding model."""
+
+
+def _embedding_metadata(embedder, dimension):
+    identity = getattr(embedder, "cache_identity", None)
+    if callable(identity):
+        identity = identity()
+    if identity is None:
+        # Custom embedders should expose cache_identity when settings or model
+        # artifacts can change without changing the Python class.
+        identity = {
+            "model": getattr(embedder, "model_name", None)
+            or f"{type(embedder).__module__}.{type(embedder).__qualname__}",
+            "revision": str(getattr(embedder, "revision", "1")),
+        }
+    return {
+        "schema_version": 1,
+        "identity": json.loads(json.dumps(identity, sort_keys=True)),
+        "dimension": dimension,
+    }
+
+
 class EmbeddingStore:
     """Persisted id -> (vector, text) store with brute-force cosine search.
 
     Vectors are kept L2-normalized so cosine similarity is a plain dot product.
     Backed by a NumPy ``.npz`` sidecar; swap ``nearest`` for an ANN index at
     scale without changing callers.
+
+    Matching binds fresh stores to the embedder's ``cache_identity`` and vector
+    dimension. Persisted legacy or incompatible vectors must be explicitly
+    rebuilt with ``store.rebuild(embedder)`` and then saved. Custom embedders
+    should expose a stable, JSON-serializable ``cache_identity`` containing
+    their model and revision when class identity alone is insufficient.
     """
 
     def __init__(self, path=None):
@@ -112,6 +171,8 @@ class EmbeddingStore:
         self._statuses = []
         self._index = {}
         self._matrix = None  # np.ndarray (n, dim) float32, normalized rows
+        self._metadata = None
+        self._loaded = False
 
     @classmethod
     def load(cls, path):
@@ -119,23 +180,62 @@ class EmbeddingStore:
         if path and os.path.exists(path):
             import numpy as np
 
-            data = np.load(path, allow_pickle=False)
-            matrix = data["vectors"].astype("float32")
-            store._ids = [str(x) for x in data["ids"]]
-            store._texts = [str(x) for x in data["texts"]]
-            store._kinds = (
-                [str(x) for x in data["kinds"]]
-                if "kinds" in data.files
-                else [""] * len(store._ids)
-            )
-            store._statuses = (
-                [str(x) for x in data["statuses"]]
-                if "statuses" in data.files
-                else [""] * len(store._ids)
-            )
+            with np.load(path, allow_pickle=False) as data:
+                matrix = data["vectors"].astype("float32")
+                store._ids = [str(x) for x in data["ids"]]
+                store._texts = [str(x) for x in data["texts"]]
+                store._kinds = (
+                    [str(x) for x in data["kinds"]]
+                    if "kinds" in data.files
+                    else [""] * len(store._ids)
+                )
+                store._statuses = (
+                    [str(x) for x in data["statuses"]]
+                    if "statuses" in data.files
+                    else [""] * len(store._ids)
+                )
+                if "metadata" in data.files:
+                    store._metadata = json.loads(str(data["metadata"].item()))
             store._matrix = matrix if matrix.size else None
             store._index = {mid: i for i, mid in enumerate(store._ids)}
+            store._loaded = True
         return store
+
+    def ensure_compatible(self, embedder, vector):
+        """Bind a fresh store, or refuse an unknown/incompatible saved model."""
+        dimension = len(vector)
+        self._require_dimension(dimension)
+        metadata = _embedding_metadata(embedder, dimension)
+        if self._metadata is None:
+            if self._loaded and self._ids:
+                self._incompatible("saved vectors have no model identity")
+            self._metadata = metadata
+        elif self._metadata != metadata:
+            self._incompatible("embedding model or revision changed")
+
+    def _require_dimension(self, dimension):
+        if self._matrix is not None and self._matrix.shape[1] != dimension:
+            self._incompatible("embedding dimension changed")
+
+    def _incompatible(self, reason):
+        raise EmbeddingCompatibilityError(
+            f"{reason}; rebuild this embedding store with store.rebuild(embedder) "
+            "and save it before continuing"
+        )
+
+    def rebuild(self, embedder):
+        """Explicitly re-embed stored texts; leave this store intact on failure."""
+        if any(not text for text in self._texts):
+            self._incompatible("cannot rebuild vectors without their source texts")
+        rebuilt = EmbeddingStore(self.path)
+        vectors = embedder.embed(self._texts) if self._texts else []
+        if len(vectors) != len(self._ids):
+            raise ValueError("embedding backend returned an unexpected vector count")
+        for index, vector in enumerate(vectors):
+            rebuilt.ensure_compatible(embedder, vector)
+            rebuilt.add(self._ids[index], vector, self._texts[index],
+                        self._kinds[index], self._statuses[index])
+        self.__dict__.update(rebuilt.__dict__)
 
     def __len__(self):
         return len(self._ids)
@@ -158,6 +258,7 @@ class EmbeddingStore:
         import numpy as np
 
         row = _np_normalize(np.asarray(vector, dtype="float32"))
+        self._require_dimension(len(row))
         if matter_id in self._index:
             i = self._index[matter_id]
             self._matrix[i] = row
@@ -180,6 +281,7 @@ class EmbeddingStore:
         import numpy as np
 
         query = _np_normalize(np.asarray(vector, dtype="float32"))
+        self._require_dimension(len(query))
         sims = self._matrix @ query
         k = min(top_k, len(self._ids))
         top = np.argpartition(-sims, k - 1)[:k]
@@ -207,6 +309,7 @@ class EmbeddingStore:
             texts=np.array(self._texts, dtype=str),
             kinds=np.array(self._kinds, dtype=str),
             statuses=np.array(self._statuses, dtype=str),
+            metadata=np.array(json.dumps(self._metadata, sort_keys=True)),
         )
 
 
@@ -242,6 +345,7 @@ def match_candidate(
     except Exception:  # noqa: BLE001 - embedding failure degrades to slug-only
         return Match("new", None, 0.0, None)
 
+    store.ensure_compatible(embedder, vector)
     neighbours = store.nearest(vector, top_k=top_k)
     if not neighbours:
         return Match("new", None, 0.0, vector)
@@ -262,20 +366,21 @@ def match_candidate(
     if selection is None:
         return Match("new", None, best_score, vector)
 
-    # Borderline band: ask the LLM whether any in-band neighbour is the same.
-    for cand_id, score in neighbours:
-        if score < low:
-            break
-        try:
-            if _llm_same_matter(
-                text, store.text_of(cand_id), selection.generator, selection.model
-            ):
-                return Match("merge", cand_id, score, vector)
-        except GenerationError:
-            if selection.on_unavailable != "skip":
-                raise
-            return Match("new", None, best_score, vector)
-    return Match("new", None, best_score, vector)
+    with selection:
+        # Borderline band: ask the LLM whether any in-band neighbour is the same.
+        for cand_id, score in neighbours:
+            if score < low:
+                break
+            try:
+                if _llm_same_matter(
+                    text, store.text_of(cand_id), selection.generator, selection.model
+                ):
+                    return Match("merge", cand_id, score, vector)
+            except GenerationError:
+                if selection.on_unavailable != "skip":
+                    raise
+                return Match("new", None, best_score, vector)
+        return Match("new", None, best_score, vector)
 
 
 def ingest_candidates(
@@ -300,44 +405,51 @@ def ingest_candidates(
     a new matter whose embedding is stored. The returned ``id_map`` (candidate id
     -> canonical id) lets callers repoint dependencies and merge provenance.
     """
-    matters = set(matters)
-    conditions = dict(conditions)
-    id_map = {}
+    selection = resolve_generator(
+        "reconciliation",
+        injected=generator if generator is not None else llm_client,
+        config_path=config_path,
+        profile_override=llm_profile,
+        model_override=model,
+    )
+    with selection if selection is not None else nullcontext():
+        matters = set(matters)
+        conditions = dict(conditions)
+        id_map = {}
 
-    for candidate in candidates:
-        cid = candidate["id"]
-        text = _candidate_text(candidate)
+        for candidate in candidates:
+            cid = candidate["id"]
+            text = _candidate_text(candidate)
 
-        if cid in matters:  # exact slug collision -> same matter
+            if cid in matters:  # exact slug collision -> same matter
+                id_map[cid] = cid
+                continue
+
+            match = match_candidate(
+                text,
+                store,
+                embedder,
+                high=high,
+                low=low,
+                generator=selection.generator if selection else None,
+                model=model,
+                config_path=config_path,
+                llm_profile=llm_profile,
+            )
+            if match.action == "merge" and match.matter_id in matters:
+                id_map[cid] = match.matter_id
+                continue
+
+            matters.add(cid)
+            conditions[cid] = candidate["conditions"]
             id_map[cid] = cid
-            continue
+            if match.vector is not None:
+                try:
+                    store.add(cid, match.vector, text)
+                except Exception:  # noqa: BLE001 - never let store growth break ingest
+                    pass
 
-        match = match_candidate(
-            text,
-            store,
-            embedder,
-            high=high,
-            low=low,
-            generator=generator,
-            llm_client=llm_client,
-            model=model,
-            config_path=config_path,
-            llm_profile=llm_profile,
-        )
-        if match.action == "merge" and match.matter_id in matters:
-            id_map[cid] = match.matter_id
-            continue
-
-        matters.add(cid)
-        conditions[cid] = candidate["conditions"]
-        id_map[cid] = cid
-        if match.vector is not None:
-            try:
-                store.add(cid, match.vector, text)
-            except Exception:  # noqa: BLE001 - never let store growth break ingest
-                pass
-
-    return matters, conditions, id_map
+        return matters, conditions, id_map
 
 
 SAME_MATTER_SCHEMA = {
@@ -559,118 +671,117 @@ def reconcile_candidates(
         profile_override=llm_profile,
         model_override=model,
     )
-    semantic_generator = selection.generator if selection else None
+    with selection if selection is not None else nullcontext():
+        semantic_generator = selection.generator if selection else None
 
-    id_map = {}
-    new_edges = []
-    flips = []
+        id_map = {}
+        new_edges = []
+        flips = []
 
-    for candidate in candidates:
-        cid = candidate["id"]
-        text = _candidate_text(candidate)
-        if cid in matters:
-            id_map[cid] = cid
-            continue
+        for candidate in candidates:
+            cid = candidate["id"]
+            text = _candidate_text(candidate)
+            if cid in matters:
+                id_map[cid] = cid
+                continue
 
-        vector = None
-        neighbours = []
-        if embedder is not None and store is not None:
-            try:
-                vector = embedder.embed([text])[0]
-            except Exception:  # noqa: BLE001 - embedding failure degrades to slug
-                vector = None
-            if vector is not None:
-                neighbours = store.nearest(vector, top_k=top_k)
-        considered = [(nid, sc) for nid, sc in neighbours if sc >= floor and nid in matters]
-
-        results = []
-        for nid, score in considered:
-            if semantic_generator is None:
-                relation = "same" if score >= HIGH_THRESHOLD else "distinct"
-                results.append((nid, Relationship(relation, "none", [], "")))
-            else:
+            vector = None
+            neighbours = []
+            if embedder is not None and store is not None:
                 try:
-                    relation = classify_relationship(
-                        text,
-                        candidate.get("status", ""),
-                        store.text_of(nid),
-                        conditions.get(nid, []),
-                        semantic_generator,
-                        selection.model,
-                    )
-                except GenerationError:
-                    if selection.on_unavailable != "skip":
-                        raise
+                    vector = embedder.embed([text])[0]
+                except Exception:  # noqa: BLE001 - embedding failure degrades to slug
+                    vector = None
+                if vector is not None:
+                    store.ensure_compatible(embedder, vector)
+                    neighbours = store.nearest(vector, top_k=top_k)
+            considered = [(nid, sc) for nid, sc in neighbours if sc >= floor and nid in matters]
+
+            results = []
+            same = None
+            for nid, score in considered:
+                if semantic_generator is None:
                     relation = Relationship(
-                        "same" if score >= HIGH_THRESHOLD else "distinct",
-                        "none",
-                        [],
-                        "",
+                        "same" if score >= HIGH_THRESHOLD else "distinct", "none", [], ""
                     )
+                else:
+                    try:
+                        relation = classify_relationship(
+                            text,
+                            candidate.get("status", ""),
+                            store.text_of(nid),
+                            conditions.get(nid, []),
+                            semantic_generator,
+                            selection.model,
+                        )
+                    except GenerationError:
+                        if selection.on_unavailable != "skip":
+                            raise
+                        relation = Relationship(
+                            "same" if score >= HIGH_THRESHOLD else "distinct",
+                            "none",
+                            [],
+                            "",
+                        )
                 results.append((nid, relation))
-
-        same = []
-        for nid, rel in results:
-            if rel.relation != "same":
-                continue
-            if _roles_conflict(
-                candidate.get("kind"),
-                candidate.get("status"),
-                store.meta_of(nid)[0],
-                _derived_status(conditions.get(nid, [])),
-            ):
-                continue  # role/status guard: mismatched roles are not the same matter
-            same.append(nid)
-        if same:
-            id_map[cid] = same[0]
-            continue
-
-        matters.add(cid)
-        conditions[cid] = candidate["conditions"]
-        id_map[cid] = cid
-        if vector is not None:
-            try:
-                store.add(
-                    cid,
-                    vector,
-                    text,
-                    candidate.get("kind", ""),
-                    candidate.get("status", ""),
-                )
-            except Exception:  # noqa: BLE001
-                pass
-
-        for nid, rel in results:
-            edge = None
-            if rel.relation == "resolves" or (
-                rel.relation == "link" and rel.direction == "new_before_existing"
-            ):
-                edge = (cid, nid)
-            elif rel.relation == "link" and rel.direction == "existing_before_new":
-                edge = (nid, cid)
-            if edge is None:
-                continue
-            try:
-                GraphIndex(matters, conditions, accepted_dependencies | {edge})
-            except DependencyCycleError:
+                if relation.relation == "same" and not _roles_conflict(
+                    candidate.get("kind"),
+                    candidate.get("status"),
+                    store.meta_of(nid)[0],
+                    _derived_status(conditions.get(nid, [])),
+                ):
+                    same = nid
+                    break
+            if same is not None:
+                id_map[cid] = same
                 continue
 
-            if rel.relation == "resolves":
-                existing = conditions.get(nid)
-                if existing and not all(c.get("truth") for c in existing):
-                    conds = list(existing)
-                    flipped = []
-                    for idx in rel.satisfied:
-                        if 1 <= idx <= len(conds) and not conds[idx - 1].get("truth"):
-                            conds[idx - 1] = {**conds[idx - 1], "truth": True}
-                            flipped.append(idx)
-                    if flipped:
-                        conditions[nid] = conds
-                        accepted_dependencies.add(edge)
-                        new_edges.append(edge)
-                        flips.append({"matter": nid, "by": cid, "conditions": flipped})
-            elif rel.relation == "link":
-                accepted_dependencies.add(edge)
-                new_edges.append(edge)
+            matters.add(cid)
+            conditions[cid] = candidate["conditions"]
+            id_map[cid] = cid
+            if vector is not None:
+                try:
+                    store.add(
+                        cid,
+                        vector,
+                        text,
+                        candidate.get("kind", ""),
+                        candidate.get("status", ""),
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+
+            for nid, rel in results:
+                edge = None
+                if rel.relation == "resolves" or (
+                    rel.relation == "link" and rel.direction == "new_before_existing"
+                ):
+                    edge = (cid, nid)
+                elif rel.relation == "link" and rel.direction == "existing_before_new":
+                    edge = (nid, cid)
+                if edge is None:
+                    continue
+                try:
+                    GraphIndex(matters, conditions, accepted_dependencies | {edge})
+                except DependencyCycleError:
+                    continue
+
+                if rel.relation == "resolves":
+                    existing = conditions.get(nid)
+                    if existing and not all(c.get("truth") for c in existing):
+                        conds = list(existing)
+                        flipped = []
+                        for idx in rel.satisfied:
+                            if 1 <= idx <= len(conds) and not conds[idx - 1].get("truth"):
+                                conds[idx - 1] = {**conds[idx - 1], "truth": True}
+                                flipped.append(idx)
+                        if flipped:
+                            conditions[nid] = conds
+                            accepted_dependencies.add(edge)
+                            new_edges.append(edge)
+                            flips.append({"matter": nid, "by": cid, "conditions": flipped})
+                elif rel.relation == "link":
+                    accepted_dependencies.add(edge)
+                    new_edges.append(edge)
 
     return matters, conditions, id_map, new_edges, flips

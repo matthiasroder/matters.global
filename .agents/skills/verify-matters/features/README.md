@@ -19,9 +19,9 @@ Each feature file uses four H2 sections. Its driving section states precondition
 ## Features
 
 - [Create a matter](create-matter.md) covers browser creation, explicit IDs, initial conditions, and CLI expressions or stdin.
-- [Edit conditions](conditions.md) covers truth toggles, renamed and added conditions, and the corresponding CLI commands.
+- [Edit conditions](conditions.md) covers truth toggles, renamed and added conditions, stale-edit rejection after a CLI deletion, and the corresponding CLI commands.
 - [Manage dependencies](dependencies.md) covers adding and removing edges, CLI links, and rejected cycles.
 - [Navigate and inspect the graph](navigation.md) covers search, graph modes, scopes, status filters, and working reports.
 - [Switch graphs and use the terminal](workspace.md) covers the graph path form, isolated files, and the browser's real shell.
 
-This initial map excludes extraction, ToTs, sharing, static exports, and destructive CLI deletion commands. Add a feature recipe when work touches those paths. Keep the map current with `/maintain-verification-skill`.
+This initial map excludes extraction, ToTs, sharing, static exports, and CLI deletion workflows beyond the isolated stale-edit recipe. Add a feature recipe when work touches those paths. Keep the map current with `/maintain-verification-skill`.

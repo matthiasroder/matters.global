@@ -71,6 +71,9 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
   let active = false, destroyed = false, frame = 0, width = 1, height = 1;
   let nodeLabels = new Map(), topicLabels = new Map();
   let emphasized = new Set(), filtering = false, matches = new Set();
+  let modelNodes = null, modelEdges = null;
+  let labelsDirty = true, animationUntil = 0, saveAfterAnimation = false;
+  const labelSizes = new Map();
 
   function status(node) { return node.resolved ? 'resolved' : node.actionable ? 'actionable' : 'blocked'; }
   function linkId(endpoint) { return typeof endpoint === 'object' ? endpoint.id : endpoint; }
@@ -97,7 +100,10 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
     })
     .onNodeClick(node => onSelect(node.id))
     .onBackgroundClick(() => onSelect(null))
-    .onNodeHover(node => { hovered = node?.id || null; });
+    .onNodeHover(node => {
+      const nextHovered = node?.id || null;
+      if (hovered !== nextHovered) { hovered = nextHovered; invalidateLabels(); }
+    });
 
   function readSaved() {
     try { return JSON.parse(localStorage.getItem(storageKey) || '{}') || {}; }
@@ -109,12 +115,31 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
     catch { /* Storage may be disabled. The current scene remains usable. */ }
   }
   controls.addEventListener('end', save);
+  controls.addEventListener('change', invalidateLabels);
+
+  function invalidateLabels() {
+    labelsDirty = true;
+    if (active && !destroyed && !frame) frame = requestAnimationFrame(renderLabels);
+  }
+
+  function moveCamera(position, target, duration) {
+    graph.cameraPosition(position, target, duration);
+    animationUntil = performance.now() + duration;
+    saveAfterAnimation = true;
+    invalidateLabels();
+  }
 
   function setModel(next) {
     const nextKey = `matters-cloud:v1:${next.graphId}`;
     const graphChanged = storageKey !== nextKey;
     if (graphChanged) { save(); storageKey = nextKey; signature = ''; selection = null; }
-    const nextSignature = JSON.stringify([next.nodes.map(n=>n.id).sort(),next.edges.map(e=>[e.source,e.target]).sort()]);
+    // Selection/filter updates reuse the payload arrays. Only a newly loaded
+    // payload needs the topology comparison and node metadata refresh.
+    const payloadChanged = graphChanged || modelNodes !== next.nodes || modelEdges !== next.edges;
+    const nextSignature = payloadChanged
+      ? JSON.stringify([next.nodes.map(n=>n.id).sort(),next.edges.map(e=>[e.source,e.target]).sort()])
+      : signature;
+    modelNodes = next.nodes; modelEdges = next.edges;
     const structuralChange = signature !== nextSignature;
     emphasized = new Set(next.derivedHighlightIds || []);
     if (!emphasized.size && next.selectedId) emphasized = new Set([next.selectedId,...(next.ancestorIds || []),...(next.directDependentIds || [])]);
@@ -137,25 +162,28 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
         if (validCamera(saved.camera)) setCamera(saved.camera);
         else resetCamera(false);
       }
-    } else {
+    } else if (payloadChanged) {
       for (const node of next.nodes) Object.assign(nodeById.get(node.id), node);
     }
     const previous = selection;
     selection = next.selectedId || null;
+    for (const node of graphNodes) updateLabelMetadata(node);
     graph.nodeColor(color).linkColor(link=>focusedLink(link)?'#eed9b2':'#4b626c')
       .linkWidth(link=>focusedLink(link)?0.9:0.25)
       .linkDirectionalArrowColor(link=>focusedLink(link)?'#eed9b2':'#72888f');
-    counts.textContent = `${next.nodes.length} matters · ${Object.keys(layout.topics).length} neighborhoods`;
+    if (structuralChange) counts.textContent = `${next.nodes.length} matters · ${Object.keys(layout.topics).length} neighborhoods`;
     if (selection && selection !== previous && !graphChanged) {
       const related=graphNodes.filter(node=>emphasized.has(node.id));
       framePoints(related.length ? related : [nodeById.get(selection)]);
     }
-    save();
+    if (structuralChange) save();
+    invalidateLabels();
   }
 
   function buildLabels() {
     labels.replaceChildren();
     nodeLabels = new Map(); topicLabels = new Map();
+    labelSizes.clear();
     for (const node of graphNodes) {
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'cloud-node-label';
@@ -174,6 +202,17 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
     }
   }
 
+  function updateLabelMetadata(node) {
+    const element = nodeLabels.get(node.id);
+    const text = readableLabel(node.label || node.id), nodeStatus = status(node);
+    if (element.textContent !== text) { element.textContent = text; labelSizes.delete(element); }
+    const selected = node.id === selection;
+    if (element.classList.contains('selected') !== selected) element.classList.toggle('selected', selected);
+    if (element.dataset.status !== nodeStatus) element.dataset.status = nodeStatus;
+    const aria = `${text}, ${nodeStatus}`;
+    if (element.getAttribute('aria-label') !== aria) element.setAttribute('aria-label', aria);
+  }
+
   function validCamera(camera) {
     return camera && ['position','target'].every(part=>camera[part] && ['x','y','z'].every(axis=>Number.isFinite(camera[part][axis]) && Math.abs(camera[part][axis])<100000));
   }
@@ -183,13 +222,13 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
   }
   function setCamera(camera) {
     if (!validCamera(camera)) return;
-    graph.cameraPosition(camera.position,camera.target,0);
+    moveCamera(camera.position,camera.target,0);
     controls.update();
   }
   function flyTo(point,distance=450) {
     if (!point) return;
     const direction=graph.camera().position.clone().sub(controls.target).normalize();
-    graph.cameraPosition({x:point.x+direction.x*distance,y:point.y+direction.y*distance,z:point.z+direction.z*distance},point,reducedMotion?0:650);
+    moveCamera({x:point.x+direction.x*distance,y:point.y+direction.y*distance,z:point.z+direction.z*distance},point,reducedMotion?0:650);
   }
   function resetCamera(animate=true) {
     if (!graphNodes.length) return;
@@ -201,12 +240,12 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
     const radius=Math.max(100,...points.map(n=>Math.hypot(n.x-center.x,n.y-center.y,n.z-center.z)));
     const distance=radius/Math.sin(graph.camera().fov*Math.PI/360)*Math.max(1,height/width)*1.18;
     const direction=graph.camera().position.clone().sub(controls.target).normalize();
-    graph.cameraPosition({x:center.x+distance*direction.x,y:center.y+distance*direction.y,z:center.z+distance*direction.z},center,animate&&!reducedMotion?650:0);
+    moveCamera({x:center.x+distance*direction.x,y:center.y+distance*direction.y,z:center.z+distance*direction.z},center,animate&&!reducedMotion?650:0);
   }
   function zoom(factor) {
     const camera=getCamera(),target=camera.target;
     const position=Object.fromEntries(['x','y','z'].map(axis=>[axis,target[axis]+(camera.position[axis]-target[axis])/factor]));
-    graph.cameraPosition(position,target,reducedMotion?0:180);
+    moveCamera(position,target,reducedMotion?0:180);
   }
   fit.addEventListener('click',()=>resetCamera());
 
@@ -215,16 +254,36 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
     return {x:(vector.x+1)*width/2,y:(1-vector.y)*height/2,visible:vector.z>-1&&vector.z<1};
   }
   function displayLabel(element,point,occupied,priority=false) {
-    const p=project(point), w=Math.min(element.offsetWidth||170,width-24),h=element.offsetHeight||36;
+    const measured=labelSizes.get(element);
+    const p=project(point), w=Math.min(measured.width,width-24),h=measured.height;
     const x=Math.max(12,Math.min(width-w-12,p.x+9)),y=p.y-h/2;
     const bounds={x,y,w,h};
     const outside=!p.visible||p.x<0||p.x>width||y<90||y+h>height-65;
     const collides=occupied.some(b=>x<b.x+b.w+5&&x+w+5>b.x&&y<b.y+b.h+4&&y+h+4>b.y);
-    element.hidden=outside||(!priority&&collides);
-    if(!element.hidden){element.style.transform=`translate(${x}px,${y}px)`;occupied.push(bounds);}
+    setHidden(element,outside||(!priority&&collides));
+    if(!element.hidden){
+      const transform=`translate(${x}px,${y}px)`;
+      if(element.style.transform!==transform)element.style.transform=transform;
+      occupied.push(bounds);
+    }
   }
-  function renderLabels() {
+  function setHidden(element, hidden) {
+    if (element.hidden !== hidden) element.hidden = hidden;
+  }
+  function measureLabels() {
+    const pending=[...nodeLabels.values(),...topicLabels.values()].filter(element=>!labelSizes.has(element));
+    // Separate writes from reads: hidden elements have zero dimensions. Reveal
+    // every unmeasured label first, measure once, then place/hide all labels
+    // before this frame is painted.
+    for(const element of pending)setHidden(element,false);
+    for(const element of pending)labelSizes.set(element,{width:element.offsetWidth||170,height:element.offsetHeight||36});
+  }
+  function renderLabels(now=performance.now()) {
+    frame=0;
     if(destroyed||!active)return;
+    if(!labelsDirty&&now>animationUntil&&!saveAfterAnimation)return;
+    labelsDirty=false;
+    measureLabels();
     const occupied=[];
     const camera=graph.camera().position;
     const selected=nodeById.get(selection);
@@ -237,24 +296,25 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
       const important=node.id===selection||node.id===hovered;
       const nearby=camera.distanceTo(node)<750;
       const show=important||(nodeEmphasized(node)&&(nearby||emphasized.has(node.id)||filtering));
-      element.hidden=!show;
-      element.classList.toggle('selected',node.id===selection);
-      element.dataset.status=status(node);
-      element.setAttribute('aria-label',`${readableLabel(node.label||node.id)}, ${status(node)}`);
       if(show)displayLabel(element,node,occupied,important);
+      else setHidden(element,true);
     }
     for(const [topic,element] of topicLabels){
       const point=layout.topics[topic];
-      element.hidden=Boolean(selected&&selected.topic!==topic)||filtering;
-      if(!element.hidden)displayLabel(element,{...point,y:point.y+115},occupied);
+      const hidden=Boolean(selected&&selected.topic!==topic)||filtering;
+      if(hidden)setHidden(element,true);
+      else displayLabel(element,{...point,y:point.y+115},occupied);
     }
-    frame=requestAnimationFrame(renderLabels);
+    if(now<animationUntil)frame=requestAnimationFrame(renderLabels);
+    else if(saveAfterAnimation){saveAfterAnimation=false;save();}
   }
   function resize() {
     const rect=container.getBoundingClientRect();
     if(!rect.width||!rect.height)return;
     width=rect.width;height=rect.height;
+    labelSizes.clear();
     graph.width(width).height(height);
+    invalidateLabels();
   }
   const observer=new ResizeObserver(resize);
   observer.observe(container);
@@ -262,19 +322,28 @@ export function createCloudRenderer({container, onSelect, onError, reducedMotion
     if(active===visible)return;
     active=visible;
     cancelAnimationFrame(frame);
-    if(visible){resize();graph.resumeAnimation();frame=requestAnimationFrame(renderLabels);}
+    frame=0;
+    if(visible){resize();graph.resumeAnimation();invalidateLabels();}
     else {save();graph.pauseAnimation();}
   }
+  function fontsChanged() { labelSizes.clear(); invalidateLabels(); }
+  const fonts=document.fonts;
+  fonts?.addEventListener?.('loadingdone',fontsChanged);
+  fonts?.ready?.then(()=>{if(!destroyed)fontsChanged();});
   function contextLost(event) { event.preventDefault();onError(new Error('3D rendering was interrupted. The 2D view is still available.')); }
   function destroy() {
     save();destroyed=true;cancelAnimationFrame(frame);observer.disconnect();
     controls.removeEventListener('end',save);
+    controls.removeEventListener('change',invalidateLabels);
     canvas.removeEventListener('webglcontextlost',contextLost);
     window.removeEventListener('pagehide',save);
+    window.removeEventListener('resize',resize);
+    fonts?.removeEventListener?.('loadingdone',fontsChanged);
     graph._destructor();
     container.replaceChildren();container.classList.remove('cloud-view');
   }
   window.addEventListener('pagehide',save);
+  window.addEventListener('resize',resize);
   graph.pauseAnimation();
   return {setModel,setVisible,resize,zoom,resetCamera,getCamera,setCamera,destroy,cloud:true};
 }

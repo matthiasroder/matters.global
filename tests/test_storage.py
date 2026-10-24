@@ -6,6 +6,23 @@ from matters import load_state, resolve_state_path, save_state
 import matters.storage as storage
 
 
+def test_revision_tracks_facts_not_json_formatting(tmp_path):
+    path = tmp_path / "matters.json"
+    original = {
+        "matters": ["b", "a"],
+        "conditions": {"b": [{"label": "done", "truth": False}], "a": []},
+        "dependencies": [["a", "b"]],
+    }
+    path.write_text(json.dumps(original))
+    revision = storage.state_revision(*load_state(path))
+    original["matters"].reverse()
+    path.write_text(json.dumps(original, sort_keys=True, indent=4))
+    assert storage.state_revision(*load_state(path)) == revision
+    original["conditions"]["b"][0]["truth"] = True
+    path.write_text(json.dumps(original))
+    assert storage.state_revision(*load_state(path)) != revision
+
+
 def test_load_state_normalizes_legacy_conditions(tmp_path):
     state_path = tmp_path / "matters.json"
     state_path.write_text(

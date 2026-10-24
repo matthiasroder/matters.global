@@ -298,209 +298,210 @@ def build_tots_proposal(
             "no model profile configured for tots; add [llm.profiles] and "
             "[llm.workflows.tots] or select --llm-profile"
         )
-    client = selection.generator
-    model = selection.model
+    with selection:
+        client = selection.generator
+        model = selection.model
 
-    nodes = []
-    warnings = list(context.pop("warnings"))
-    comparison_records = []
-    cluster_records = []
-    comparisons_used = 0
-    next_candidate_number = 1
+        nodes = []
+        warnings = list(context.pop("warnings"))
+        comparison_records = []
+        cluster_records = []
+        comparisons_used = 0
+        next_candidate_number = 1
 
-    generated = _call_stage(
-        client,
-        "generation",
-        {
-            "requested_candidates": breadth,
-            "context": context,
-            "instruction": (
-                "Generate distinct, testable hypotheses or approaches aimed at the "
-                "target false conditions. Cite only the supplied reference ids."
-            ),
-        },
-        GENERATION_SCHEMA,
-        model,
-    ).get("candidates", [])
-
-    for raw in generated[:breadth]:
-        candidate_id = f"c{next_candidate_number:03d}"
-        next_candidate_number += 1
-        nodes.append(
-            _normalize_candidate(
-                raw,
-                candidate_id=candidate_id,
-                parent_id=None,
-                depth=1,
-                operation="initial",
-                context=context,
-            )
-        )
-    if len(nodes) < 2:
-        raise TotsError("generation returned fewer than two usable candidates")
-
-    _reflect_and_evaluate(nodes, context, client, model, evaluator)
-    leaves = _viable(nodes)
-    if len(leaves) < 2:
-        raise TotsError("fewer than two candidates remained after validation")
-
-    cluster_map, clusters = _cluster_candidates(leaves, context, client, model)
-    _apply_clusters(leaves, cluster_map)
-    cluster_records.append({"depth": 1, "clusters": clusters})
-
-    tournament = _run_tournament(
-        leaves,
-        context,
-        client,
-        model,
-        max_ordered_comparisons=max_comparisons - comparisons_used,
-    )
-    comparisons_used += tournament["ordered_comparisons_used"]
-    comparison_records.extend(tournament["comparisons"])
-    _apply_rankings(leaves, tournament["ranking"], tournament["comparisons"])
-
-    for candidate_depth in range(2, depth + 1):
-        capacity = max_candidates - len(nodes)
-        if capacity <= 0:
-            warnings.append("candidate budget reached")
-            break
-
-        parents = _select_expansion_parents(leaves)
-        if not parents:
-            break
-        requested_children = min(capacity, len(parents) * 2)
-
-        remaining_comparisons = max_comparisons - comparisons_used
-        while requested_children > 0:
-            # A provider may attach every returned child to one parent, so use
-            # the largest possible leaf pool when reserving comparison budget.
-            projected_leaf_count = len(leaves) - 1 + requested_children
-            minimum_ordered = max(0, 2 * (projected_leaf_count - 1))
-            if remaining_comparisons >= minimum_ordered:
-                break
-            requested_children -= 1
-        if requested_children <= 0:
-            warnings.append("comparison budget stopped further expansion")
-            break
-
-        expansion = _call_stage(
+        generated = _call_stage(
             client,
-            "expansion",
+            "generation",
             {
-                "requested_children": requested_children,
-                "parents": [_judge_view(parent) for parent in parents],
+                "requested_candidates": breadth,
                 "context": context,
                 "instruction": (
-                    "Create refinements, combinations, simplifications, or "
-                    "falsification-oriented variants. Do not rewrite a parent in place."
+                    "Generate distinct, testable hypotheses or approaches aimed at the "
+                    "target false conditions. Cite only the supplied reference ids."
                 ),
             },
-            EXPANSION_SCHEMA,
+            GENERATION_SCHEMA,
             model,
-        ).get("children", [])
+        ).get("candidates", [])
 
-        parent_ids = {parent["candidate_id"] for parent in parents}
-        children = []
-        for raw_child in expansion:
-            if len(children) >= requested_children:
-                break
-            if not isinstance(raw_child, dict):
-                continue
-            parent_id = str(raw_child.get("parent_id") or "").strip()
-            operation = str(raw_child.get("operation") or "").strip()
-            if parent_id not in parent_ids or operation not in LINEAGE_OPERATIONS - {
-                "initial"
-            }:
-                continue
-            raw_candidate = raw_child.get("candidate")
-            if not isinstance(raw_candidate, dict):
-                continue
+        for raw in generated[:breadth]:
             candidate_id = f"c{next_candidate_number:03d}"
             next_candidate_number += 1
-            children.append(
+            nodes.append(
                 _normalize_candidate(
-                    raw_candidate,
+                    raw,
                     candidate_id=candidate_id,
-                    parent_id=parent_id,
-                    depth=candidate_depth,
-                    operation=operation,
+                    parent_id=None,
+                    depth=1,
+                    operation="initial",
                     context=context,
                 )
             )
+        if len(nodes) < 2:
+            raise TotsError("generation returned fewer than two usable candidates")
 
-        if not children:
-            warnings.append("expansion returned no usable children")
-            break
-
-        _reflect_and_evaluate(children, context, client, model, evaluator)
-        nodes.extend(children)
-        viable_children = _viable(children)
-        expanded_parent_ids = {child["parent_id"] for child in viable_children}
-        for parent in parents:
-            if parent["candidate_id"] in expanded_parent_ids:
-                parent["expanded"] = True
-        leaves = [
-            leaf
-            for leaf in leaves
-            if leaf["candidate_id"] not in expanded_parent_ids
-        ] + viable_children
+        _reflect_and_evaluate(nodes, context, client, model, evaluator)
+        leaves = _viable(nodes)
         if len(leaves) < 2:
-            warnings.append("expansion left fewer than two viable leaves")
-            break
+            raise TotsError("fewer than two candidates remained after validation")
 
         cluster_map, clusters = _cluster_candidates(leaves, context, client, model)
         _apply_clusters(leaves, cluster_map)
-        cluster_records.append({"depth": candidate_depth, "clusters": clusters})
-        seed_ratings = {
-            leaf["candidate_id"]: _seed_rating(leaf, nodes) for leaf in leaves
-        }
+        cluster_records.append({"depth": 1, "clusters": clusters})
+
         tournament = _run_tournament(
             leaves,
             context,
             client,
             model,
             max_ordered_comparisons=max_comparisons - comparisons_used,
-            seed_ratings=seed_ratings,
         )
         comparisons_used += tournament["ordered_comparisons_used"]
         comparison_records.extend(tournament["comparisons"])
         _apply_rankings(leaves, tournament["ranking"], tournament["comparisons"])
 
-    ranked_leaves = sorted(
-        leaves,
-        key=lambda item: (
-            -_external_preference(item),
-            item.get("tournament", {}).get("rank", math.inf),
-            item["candidate_id"],
-        ),
-    )
-    finalists = select_diverse_finalists(ranked_leaves, limit=3)
+        for candidate_depth in range(2, depth + 1):
+            capacity = max_candidates - len(nodes)
+            if capacity <= 0:
+                warnings.append("candidate budget reached")
+                break
 
-    return {
-        "schema_version": 1,
-        "prompt_version": PROMPT_VERSION,
-        "model": model,
-        "provider": selection.provider,
-        "model_profile": selection.profile,
-        "target": matter_id,
-        "context": context,
-        "config": config,
-        "budget": {
-            "candidates_generated": len(nodes),
-            "candidate_limit": max_candidates,
-            "ordered_comparisons_used": comparisons_used,
-            "ordered_comparison_limit": max_comparisons,
-        },
-        "tree": nodes,
-        "proximity_rounds": cluster_records,
-        "pairwise_comparisons": comparison_records,
-        "finalists": finalists,
-        "warnings": _unique(warnings),
-        "selection_precedence": ["external_evaluator", "model_tournament"],
-        "requires_confirmation": True,
-        "state_modified": False,
-        "ranking_semantics": "search_priority_not_truth",
-    }
+            parents = _select_expansion_parents(leaves)
+            if not parents:
+                break
+            requested_children = min(capacity, len(parents) * 2)
+
+            remaining_comparisons = max_comparisons - comparisons_used
+            while requested_children > 0:
+                # A provider may attach every returned child to one parent, so use
+                # the largest possible leaf pool when reserving comparison budget.
+                projected_leaf_count = len(leaves) - 1 + requested_children
+                minimum_ordered = max(0, 2 * (projected_leaf_count - 1))
+                if remaining_comparisons >= minimum_ordered:
+                    break
+                requested_children -= 1
+            if requested_children <= 0:
+                warnings.append("comparison budget stopped further expansion")
+                break
+
+            expansion = _call_stage(
+                client,
+                "expansion",
+                {
+                    "requested_children": requested_children,
+                    "parents": [_judge_view(parent) for parent in parents],
+                    "context": context,
+                    "instruction": (
+                        "Create refinements, combinations, simplifications, or "
+                        "falsification-oriented variants. Do not rewrite a parent in place."
+                    ),
+                },
+                EXPANSION_SCHEMA,
+                model,
+            ).get("children", [])
+
+            parent_ids = {parent["candidate_id"] for parent in parents}
+            children = []
+            for raw_child in expansion:
+                if len(children) >= requested_children:
+                    break
+                if not isinstance(raw_child, dict):
+                    continue
+                parent_id = str(raw_child.get("parent_id") or "").strip()
+                operation = str(raw_child.get("operation") or "").strip()
+                if parent_id not in parent_ids or operation not in LINEAGE_OPERATIONS - {
+                    "initial"
+                }:
+                    continue
+                raw_candidate = raw_child.get("candidate")
+                if not isinstance(raw_candidate, dict):
+                    continue
+                candidate_id = f"c{next_candidate_number:03d}"
+                next_candidate_number += 1
+                children.append(
+                    _normalize_candidate(
+                        raw_candidate,
+                        candidate_id=candidate_id,
+                        parent_id=parent_id,
+                        depth=candidate_depth,
+                        operation=operation,
+                        context=context,
+                    )
+                )
+
+            if not children:
+                warnings.append("expansion returned no usable children")
+                break
+
+            _reflect_and_evaluate(children, context, client, model, evaluator)
+            nodes.extend(children)
+            viable_children = _viable(children)
+            expanded_parent_ids = {child["parent_id"] for child in viable_children}
+            for parent in parents:
+                if parent["candidate_id"] in expanded_parent_ids:
+                    parent["expanded"] = True
+            leaves = [
+                leaf
+                for leaf in leaves
+                if leaf["candidate_id"] not in expanded_parent_ids
+            ] + viable_children
+            if len(leaves) < 2:
+                warnings.append("expansion left fewer than two viable leaves")
+                break
+
+            cluster_map, clusters = _cluster_candidates(leaves, context, client, model)
+            _apply_clusters(leaves, cluster_map)
+            cluster_records.append({"depth": candidate_depth, "clusters": clusters})
+            seed_ratings = {
+                leaf["candidate_id"]: _seed_rating(leaf, nodes) for leaf in leaves
+            }
+            tournament = _run_tournament(
+                leaves,
+                context,
+                client,
+                model,
+                max_ordered_comparisons=max_comparisons - comparisons_used,
+                seed_ratings=seed_ratings,
+            )
+            comparisons_used += tournament["ordered_comparisons_used"]
+            comparison_records.extend(tournament["comparisons"])
+            _apply_rankings(leaves, tournament["ranking"], tournament["comparisons"])
+
+        ranked_leaves = sorted(
+            leaves,
+            key=lambda item: (
+                -_external_preference(item),
+                item.get("tournament", {}).get("rank", math.inf),
+                item["candidate_id"],
+            ),
+        )
+        finalists = select_diverse_finalists(ranked_leaves, limit=3)
+
+        return {
+            "schema_version": 1,
+            "prompt_version": PROMPT_VERSION,
+            "model": model,
+            "provider": selection.provider,
+            "model_profile": selection.profile,
+            "target": matter_id,
+            "context": context,
+            "config": config,
+            "budget": {
+                "candidates_generated": len(nodes),
+                "candidate_limit": max_candidates,
+                "ordered_comparisons_used": comparisons_used,
+                "ordered_comparison_limit": max_comparisons,
+            },
+            "tree": nodes,
+            "proximity_rounds": cluster_records,
+            "pairwise_comparisons": comparison_records,
+            "finalists": finalists,
+            "warnings": _unique(warnings),
+            "selection_precedence": ["external_evaluator", "model_tournament"],
+            "requires_confirmation": True,
+            "state_modified": False,
+            "ranking_semantics": "search_priority_not_truth",
+        }
 
 
 def validate_tots_config(*, breadth, depth, max_candidates, max_comparisons):

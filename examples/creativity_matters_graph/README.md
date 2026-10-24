@@ -48,9 +48,12 @@ matters universe --state examples/creativity_matters_graph/creativity_graph.json
 
 `pipeline.py` caches each paper's extraction under
 `~/.local/share/matters/creativity_matters_graph/extractions/`, so a re-run resumes instead of
-re-extracting. Cached proposals are reused only when they include `kind`,
-`status`, condition `truth` values, and status/truth-consistent conditions;
-stale unresolved-only cache files are ignored and re-extracted. Requires
+re-extracting. Cached proposals must include `kind`, `status`, boolean condition
+truth values, and status/truth-consistent conditions. Reuse also requires the same
+source text, provider/model/profile, extraction prompt and schema, and existing
+matter inventory. Each cache records those inputs and their fingerprint; changes
+trigger fresh extraction. Older caches without fingerprints are re-extracted.
+Changes to citation counts alone do not invalidate extraction. Requires
 `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) in the environment;
 `CREATIVITY_MATTERS_EXTRACT_CAP` caps how many of the most-cited abstracts are
 processed (default 25; this graph used 102 = all abstracts). `KENETT_EXTRACT_CAP`
@@ -62,9 +65,16 @@ questions, gaps, risks, or goals retain false conditions for what remains
 unresolved. Fresh and cached proposals are accepted only when matter status and
 condition truth states are consistent.
 
-For reproducibility, treat stored LLM responses as the replayable source. A
-model re-run may produce different text, but rebuilding from the cached
-extraction and enrichment JSON should reproduce the same graph hashes recorded
-in the manifests. Enrichment batch caches include a context hash over the model,
+For an explicit historical replay, set `CREATIVITY_MATTERS_REPLAY_CACHE=1` when
+running `pipeline.py`. Replay uses valid cached responses without selecting or
+calling a model, and fails if a selected paper has no valid cache. It preserves
+the cache bytes and records `cache_mode: "replay"` in the manifest. Provenance
+uses the original cached paper metadata; legacy caches without that metadata
+are marked `source_verified: false` rather than attributing old claims to the
+current text. A cached corpus is still needed to select the papers without a
+Semantic Scholar fetch. Normal runs validate inputs; replay deliberately retains
+the old source/model outputs. A model re-run may produce different text.
+
+Enrichment batch caches include a context hash over the model,
 matter inventory, batch, and already-existing inbound dependencies, so stale
 batch proposals are ignored after graph changes.

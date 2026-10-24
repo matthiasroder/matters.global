@@ -1,5 +1,6 @@
 """JSON persistence for matters state."""
 
+import hashlib
 import json
 import os
 import tempfile
@@ -9,6 +10,18 @@ from .engine import as_condition_list, normalize_conditions, serialize_condition
 
 
 DEFAULT_STATE_PATH = Path.home() / ".local" / "share" / "matters" / "matters.json"
+
+
+def state_revision(matters, conditions, dependencies):
+    """Identify the loaded facts, independently of JSON formatting or ordering.
+
+    Compute from the same snapshot used by the caller, never a second file
+    read: a writer may atomically replace that file in between reads.
+    """
+
+    snapshot = [sorted(matters), conditions, sorted(dependencies)]
+    encoded = json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def resolve_state_path(path=None, cwd=None):

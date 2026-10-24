@@ -1,22 +1,13 @@
 """Local web UI server for matters graphs."""
 
-import fcntl
 import hashlib
 import ipaddress
 import json
 import mimetypes
 import os
-import pty
 import re
 import secrets
-import select
-import signal
-import subprocess
-import struct
-import termios
 import threading
-import time
-import uuid
 import webbrowser
 from functools import partial
 from http import HTTPStatus
@@ -30,14 +21,20 @@ from .layout import build_overview_layout
 from .llm_extraction import build_extraction_proposal
 from .reports import unlock_report
 from .rules import RuleError, create_matters_from_expression
-from .storage import load_state, resolve_state_path
+from .storage import load_state, resolve_state_path, state_revision
+from .terminal import (
+    DEFAULT_TERMINAL_SHELL,
+    MAX_TERMINAL_CHUNKS,
+    TerminalManager as _TerminalManager,
+    TerminalSession as _TerminalSession,
+    safe_int,
+    set_terminal_size,
+)
 
 
 DEFAULT_WEB_HOST = "127.0.0.1"
 DEFAULT_WEB_PORT = 8765
-DEFAULT_TERMINAL_SHELL = os.environ.get("SHELL") or "/bin/sh"
 TERMINAL_WORKSPACE_ENV = "MATTERS_TERMINAL_WORKSPACE"
-MAX_TERMINAL_CHUNKS = 1000
 LOCAL_API_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 WILDCARD_API_HOSTS = frozenset({"0.0.0.0", "::", ""})
 
@@ -51,6 +48,7 @@ API_TOKEN_QUERY_PARAM = "token"
 # must not tell a prober which of the two it is.
 API_UNAUTHORIZED_MESSAGE = "unauthorized"
 GRAPH_ID_HEADER = "X-Matters-Graph"
+GRAPH_REVISION_HEADER = "X-Matters-Revision"
 # The only paths that may carry the token in the query string. This is the
 # document request that ``serve`` opens; app.js moves the token into memory
 # and strips it from the address bar before it makes an API call.
@@ -146,6 +144,7 @@ def graph_payload(state_path=None):
 
     return {
         "graph_id": graph_identity(state_path),
+        "revision": state_revision(matters, conditions, dependencies),
         "state_path": str(resolve_state_path(state_path)),
         "nodes": nodes,
         "edges": [
@@ -167,31 +166,38 @@ def graph_index_or_api_error(matters, conditions, dependencies):
         raise api_error_for(error) from error
 
 
-def create_matter(state_path, payload):
+def create_matter(state_path, payload, *, expected_revision=None):
     try:
-        rules.create_matter(state_path, payload, load=load_state)
+        rules.create_matter(
+            state_path, payload, load=load_state, expected_revision=expected_revision
+        )
     except RuleError as error:
         raise api_error_for(error) from error
     return graph_payload(state_path)
 
 
-def update_conditions(state_path, matter_id, payload):
+def update_conditions(state_path, matter_id, payload, *, expected_revision=None):
     try:
-        rules.update_conditions(state_path, matter_id, payload, load=load_state)
+        rules.update_conditions(
+            state_path, matter_id, payload, load=load_state,
+            expected_revision=expected_revision,
+        )
     except RuleError as error:
         raise api_error_for(error) from error
     return graph_payload(state_path)
 
 
-def add_dependency(state_path, payload):
+def add_dependency(state_path, payload, *, expected_revision=None):
     try:
-        rules.add_dependency(state_path, payload, load=load_state)
+        rules.add_dependency(
+            state_path, payload, load=load_state, expected_revision=expected_revision
+        )
     except RuleError as error:
         raise api_error_for(error) from error
     return graph_payload(state_path)
 
 
-def remove_dependency(state_path, payload):
+def remove_dependency(state_path, payload, *, expected_revision=None):
     """Remove one edge. Permitted on a state file that already has a cycle.
 
     The permission lives in ``rules.remove_dependency`` and is shared with
@@ -205,20 +211,22 @@ def remove_dependency(state_path, payload):
     """
 
     try:
-        rules.remove_dependency(state_path, payload, load=load_state)
+        rules.remove_dependency(
+            state_path, payload, load=load_state, expected_revision=expected_revision
+        )
     except RuleError as error:
         raise api_error_for(error) from error
     return graph_payload(state_path)
 
 
-def run_command(state_path, payload):
+def run_command(state_path, payload, *, expected_revision=None):
     try:
-        return run_text_command(state_path, payload)
+        return run_text_command(state_path, payload, expected_revision=expected_revision)
     except RuleError as error:
         raise api_error_for(error) from error
 
 
-def run_text_command(state_path, payload):
+def run_text_command(state_path, payload, *, expected_revision=None):
     text = str(payload.get("text") or payload.get("command") or "").strip()
     if not text:
         raise ApiError("command is required")
@@ -230,7 +238,9 @@ def run_text_command(state_path, payload):
     if command == "create":
         if not rest:
             raise ApiError("create requires an expression")
-        with rules.state_transaction(state_path, load=load_state) as draft:
+        with rules.state_transaction(
+            state_path, load=load_state, expected_revision=expected_revision
+        ) as draft:
             try:
                 created = create_matters_from_expression(
                     rest, draft.matters, draft.conditions, draft.dependencies
@@ -272,185 +282,20 @@ def run_text_command(state_path, payload):
     raise ApiError(f"unknown command: {command}")
 
 
-class TerminalManager:
-    def __init__(self, default_workspace=None, default_shell=None):
-        self.sessions = {}
-        self.lock = threading.Lock()
-        self.default_workspace = default_workspace
-        self.default_shell = default_shell or DEFAULT_TERMINAL_SHELL
+class TerminalManager(_TerminalManager):
+    """Adapt terminal domain errors to the existing HTTP-facing API."""
 
-    def create(self, workspace=None, shell=None, rows=24, cols=100):
-        session = TerminalSession(
-            workspace=workspace or self.default_workspace or Path.cwd(),
-            shell=shell or self.default_shell,
-            rows=rows,
-            cols=cols,
-        )
-        with self.lock:
-            self.sessions[session.id] = session
-        return session
-
-    def get(self, session_id):
-        with self.lock:
-            session = self.sessions.get(session_id)
-        if not session:
-            raise ApiError("terminal session not found", HTTPStatus.NOT_FOUND)
-        return session
-
-    def close(self, session_id):
-        session = self.get(session_id)
-        session.close()
-        with self.lock:
-            self.sessions.pop(session_id, None)
-        return {"closed": True}
-
-    def close_all(self):
-        with self.lock:
-            sessions = list(self.sessions.values())
-            self.sessions.clear()
-        for session in sessions:
-            session.close()
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("error_factory", ApiError)
+        super().__init__(*args, **kwargs)
 
 
-class TerminalSession:
-    def __init__(
-        self,
-        workspace=None,
-        shell=DEFAULT_TERMINAL_SHELL,
-        rows=24,
-        cols=100,
-    ):
-        self.id = uuid.uuid4().hex
-        self.workspace = Path(workspace or Path.cwd()).expanduser()
-        self.shell = shell
-        self.master_fd = None
-        self.process = None
-        self.lock = threading.Lock()
-        self.chunks = []
-        self.next_seq = 1
-        self.closed = False
-        self.started_at = time.time()
+class TerminalSession(_TerminalSession):
+    """Preserve the web module's error contract for direct session callers."""
 
-        if not self.workspace.exists():
-            raise ApiError(f"terminal workspace does not exist: {self.workspace}", HTTPStatus.NOT_FOUND)
-
-        master_fd, slave_fd = pty.openpty()
-        self.master_fd = master_fd
-        os.set_blocking(master_fd, False)
-        set_terminal_size(master_fd, rows, cols)
-
-        env = os.environ.copy()
-        env["TERM"] = "xterm-256color"
-        env["COLORTERM"] = "truecolor"
-
-        try:
-            self.process = subprocess.Popen(
-                [shell],
-                cwd=str(self.workspace),
-                stdin=slave_fd,
-                stdout=slave_fd,
-                stderr=slave_fd,
-                close_fds=True,
-                env=env,
-                preexec_fn=os.setsid,
-            )
-        except FileNotFoundError as error:
-            os.close(master_fd)
-            os.close(slave_fd)
-            raise ApiError(f"terminal shell was not found: {shell}", HTTPStatus.BAD_GATEWAY) from error
-        finally:
-            os.close(slave_fd)
-
-        self.reader = threading.Thread(target=self.read_loop, daemon=True)
-        self.reader.start()
-
-    def to_payload(self):
-        return {
-            "id": self.id,
-            "workspace": str(self.workspace),
-            "shell": self.shell,
-            "started_at": self.started_at,
-        }
-
-    def write(self, data):
-        if self.closed:
-            raise ApiError("terminal session is closed", HTTPStatus.GONE)
-        if not isinstance(data, str):
-            raise ApiError("terminal input must be text")
-        os.write(self.master_fd, data.encode(errors="replace"))
-        return {"written": len(data)}
-
-    def resize(self, rows, cols):
-        rows = max(3, safe_int(rows, 24))
-        cols = max(20, safe_int(cols, 100))
-        if self.closed:
-            return {"resized": False}
-        set_terminal_size(self.master_fd, rows, cols)
-        return {"resized": True, "rows": rows, "cols": cols}
-
-    def output_since(self, seq):
-        seq = safe_int(seq, 0)
-        with self.lock:
-            chunks = [chunk for chunk in self.chunks if chunk["seq"] > seq]
-            closed = self.closed
-        return {"chunks": chunks, "closed": closed}
-
-    def read_loop(self):
-        while not self.closed:
-            if self.process.poll() is not None:
-                self.append_output("\r\n[terminal exited]\r\n")
-                self.closed = True
-                break
-            try:
-                readable, _, _ = select.select([self.master_fd], [], [], 0.1)
-            except (OSError, ValueError):
-                self.closed = True
-                break
-            if not readable:
-                continue
-            try:
-                data = os.read(self.master_fd, 4096)
-            except BlockingIOError:
-                continue
-            except OSError:
-                self.closed = True
-                break
-            if not data:
-                self.closed = True
-                break
-            self.append_output(data.decode(errors="replace"))
-
-    def append_output(self, data):
-        with self.lock:
-            self.chunks.append({"seq": self.next_seq, "data": data})
-            self.next_seq += 1
-            if len(self.chunks) > MAX_TERMINAL_CHUNKS:
-                self.chunks = self.chunks[-MAX_TERMINAL_CHUNKS:]
-
-    def close(self):
-        self.closed = True
-        if self.process and self.process.poll() is None:
-            try:
-                os.killpg(self.process.pid, signal.SIGHUP)
-            except ProcessLookupError:
-                pass
-        if self.master_fd is not None:
-            try:
-                os.close(self.master_fd)
-            except OSError:
-                pass
-
-
-def set_terminal_size(fd, rows, cols):
-    packed = struct.pack("HHHH", int(rows), int(cols), 0, 0)
-    fcntl.ioctl(fd, termios.TIOCSWINSZ, packed)
-
-
-def safe_int(value, default):
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("error_factory", ApiError)
+        super().__init__(*args, **kwargs)
 
 
 def graph_identity(state_path):
@@ -737,16 +582,25 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             if parsed.path.startswith("/api/"):
                 self.require_api_mutation_request()
             if parsed.path == "/api/matters":
-                self.write_json(create_matter(self.request_state_path(), self.read_json()), HTTPStatus.CREATED)
+                self.write_json(create_matter(
+                    self.request_state_path(), self.read_json(),
+                    expected_revision=self.request_revision(),
+                ), HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/dependencies":
-                self.write_json(add_dependency(self.request_state_path(), self.read_json()), HTTPStatus.CREATED)
+                self.write_json(add_dependency(
+                    self.request_state_path(), self.read_json(),
+                    expected_revision=self.request_revision(),
+                ), HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/state":
                 self.write_json(switch_state_path(self.state_paths, self.read_json()))
                 return
             if parsed.path == "/api/command":
-                self.write_json(run_command(self.request_state_path(), self.read_json()))
+                self.write_json(run_command(
+                    self.request_state_path(), self.read_json(),
+                    expected_revision=self.request_revision(),
+                ))
                 return
             if parsed.path == "/api/terminal/sessions":
                 payload = self.read_json()
@@ -782,7 +636,10 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
                 return
             matter_id = unquote(match.group(1))
             self.require_api_mutation_request()
-            self.write_json(update_conditions(self.request_state_path(), matter_id, self.read_json()))
+            self.write_json(update_conditions(
+                self.request_state_path(), matter_id, self.read_json(),
+                expected_revision=self.request_revision(),
+            ))
         except ApiError as error:
             self.write_error(error)
 
@@ -798,7 +655,10 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
             if parsed.path != "/api/dependencies":
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
-            self.write_json(remove_dependency(self.request_state_path(), self.read_json()))
+            self.write_json(remove_dependency(
+                self.request_state_path(), self.read_json(),
+                expected_revision=self.request_revision(),
+            ))
         except ApiError as error:
             self.write_error(error)
 
@@ -807,6 +667,15 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
 
     def request_state_path(self):
         return self.state_paths.for_request(self.headers.get(GRAPH_ID_HEADER))
+
+    def request_revision(self):
+        revision = self.headers.get(GRAPH_REVISION_HEADER)
+        if not revision:
+            raise ApiError(
+                "A graph revision is required. Refresh the graph before editing.",
+                HTTPStatus.CONFLICT,
+            )
+        return revision
 
     def guess_type(self, path):
         if path.endswith(".js"):
@@ -900,9 +769,12 @@ class MattersWebHandler(SimpleHTTPRequestHandler):
         if length == 0:
             return {}
         try:
-            return json.loads(self.rfile.read(length))
+            payload = json.loads(self.rfile.read(length))
         except json.JSONDecodeError as error:
             raise ApiError(f"invalid JSON: {error.msg}") from error
+        if not isinstance(payload, dict):
+            raise ApiError("request body must be a JSON object")
+        return payload
 
     def write_json(self, payload, status=HTTPStatus.OK):
         body = json.dumps(payload, indent=2).encode()

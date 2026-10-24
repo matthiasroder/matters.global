@@ -411,6 +411,7 @@ def reconcile_with_relationships(candidates, matters, dependencies, neighbours, 
     neighbours = iter(neighbours)
     relations = iter(relations)
     store = SimpleNamespace(
+        ensure_compatible=lambda *_args: None,
         nearest=lambda *_args, **_kwargs: next(neighbours),
         text_of=lambda matter: matter,
         add=lambda *_args: None,
@@ -486,3 +487,121 @@ def test_reconciliation_refuses_invalid_existing_graph_before_calling_model():
 def test_reconciliation_requires_existing_dependencies():
     with pytest.raises(TypeError, match="dependencies"):
         reconcile_candidates([], set(), {}, None, None)
+
+
+def test_embedding_store_rejects_changed_dimension_and_rebuilds(tmp_path):
+    from matters.identity import EmbeddingCompatibilityError
+
+    path = tmp_path / "vectors.npz"
+    store = EmbeddingStore(path)
+    ingest_candidates([A], set(), {}, store, FakeEmbedder(256))
+    store.save()
+    loaded = EmbeddingStore.load(path)
+    with pytest.raises(EmbeddingCompatibilityError, match="dimension changed.*rebuild"):
+        match_candidate(_candidate_text(APRIME), loaded, FakeEmbedder(128))
+    loaded.rebuild(FakeEmbedder(128))
+    loaded.save()
+    assert match_candidate(_candidate_text(A), EmbeddingStore.load(path), FakeEmbedder(128)).action == "merge"
+
+
+def test_embedding_store_rejects_same_dimension_different_model(tmp_path):
+    from matters.identity import EmbeddingCompatibilityError
+
+    class Versioned(FakeEmbedder):
+        def __init__(self, revision):
+            super().__init__(32)
+            self.revision = revision
+
+        @property
+        def cache_identity(self):
+            return {"model": "custom", "revision": self.revision}
+
+    path = tmp_path / "vectors.npz"
+    store = EmbeddingStore(path)
+    ingest_candidates([A], set(), {}, store, Versioned("one"))
+    store.save()
+    with pytest.raises(EmbeddingCompatibilityError, match="model or revision changed"):
+        match_candidate(_candidate_text(A), EmbeddingStore.load(path), Versioned("two"))
+
+
+def test_legacy_saved_vectors_require_explicit_rebuild(tmp_path):
+    import numpy as np
+    from matters.identity import EmbeddingCompatibilityError
+
+    path = tmp_path / "legacy.npz"
+    embedder = FakeEmbedder(16)
+    np.savez(path, ids=np.array([A["id"]]), texts=np.array([_candidate_text(A)]),
+             vectors=np.array(embedder.embed([_candidate_text(A)])))
+    store = EmbeddingStore.load(path)
+    with pytest.raises(EmbeddingCompatibilityError, match="no model identity"):
+        match_candidate(_candidate_text(A), store, embedder)
+    store.rebuild(embedder)
+    assert match_candidate(_candidate_text(A), store, embedder).matter_id == A["id"]
+
+
+def test_reconciliation_stops_at_first_acceptable_duplicate(monkeypatch):
+    import matters.identity as identity
+
+    embedder = StubEmbedder({"candidate": [1.0, 0.0]})
+    store = EmbeddingStore()
+    for name, vector in [("first", [1.0, 0.0]), ("second", [0.99, 0.1]), ("third", [0.98, 0.2])]:
+        store.add(name, vector, name)
+    calls = []
+
+    def classify(*args):
+        calls.append(args[2])
+        return identity.Relationship("same", "none", [], "duplicate")
+
+    monkeypatch.setattr(identity, "classify_relationship", classify)
+    _, _, mapping, edges, flips = reconcile_candidates(
+        [cand("new", "candidate")], {"first", "second", "third"},
+        {name: [{"label": "open", "truth": False}] for name in ("first", "second", "third")},
+        store, embedder, dependencies=set(), llm_client=fake_classifier("same"),
+    )
+    assert mapping == {"new": "first"}
+    assert calls == ["first"]
+    assert edges == flips == []
+
+
+def test_reconciliation_checks_role_guard_before_early_exit(monkeypatch):
+    import matters.identity as identity
+
+    embedder = StubEmbedder({"candidate": [1.0, 0.0]})
+    store = EmbeddingStore()
+    store.add("problem", [1.0, 0.0], "problem", kind="problem", status="open")
+    store.add("method", [0.99, 0.1], "method", kind="method", status="open")
+    calls = []
+
+    def classify(*args):
+        calls.append(args[2])
+        return identity.Relationship("same", "none", [], "duplicate")
+
+    monkeypatch.setattr(identity, "classify_relationship", classify)
+    _, _, mapping, _, _ = reconcile_candidates(
+        [{**cand("new", "candidate"), "kind": "method", "status": "open"}],
+        {"problem", "method"},
+        {name: [{"label": "open", "truth": False}] for name in ("problem", "method")},
+        store, embedder, dependencies=set(), llm_client=fake_classifier("same"),
+    )
+    assert mapping == {"new": "method"}
+    assert calls == ["problem", "method"]
+
+
+def test_local_embedder_fingerprints_same_name_artifact_changes():
+    import numpy as np
+    from matters.identity import LocalEmbedder
+
+    def loaded_model(weight):
+        return SimpleNamespace(
+            embedding=np.array([[weight, 0.0]], dtype="float32"),
+            weights=None, token_mapping=None, config={"normalize": True},
+            tokenizer=SimpleNamespace(to_str=lambda: '{"vocab": ["word"]}'),
+        )
+
+    first = LocalEmbedder("same-model")
+    first._model = loaded_model(1.0)
+    second = LocalEmbedder("same-model")
+    second._model = loaded_model(2.0)
+    assert first.cache_identity["model"] == second.cache_identity["model"]
+    assert first.cache_identity["revision"] != second.cache_identity["revision"]
+    assert first.cache_identity is first.cache_identity

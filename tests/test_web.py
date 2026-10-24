@@ -81,6 +81,9 @@ def api_request(state_path, method, path, body="", headers=None, token=VALID_TOK
         if token is not None:
             request_headers.setdefault("Authorization", f"Bearer {token}")
         request_headers.setdefault(web.GRAPH_ID_HEADER, web.graph_identity(state_path))
+        request_headers.setdefault(
+            web.GRAPH_REVISION_HEADER, web.state_revision(*web.load_state(state_path))
+        )
         conn = http.client.HTTPConnection("127.0.0.1", server.server_port)
         conn.request(method, path, body=body, headers=request_headers)
         response = conn.getresponse()
@@ -111,6 +114,9 @@ def api_response(state_path, method, path, body="", headers=None, token=VALID_TO
         if token is not None:
             request_headers.setdefault("Authorization", f"Bearer {token}")
         request_headers.setdefault(web.GRAPH_ID_HEADER, web.graph_identity(state_path))
+        request_headers.setdefault(
+            web.GRAPH_REVISION_HEADER, web.state_revision(*web.load_state(state_path))
+        )
         conn = http.client.HTTPConnection("127.0.0.1", server.server_port)
         conn.request(method, path, body=body, headers=request_headers)
         response = conn.getresponse()
@@ -186,6 +192,7 @@ def test_graph_payload_includes_derived_status(tmp_path):
     assert payload["edges"] == [{"source": "a", "target": "b"}]
     assert set(payload) == {
         "graph_id",
+        "revision",
         "state_path",
         "nodes",
         "edges",
@@ -233,6 +240,93 @@ def test_graph_payload_includes_derived_status(tmp_path):
     assert nodes["a"]["overview"]["system_population"] == 2
     assert nodes["a"]["overview"]["orbit_radius"] > 0
     assert nodes["b"]["overview"]["orbit_radius"] == 0
+
+
+def test_stale_condition_position_is_rejected_after_cli_deletion(tmp_path, monkeypatch):
+    path = tmp_path / "matters.json"
+    write_state(path, {
+        "matters": ["a"], "dependencies": [],
+        "conditions": {"a": [
+            {"label": label, "truth": False} for label in ("first", "second", "third")
+        ]},
+    })
+    with running_server(monkeypatch, path) as url:
+        port, token = launch_url_parts(url)
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        _, _, body = live_request(port, "GET", "/api/state", headers=headers)
+        seen = json.loads(body)
+        assert main(["delete-condition", "a", "1", "--state", str(path)]) == 0
+        before = path.read_bytes()
+        status, _, body = live_request(
+            port, "PATCH", "/api/matters/a/conditions",
+            json.dumps({"action": "toggle", "index": 1}),
+            {**headers, web.GRAPH_ID_HEADER: seen["graph_id"],
+             web.GRAPH_REVISION_HEADER: seen["revision"]},
+        )
+        assert status == 409
+        assert "Refresh" in json.loads(body)["error"]
+        assert path.read_bytes() == before
+        current = graph_payload(path)
+        assert current["graph_id"] == seen["graph_id"]
+        assert current["revision"] != seen["revision"]
+        status, _, body = live_request(
+            port, "PATCH", "/api/matters/a/conditions",
+            json.dumps({"index": 0, "truth": True}),
+            {**headers, web.GRAPH_ID_HEADER: current["graph_id"],
+             web.GRAPH_REVISION_HEADER: current["revision"]},
+        )
+        assert status == 200
+        assert json.loads(body)["nodes"][0]["conditions"] == [
+            {"label": "second", "truth": True}, {"label": "third", "truth": False}
+        ]
+
+
+def test_mutation_requires_revision(tmp_path, monkeypatch):
+    path = tmp_path / "matters.json"
+    write_state(path)
+    before = path.read_bytes()
+    with running_server(monkeypatch, path) as url:
+        port, token = launch_url_parts(url)
+        status, _, body = live_request(
+            port, "PATCH", "/api/matters/b/conditions",
+            json.dumps({"action": "toggle", "index": 0}),
+            {"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+             web.GRAPH_ID_HEADER: graph_payload(path)["graph_id"]},
+        )
+    assert status == 409
+    assert "revision" in json.loads(body)["error"]
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("value", ["false", "true", 0, 1, None, [], {}])
+def test_web_rejects_non_boolean_truth_without_changing_state(tmp_path, value):
+    path = tmp_path / "matters.json"
+    write_state(path)
+    before = path.read_bytes()
+    with pytest.raises(ApiError, match="condition truth must be true or false"):
+        update_conditions(path, "b", {"index": 0, "truth": value})
+    with pytest.raises(ApiError, match="condition truth must be true or false"):
+        create_matter(path, {"title": "new", "conditions": [{"truth": value}]})
+    assert path.read_bytes() == before
+
+
+def test_label_patch_preserves_a_truth_value(tmp_path):
+    path = tmp_path / "matters.json"
+    write_state(path)
+    update_conditions(path, "b", {"index": 0, "truth": True})
+    result = update_conditions(path, "b", {"index": 0, "label": "New wording"})
+    node = next(node for node in result["nodes"] if node["id"] == "b")
+    assert node["conditions"] == [{"label": "New wording", "truth": True}]
+
+
+@pytest.mark.parametrize("index", [True, False, 0.5, "0", None])
+def test_condition_position_requires_a_json_integer(tmp_path, index):
+    path = tmp_path / "matters.json"
+    write_state(path)
+    before = path.read_bytes()
+    with pytest.raises(ApiError, match="valid condition index"):
+        update_conditions(path, "b", {"action": "toggle", "index": index})
+    assert path.read_bytes() == before
 
 
 def test_create_matter_persists_conditions(tmp_path):
@@ -1106,6 +1200,7 @@ def test_stale_tab_cannot_edit_or_query_another_graph(
         )
         assert status == 200
         second_id = json.loads(body)["graph_id"]
+        second_revision = json.loads(body)["revision"]
         assert first_id != second_id
 
         status, _, body = live_request(
@@ -1119,7 +1214,8 @@ def test_stale_tab_cannot_edit_or_query_another_graph(
         status, _, body = live_request(
             port, "PATCH", "/api/matters/b/conditions",
             json.dumps({"action": "toggle", "index": 0}),
-            {**headers, web.GRAPH_ID_HEADER: second_id},
+            {**headers, web.GRAPH_ID_HEADER: second_id,
+             web.GRAPH_REVISION_HEADER: second_revision},
         )
         assert status == 200
         assert json.loads(body)["graph_id"] == second_id

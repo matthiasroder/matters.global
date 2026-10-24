@@ -16,6 +16,8 @@ from matters.view_png import (
     PNG_WIDTH,
     RESOLVED,
     _LEGEND_HEIGHT,
+    _LabelOcclusion,
+    _arrow,
     _edge_endpoints,
     _layout_labels,
     _node_radius,
@@ -23,6 +25,7 @@ from matters.view_png import (
     _plot_box,
     _point_in_rect,
     _segment_hits_rect,
+    _stroke,
     _wrap_label,
     encode_png,
     rasterize_view,
@@ -166,3 +169,45 @@ def test_a_cycle_still_draws_structure_without_status_colours():
 def test_encode_png_rejects_a_buffer_of_the_wrong_length():
     with pytest.raises(ValueError, match="does not match"):
         encode_png(2, 2, b"\x00" * 3)
+
+
+@pytest.mark.parametrize(
+    "segment, rect, expected",
+    [
+        ((-2, 1, 4, 1), (0, 0, 2, 2), True),
+        ((1, 4, 1, -2), (0, 0, 2, 2), True),
+        ((-2, 0, 4, 0), (0, 0, 2, 2), True),
+        ((-2, -2, 0, 0), (0, 0, 2, 2), True),
+        ((-2, -0.01, 4, -0.01), (0, 0, 2, 2), False),
+        ((1, 1, 1, 1), (0, 0, 2, 2), True),
+        ((3, 3, 3, 3), (0, 0, 2, 2), False),
+        # A narrow intersection between raster samples must still be detected.
+        ((0, 0, 10, 0), (0.4, -0.1, 0.6, 0.1), True),
+    ],
+)
+def test_segment_rectangle_intersection_includes_tangencies_and_subpixel_crossings(
+    segment, rect, expected
+):
+    assert _segment_hits_rect(*segment, rect) is expected
+    assert _segment_hits_rect(*segment[2:], *segment[:2], rect) is expected
+
+
+def test_label_occlusion_preserves_fractional_and_half_open_rectangle_boundaries():
+    rectangles = [(-40.5, -32, 70.25, 66), (90.1, 12.5, 144, 32.5)]
+    indexed = _LabelOcclusion(rectangles)
+    for x in [-41, -40.5, -32, -0.1, 0, 31.999, 32, 64, 70.25, 90.1, 143.999, 144]:
+        for y in [-33, -32, -0.1, 0, 12.5, 31.999, 32, 32.5, 65.999, 66]:
+            assert indexed.contains(x, y) is any(
+                _point_in_rect(x, y, rect) for rect in rectangles
+            )
+
+
+def test_indexed_occlusion_draws_the_same_strokes_and_arrows_as_rectangle_scanning():
+    width, height = 240, 180
+    rectangles = [(50.25, 40.5, 110.75, 120.25), (140, 70, 200, 95)]
+    original = bytearray(bytes(PAPER) * width * height)
+    indexed = bytearray(original)
+    for pixels, avoid in ((original, rectangles), (indexed, _LabelOcclusion(rectangles))):
+        _stroke(pixels, width, height, 10.2, 12.4, 230.9, 160.3, INK, 1.6, avoid)
+        _arrow(pixels, width, height, 20.3, 30.7, 160.2, 90.8, INK, avoid)
+    assert indexed == original

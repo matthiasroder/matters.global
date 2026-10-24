@@ -225,33 +225,34 @@ def llm_extraction_proposal(
     if selection is None:
         raise ConfigError("extraction: no model profile configured")
 
-    result = selection.generator.generate(
-        StructuredRequest(
-            operation="extraction",
-            system=SYSTEM_PROMPT,
-            user=_user_content(source_text, source_type, existing_matters),
-            schema=EXTRACTION_SCHEMA,
-            max_output_tokens=4096,
-            metadata={"source_type": source_type},
+    with selection:
+        result = selection.generator.generate(
+            StructuredRequest(
+                operation="extraction",
+                system=SYSTEM_PROMPT,
+                user=_user_content(source_text, source_type, existing_matters),
+                schema=EXTRACTION_SCHEMA,
+                max_output_tokens=4096,
+                metadata={"source_type": source_type},
+            )
         )
-    )
-    data = dict(result.data)
-    candidates = _candidates_from_llm(data, source_type)
-    candidate_ids = [candidate["id"] for candidate in candidates]
-    dependency_candidates = _dependencies_from_llm(
-        data, candidate_ids, existing_matters
-    )
+        data = dict(result.data)
+        candidates = _candidates_from_llm(data, source_type)
+        candidate_ids = [candidate["id"] for candidate in candidates]
+        dependency_candidates = _dependencies_from_llm(
+            data, candidate_ids, existing_matters
+        )
 
-    return {
-        "source_type": source_type,
-        "candidates": candidates,
-        "dependency_candidates": dependency_candidates,
-        "requires_confirmation": True,
-        "engine": "llm",
-        "model": result.model,
-        "provider": result.provider,
-        "model_profile": selection.profile,
-    }
+        return {
+            "source_type": source_type,
+            "candidates": candidates,
+            "dependency_candidates": dependency_candidates,
+            "requires_confirmation": True,
+            "engine": "llm",
+            "model": result.model,
+            "provider": result.provider,
+            "model_profile": selection.profile,
+        }
 
 
 def _marker_proposal(source_text, source_type, existing_matters):

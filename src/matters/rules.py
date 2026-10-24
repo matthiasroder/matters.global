@@ -24,7 +24,7 @@ is why ``show`` prints a number for every condition; and a reference
 captured before a delete may point at a different condition afterwards,
 because deleting renumbers everything after it.
 
-POSIX only. ``fcntl`` is imported at module scope, exactly as ``web.py``
+POSIX only. ``fcntl`` is imported at module scope, exactly as ``terminal.py``
 already does, so the package does not import on Windows. That is accepted
 and explicit: a silently disabled advisory lock is worse than no lock.
 """
@@ -42,7 +42,7 @@ from .engine import prerequisites as matter_prerequisites
 from .engine import truth as condition_truth
 from .extraction import slugify
 from .graph_index import DependencyCycleError, GraphIndex
-from .storage import load_state, resolve_state_path, save_state
+from .storage import load_state, resolve_state_path, save_state, state_revision
 
 
 MATTER_ID_PATTERN = re.compile(r"[a-z0-9_]+")
@@ -218,7 +218,8 @@ def load_state_or_rule_error(path, load=None):
 
 @contextmanager
 def state_transaction(
-    state_path, *, require_exists=False, require_acyclic=True, load=None
+    state_path, *, require_exists=False, require_acyclic=True, load=None,
+    expected_revision=None,
 ):
     """Own one whole read-modify-write against ``state_path``.
 
@@ -261,6 +262,14 @@ def state_transaction(
             raise RuleError(f"state file does not exist: {path}", "not_found")
 
         matters, conditions, dependencies = load_state_or_rule_error(path, load)
+        if expected_revision is not None and expected_revision != state_revision(
+            matters, conditions, dependencies
+        ):
+            raise RuleError(
+                "The graph changed since it was displayed. Refresh the graph "
+                "and review your edit before trying again.",
+                "conflict",
+            )
         draft = StateDraft(path, matters, conditions, dependencies)
         if require_acyclic:
             draft.index = require_acyclic_index(matters, conditions, dependencies)
@@ -300,8 +309,19 @@ def normalized_matter_id(payload):
     return require_matter_id_syntax(matter_id)
 
 
+def require_condition_truth(value):
+    """Validate new writes; legacy file coercion remains in engine/storage."""
+
+    if not isinstance(value, bool):
+        raise RuleError(
+            "condition truth must be true or false, not "
+            f"{type(value).__name__}: {value!r}"
+        )
+    return value
+
+
 def normalize_condition(condition, index):
-    """Normalise one condition payload. Never raises.
+    """Normalise and validate one incoming condition payload.
 
     ``index`` is **1-based** and is used only to build the fallback label.
     """
@@ -309,9 +329,11 @@ def normalize_condition(condition, index):
     if isinstance(condition, str):
         label = condition.strip()
         truth_value = False
-    else:
+    elif isinstance(condition, dict):
         label = str(condition.get("label") or "").strip()
-        truth_value = condition_truth(condition.get("truth", False))
+        truth_value = require_condition_truth(condition.get("truth", False))
+    else:
+        raise RuleError("condition must be text or an object")
     if not label:
         label = f"Unlabeled condition {index}"
     return {"label": label, "truth": truth_value}
@@ -320,10 +342,9 @@ def normalize_condition(condition, index):
 def require_condition_index(payload, conditions):
     """Validate the **0-based** ``index`` field of a web API payload."""
 
-    try:
-        index = int(payload["index"])
-    except (KeyError, TypeError, ValueError) as error:
-        raise RuleError("valid condition index is required") from error
+    index = payload.get("index")
+    if not isinstance(index, int) or isinstance(index, bool):
+        raise RuleError("valid condition index is required")
     if index < 0 or index >= len(conditions):
         raise RuleError("condition index is out of range", "not_found")
     return index
@@ -488,7 +509,7 @@ def apply_condition_patch(current, index, *, label=UNSET, truth=UNSET):
     if label is not UNSET:
         updated["label"] = str(label).strip()
     if truth is not UNSET:
-        updated["truth"] = condition_truth(truth)
+        updated["truth"] = require_condition_truth(truth)
     return normalize_condition(updated, index + 1)
 
 
@@ -634,8 +655,8 @@ def parse_create_segment(segment):
 # ---------------------------------------------------------------------------
 
 
-def create_matter(state_path, payload, *, load=None):
-    with state_transaction(state_path, load=load) as draft:
+def create_matter(state_path, payload, *, load=None, expected_revision=None):
+    with state_transaction(state_path, load=load, expected_revision=expected_revision) as draft:
         matter_id = normalized_matter_id(payload)
         if matter_id in draft.matters:
             raise RuleError(f"matter already exists: {matter_id}", "conflict")
@@ -643,6 +664,8 @@ def create_matter(state_path, payload, *, load=None):
         condition_payloads = payload.get("conditions") or [
             {"label": f"Resolved: {matter_id.replace('_', ' ')}", "truth": False}
         ]
+        if not isinstance(condition_payloads, list):
+            raise RuleError("conditions must be a list")
         normalized_conditions = [
             normalize_condition(condition, index)
             for index, condition in enumerate(condition_payloads, start=1)
@@ -652,8 +675,8 @@ def create_matter(state_path, payload, *, load=None):
         draft.conditions[matter_id] = normalized_conditions
 
 
-def update_conditions(state_path, matter_id, payload, *, load=None):
-    with state_transaction(state_path, load=load) as draft:
+def update_conditions(state_path, matter_id, payload, *, load=None, expected_revision=None):
+    with state_transaction(state_path, load=load, expected_revision=expected_revision) as draft:
         if matter_id not in draft.matters:
             raise RuleError(f"unknown matter: {matter_id}", "not_found")
 
@@ -661,6 +684,8 @@ def update_conditions(state_path, matter_id, payload, *, load=None):
         current = list(draft.conditions.get(matter_id, []))
 
         if "conditions" in payload:
+            if not isinstance(payload["conditions"], list):
+                raise RuleError("conditions must be a list")
             current = [
                 normalize_condition(condition, index)
                 for index, condition in enumerate(payload["conditions"], start=1)
@@ -687,8 +712,8 @@ def update_conditions(state_path, matter_id, payload, *, load=None):
         draft.conditions[matter_id] = current
 
 
-def add_dependency(state_path, payload, *, load=None):
-    with state_transaction(state_path, load=load) as draft:
+def add_dependency(state_path, payload, *, load=None, expected_revision=None):
+    with state_transaction(state_path, load=load, expected_revision=expected_revision) as draft:
         source, target = dependency_endpoints(payload, draft.matters)
         if would_create_cycle(
             draft.matters, draft.conditions, draft.dependencies, (source, target)
@@ -697,7 +722,7 @@ def add_dependency(state_path, payload, *, load=None):
         draft.dependencies.add((source, target))
 
 
-def remove_dependency(state_path, payload, *, load=None):
+def remove_dependency(state_path, payload, *, load=None, expected_revision=None):
     """Remove one edge, and do so even on an already cyclic file.
 
     ``require_acyclic=False`` for the same reason as :func:`unlink`, which is
@@ -707,7 +732,9 @@ def remove_dependency(state_path, payload, *, load=None):
     being ``None`` costs it nothing.
     """
 
-    with state_transaction(state_path, require_acyclic=False, load=load) as draft:
+    with state_transaction(
+        state_path, require_acyclic=False, load=load, expected_revision=expected_revision
+    ) as draft:
         source, target = dependency_endpoints(payload, draft.matters)
         draft.dependencies.discard((source, target))
 
@@ -729,16 +756,11 @@ def set_condition_truth(state_path, matter_id, ref, truth_value):
     user asked for. Callers must convert first; a non-bool is a caller bug
     and is rejected before any file is opened or locked.
 
-    ``engine.truth`` itself is unchanged: the web path legitimately receives
-    JSON booleans through :func:`normalize_condition` and
-    :func:`apply_condition_patch`, and its coercion must keep working there.
+    Web writes use the same strict validation. ``engine.truth`` retains its
+    legacy coercion when interpreting conditions already stored on disk.
     """
 
-    if not isinstance(truth_value, bool):
-        raise RuleError(
-            "condition truth must be true or false, not "
-            f"{type(truth_value).__name__}: {truth_value!r}"
-        )
+    require_condition_truth(truth_value)
 
     with state_transaction(state_path, require_exists=True) as draft:
         require_matter(matter_id, draft.matters)

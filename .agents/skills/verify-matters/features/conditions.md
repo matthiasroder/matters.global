@@ -8,6 +8,7 @@ Conditions determine whether a matter is resolved. A user can change truth value
 - `condition-label` saves a new label without changing truth.
 - `condition-add` appends a false condition and makes a resolved matter unresolved again.
 - `condition-cli` exposes each operation from the terminal.
+- `condition-stale-edit` refuses an edit whose displayed revision predates a CLI or other-tab change.
 
 ## How to get to it (user POV)
 
@@ -27,6 +28,7 @@ Preconditions:
 - **CLI label.** Run `.venv/bin/python -m matters.cli edit-condition ship_first_version 1 'First version reviewed by a real user' --state "$VERIFY_SCRATCH/matters.json"`. Require the renamed label with true unchanged.
 - **CLI add.** Run `.venv/bin/python -m matters.cli add-condition ship_first_version 'Reviewer can reopen the result' --state "$VERIFY_SCRATCH/matters.json"`. Require the second false condition. Reopen the browser using the full launch URL and inspect the same facts.
 - **Node selection entry point.** When a change affects canvas picking, also select the visibly labeled node in the graph using a fresh screenshot and CUA click. Require the inspector heading to match. Search selection alone does not verify this path.
+- **Stale positional edit.** In the disposable seed, add two more conditions through the CLI, then open the full launch URL and select `ship_first_version`. Capture its three conditions. Run `matters delete-condition ship_first_version 1 --state "$VERIFY_SCRATCH/matters.json"` in the CLI, keeping the browser open. Click the browser's second **False** button, which still describes the old second condition. Require a conflict message and **Refresh graph**, and require byte-identical state to the file after the CLI deletion. Click **Refresh graph**, verify the two remaining conditions, then toggle the intended condition and confirm it alone changed. Capture the before, conflict, and refreshed states. This recipe also covers the destructive CLI deletion entry point on isolated test data.
 - **Cloud label and linked matter.** On the seed cloud, click the visible button named `Ship first version, actionable`. Require inspector heading `Ship first version`. Then click its `Define project goal` prerequisite link and require that matter's inspector and true condition. Inspect the current DOM for these labels before clicking.
 
 ## Gotchas

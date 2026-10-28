@@ -39,6 +39,18 @@ Help turn vague importance into a working map:
 5. Compute or explain the universe, frontier, and horizon to decide what takes attention next.
 6. Promote a condition into a matter when it needs its own decomposition, ownership, or sequence.
 
+## matters list
+
+Use this workflow when the user says "matters list" in chat or asks to list open matters with their conditions. It produces a chat report from existing CLI reads; the CLI `matters list` command itself still returns matter ids. Honour explicit requests for raw CLI output or a different scope.
+
+1. Select the graph using Persistence Behavior, or the project's wrapper when it explicitly selects that graph. Read `matters list --json`, then `matters show <matter> --json` for the selected matters and any prerequisites needed to determine resolution.
+2. Include every unresolved matter in the requested scope, including blocked matters. Resolution requires all own conditions to be true and all prerequisites to be recursively resolved; `universe` alone omits blocked matters.
+3. Lead with the number of open matters and the number of resolved matters omitted from that scope. Use a numbered list of readable matter titles in stable alphabetical order, unless the user requests another order.
+4. Show every condition under its matter, including conditions already met, in stored order. Use the legend **✓ Met · ☐ Outstanding**, with one marker per condition reflecting its stored truth value.
+5. Condense wording for readability without merging or dropping conditions, changing truth values, or losing thresholds, permissions or qualifications. Say when wording is condensed; preserve exact labels when requested.
+6. If all own conditions are met but a prerequisite keeps the matter open, name the unresolved prerequisite so the remaining blocker is clear.
+7. Return the report directly in chat without changing graph state. If no matters are open, report that and the resolved count.
+
 ## Unlock Workflow
 
 Use this workflow when the user asks to unlock, advance, resolve, or work toward goals in a matters tree.

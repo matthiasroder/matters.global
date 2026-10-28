@@ -505,11 +505,3 @@ The export includes only matters marked `public`, their conditions, and dependen
 ## Walkthrough
 
 See [docs/walkthrough.md](docs/walkthrough.md) for a small end-to-end example covering `universe`, `unlock`, `extract`, `export-public`, and `merge-public`.
-
-## Publishing the Skill
-
-The canonical skill source lives in this repo at `skills/matters`. To publish it into the local `SKILLS` repository:
-
-```sh
-scripts/sync_skill_to_skills_repo.sh
-```

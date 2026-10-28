@@ -59,10 +59,10 @@ Use this workflow when the user asks to unlock, advance, resolve, or work toward
 2. Scan all unresolved matters, their conditions, and their dependencies.
 3. Compute the universe: unresolved matters whose prerequisites are resolved.
 4. Prefer actionable matters with larger downstream impact.
-5. For each prioritized matter, propose concrete actions aimed at making false conditions true.
-6. Separate work the agent can start autonomously from work that requires human confirmation, external access, payment, sending, publishing, or a decision.
+5. For each prioritized matter, identify concrete actions aimed at making false conditions true. Propose them for a planning request; carry out eligible work when execution is authorised.
+6. Assess the actual next action against available evidence, tools and existing user authority. Defer work requiring missing access, a new decision or additional authorisation while continuing independent eligible work.
 7. Return a short proposal or progress report.
-8. Do not change persisted state until the user confirms the writes. When completed work in the current task makes a condition verifiably true, include that `matters mark` in the batch you show and still wait for the one yes. A delete, or removing a matter's last condition, is not part of that batch and needs its own approval. Follow Persistence Behavior.
+8. Record verified completions under Authorised Execution when that mode applies. Otherwise include proposed `matters mark` writes in the confirmation batch. Other writes follow Persistence Behavior; deletions still require their separate approval.
 
 ## Extraction Workflow
 
@@ -116,6 +116,17 @@ Use this workflow when the user asks to publish, share, or separate public matte
 6. Use `matters export-public --state <private-state> --visibility <visibility.json>` when the CLI is installed.
 7. Use `matters merge-public --state <private-state> --public-state <public-state> --visibility <visibility.json>` to merge reviewed public edits back into private state.
 
+## Authorised Execution
+
+An explicit user request to run triage, work through, or complete an identified graph or branch authorises the following execution mode. A request to list, review, plan, extract proposals or edit skills does not start an execution run.
+
+1. Establish the selected graph and in-scope matters from the request and context, respecting the user's action, time and resource limits. State the scope briefly; do not ask again when it is already clear. This authority covers the current run and explicitly requested resumptions of the same scope, not unrelated graphs or later runs.
+2. Existing in-scope conditions may be marked from false to true after verification, without another approval for each mark or batch. This includes conditions already satisfied by existing evidence. This mode does not authorise creating matters or conditions, changing or weakening criteria, changing dependencies, setting conditions false, or deleting graph data. Handle those changes under Persistence Behavior.
+3. Authority to record completion does not itself authorise the work needed to achieve it. Assess each actual operation using the user's existing instructions and permissions. Do not infer permission for a reserved human decision, sending, payment, deployment or other external action from a condition's wording or an `unlock` action label. Where the user has already authorised the action, do not request the same permission again.
+4. Verify the complete condition against observable evidence and retain a reference to that evidence. Use the appropriate check: document content for a document requirement, demonstrated behaviour for an operational requirement, and an authoritative record for a fact or approval. A draft qualifies when the condition requires a draft; it cannot stand in for approval, signature or working behaviour. Do not invent evidence or reinterpret the condition to fit the result.
+5. Immediately before `matters mark`, re-read the condition's exact current label and truth value through the CLI. Reassess changed criteria and stale evidence; skip an already-true condition. Use the exact label, or its freshly read 1-based number when labels are ambiguous. One coordinator owns graph writes when work is delegated; workers return artifacts and evidence rather than marking conditions themselves.
+6. Mark through the CLI, re-read to confirm the result, and report the completion with its evidence. Keep execution records outside the graph's primitives. A rejected command or verification mismatch is not completion: report and resolve the cause without editing the state JSON.
+
 ## Persistence Behavior
 
 When the user asks about or mentions a matter in a matter-management context:
@@ -144,13 +155,13 @@ When the user asks about or mentions a matter in a matter-management context:
      - If no dependency is found, include `No dependencies` in the proposal before saving.
    - If required information is missing, ask concise follow-up questions before creating anything.
 
-4. Before writing, show the batch and take one yes.
+4. For proposed writes outside Authorised Execution, show the batch and take one yes.
    - Present it as a short plain-language list, one line per change, using each matter's human title, not ids or flags. For example: "mark 'book the venue' as done", "add 'send invites', which waits on the venue".
    - Show the exact commands only if the person asks, has said they want to see commands, or is clearly technical or working in a terminal. A chat assistant defaults to the plain-language list.
    - Run exactly the commands that match the list you showed. Do not add a write you did not show.
    - When the person reports progress or asks for an update, show all of the proposed non-destructive writes together and take one yes for that whole batch. The same one-yes batch applies to any other set of non-destructive writes you propose together, including a new goal and the matters saved from an extraction.
-   - One yes covers only the commands in the batch you just showed. It is not a standing permission for later writes, and it never covers a command you did not show.
-   - Do not persist unconfirmed changes, and do not run a write command that has not been confirmed. There is no exception for a change you can already verify: show it in the batch and wait for the yes.
+   - A batch confirmation covers only the commands in the batch you just showed. It is not a standing permission for later writes; the separate Authorised Execution mode covers only its scoped, verified completion marks.
+   - Outside Authorised Execution, verification alone does not authorise a proposed write: show it in the batch and wait for the yes. Do not persist unconfirmed changes or run unconfirmed commands outside that mode.
    - A deletion is never part of the batch. Deleting a matter, or removing a matter's last condition, each needs its own separate yes, in plain words, saying what will be lost. For a last condition, say that an empty matter counts as resolved and unblocks everything that depends on it. Wait for a yes that is only about that deletion before you pass `--yes`.
 
 5. Once the user confirms a batch, run every command in that batch, in the order shown. Each change is still its own `matters` command.

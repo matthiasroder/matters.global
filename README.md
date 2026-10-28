@@ -38,8 +38,9 @@ In this example `send_proposal` is in the universe because its prerequisite is r
 
 ```text
 src/matters/          # reusable Python package
-skills/matters/       # agent skill instructions
-skills/matters-coach/ # coaching skill for goals, planning, and next steps
+skills/matters/        # agent skill instructions
+skills/matters-coach/  # coaching skill for goals, planning, and next steps
+skills/matters-triage/ # execute eligible work across a graph and defer blockers
 examples/             # non-personal example state
 scripts/              # repository maintenance scripts
 tests/                # engine and storage tests
@@ -47,7 +48,7 @@ tests/                # engine and storage tests
 
 The skills are intentionally thin. Shared behavior belongs in `src/matters`, not in a skill directory.
 
-[skills/matters/SKILL.md](skills/matters/SKILL.md) is the persistence and write skill. [skills/matters-coach/SKILL.md](skills/matters-coach/SKILL.md) is the coaching layer for a chat assistant: a first goal, what to do next, progress, notes, and a weekly review. It defers to the matters skill for every write.
+[skills/matters/SKILL.md](skills/matters/SKILL.md) owns graph persistence, including scoped authorisation for verified completion marks during an execution run. [skills/matters-coach/SKILL.md](skills/matters-coach/SKILL.md) is the coaching layer for goals, planning, progress and reviews. [skills/matters-triage/SKILL.md](skills/matters-triage/SKILL.md) executes eligible work across a selected graph, verifies results, defers individual blockers and records evidence for resumption. It follows the matters skill for every write; reviews and dry runs remain read-only.
 
 ## Local Development
 

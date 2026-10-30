@@ -138,6 +138,43 @@ Use JSON output when another tool should consume the report:
 matters unlock --json --state ~/.local/share/matters/matters.json
 ```
 
+`unlock --json` and `show <matter> --json` include a `revision` identifying the
+whole graph snapshot used for that result. `unlock.items` describes actionable
+matters; `unlock.blocked` contains blocked matter IDs. Use `show` to inspect
+their conditions and prerequisites too. When combining reads, refresh if their
+revisions differ.
+
+After verifying a condition, protect its update with the revision from the
+reviewed snapshot:
+
+```sh
+matters show ship_first_version --json --state project.json
+matters mark ship_first_version 1 true --state project.json --expected-revision <revision>
+```
+
+Replace `<revision>` with the returned token. The check happens inside the
+graph-write lock; a conflict leaves the state unchanged. Read and reassess the
+condition and its context before retrying. Existing marks without the optional
+flag retain their behavior. CLI condition numbers start at 1; the `index` in
+`show --json` starts at 0.
+
+## Agent-driven triage with Beads
+
+The [triage skill](skills/matters-triage/SKILL.md) guides the calling agent through
+graph inspection, a linked Beads plan, execution or delegation, verification,
+and checked completion marks. There is no separate `matters triage` command.
+Tasks and acceptance evidence live in Beads. A closed task prompts verification
+against the current Matters condition; it does not automatically make that
+condition true. Matters resolution remains derived from conditions and
+prerequisites.
+
+The skill includes a local POSIX coordinator-lock helper and a
+[Beads linkage and recovery contract](skills/matters-triage/references/beads-workflow.md).
+Workers may execute independent tasks while one coordinator owns planning and
+graph updates. The helper coordinates cooperating agents on the same machine;
+it does not provide a distributed lease. Automated triage marks require a CLI
+with revision-bearing reads and `mark --expected-revision`.
+
 ## Browser Graph UI
 
 Run a local web UI to inspect and edit the real matters graph in a browser:

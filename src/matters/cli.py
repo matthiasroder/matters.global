@@ -22,7 +22,7 @@ from .rules import (
     parse_create_segment,
 )
 from .sharing import merge_public_state, public_state
-from .storage import load_state, resolve_state_path
+from .storage import load_state, resolve_state_path, state_revision
 from .tots import TotsError, build_tots_proposal
 from .view import open_view, write_view
 from .view_png import write_view_png
@@ -40,6 +40,12 @@ STATE_HELP = (
     "file named .<state-file-name>.lock alongside it, which you may want to "
     "gitignore when the state file lives inside a repository."
 )
+
+
+def revision_argument(value):
+    if not value.strip():
+        raise argparse.ArgumentTypeError("expected revision must not be empty")
+    return value
 
 
 def main(argv=None):
@@ -92,7 +98,8 @@ def main(argv=None):
         help="Print a short report of actionable matters and next actions.",
     )
     unlock_parser.add_argument(
-        "--json", action="store_true", help="Print the unlock report as JSON."
+        "--json", action="store_true",
+        help="Print the unlock report and its graph revision as JSON.",
     )
 
     extract_parser = subparsers.add_parser(
@@ -314,6 +321,15 @@ def main(argv=None):
             "`True` are rejected."
         ),
     )
+    mark_parser.add_argument(
+        "--expected-revision",
+        type=revision_argument,
+        help=(
+            "Only mark the graph revision returned by show --json or unlock "
+            "--json. A changed graph is rejected; reread and reassess before "
+            "retrying. Omit for an unconditional mark."
+        ),
+    )
 
     add_condition_parser = subparsers.add_parser(
         "add-condition",
@@ -407,7 +423,7 @@ def main(argv=None):
         "--json",
         action="store_true",
         help=(
-            "Print the matter as JSON, where conditions carry a 0-based "
+            "Print the matter and its graph revision as JSON, where conditions carry a 0-based "
             "`index` matching the web API and the stored order, while the "
             "text output numbers the same conditions from 1 because that is "
             "the number you pass back as a condition reference."
@@ -499,7 +515,8 @@ def main(argv=None):
         # True. argparse's choices already guarantee one of the two words.
         try:
             result = rules.set_condition_truth(
-                args.state, args.matter, args.condition, args.truth == "true"
+                args.state, args.matter, args.condition, args.truth == "true",
+                expected_revision=args.expected_revision,
             )
         except (RuleError, ValueError, OSError) as error:
             parser.error(error_message(error))
@@ -767,6 +784,7 @@ def main(argv=None):
         index = graph_index_or_error(parser, matters, conditions, dependencies)
         report = unlock_report(matters, conditions, dependencies, index=index)
         if args.json:
+            report["revision"] = state_revision(matters, conditions, dependencies)
             print(json.dumps(report, indent=2))
         else:
             print(format_unlock_report(report))

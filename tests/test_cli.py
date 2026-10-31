@@ -3,6 +3,7 @@ import json
 import pytest
 
 from matters.cli import main
+from matters.storage import load_state, state_revision
 
 
 def test_cli_init_creates_canonical_empty_state_without_overwriting(tmp_path, capsys):
@@ -1717,6 +1718,7 @@ def test_cli_show_numbers_conditions_from_one_in_text_and_from_zero_in_json(
     assert '"index": 1' not in payload
     assert json.loads(payload) == {
         "id": "a",
+        "revision": state_revision(*load_state(state_path)),
         "conditions": [{"index": 0, "label": "a done", "truth": False}],
         "prerequisites": [],
         "dependents": [],
@@ -1754,6 +1756,7 @@ def test_cli_show_prints_none_for_every_empty_section(tmp_path, capsys):
 
     assert json.loads(capsys.readouterr().out) == {
         "id": "lonely",
+        "revision": state_revision(*load_state(state_path)),
         "conditions": [],
         "prerequisites": [],
         "dependents": [],
@@ -2690,3 +2693,143 @@ def test_cli_view_refuses_a_negative_depth(tmp_path, capsys):
     assert error.value.code == 2
     assert "Traceback" not in captured.err
     assert last_error_line(captured) == "depth must not be negative: -1"
+
+
+def revision_state(path):
+    path.write_text(json.dumps({
+        "matters": ["goal", "prerequisite"],
+        "conditions": {
+            "goal": [
+                {"label": "draft exists", "truth": False},
+                {"label": "approved", "truth": False},
+            ],
+            "prerequisite": [{"label": "input available", "truth": False}],
+        },
+        "dependencies": [],
+    }))
+
+
+def test_cli_read_revisions_match_web_and_support_checked_mark(tmp_path, capsys):
+    from matters.web import graph_payload
+
+    path = tmp_path / "matters.json"
+    revision_state(path)
+    original = path.read_bytes()
+    web = graph_payload(path)
+
+    assert main(["unlock", "--json", "--state", str(path)]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert main(["show", "goal", "--json", "--state", str(path)]) == 0
+    matter = json.loads(capsys.readouterr().out)
+    assert report["revision"] == matter["revision"] == web["revision"]
+    assert report["items"] == web["unlock"]["items"]
+    assert path.read_bytes() == original
+    assert list(tmp_path.iterdir()) == [path]
+
+    assert main([
+        "mark", "goal", "draft exists", "true", "--state", str(path),
+        "--expected-revision", matter["revision"],
+    ]) == 0
+    assert capsys.readouterr().out == 'goal: condition 1 "draft exists" is now true\n'
+    assert main(["show", "goal", "--json", "--state", str(path)]) == 0
+    updated = json.loads(capsys.readouterr().out)
+    assert updated["revision"] != matter["revision"]
+    assert updated["conditions"][0]["truth"] is True
+
+    # A retry using the freshly observed revision is an idempotent no-op.
+    current_bytes = path.read_bytes()
+    assert main([
+        "mark", "goal", "1", "true", "--state", str(path),
+        "--expected-revision", updated["revision"],
+    ]) == 0
+    capsys.readouterr()
+    assert path.read_bytes() == current_bytes
+
+
+@pytest.mark.parametrize("command", ["show", "unlock"])
+def test_cli_read_revision_describes_its_loaded_snapshot(
+    tmp_path, monkeypatch, capsys, command
+):
+    import matters.cli as cli
+    import matters.rules as rules
+
+    path = tmp_path / "matters.json"
+    revision_state(path)
+    old_revision = state_revision(*load_state(path))
+    reads = []
+
+    def concurrent_replacement(state_path):
+        snapshot = load_state(state_path)
+        reads.append(state_path)
+        changed = json.loads(path.read_text())
+        changed["conditions"]["goal"][0]["label"] = "changed after read"
+        path.write_text(json.dumps(changed))
+        return snapshot
+
+    monkeypatch.setattr(rules if command == "show" else cli, "load_state", concurrent_replacement)
+    argv = [command] + (["goal"] if command == "show" else [])
+    assert main(argv + ["--json", "--state", str(path)]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert len(reads) == 1
+    assert payload["revision"] == old_revision
+    assert payload["revision"] != state_revision(*load_state(path))
+    if command == "show":
+        assert payload["conditions"][0]["label"] == "draft exists"
+    else:
+        assert payload["items"][0]["false_conditions"] == ["draft exists", "approved"]
+
+
+@pytest.mark.parametrize("change", ["rename", "reorder", "dependency", "already_true"])
+def test_cli_checked_mark_refuses_changed_graph_even_when_mark_would_be_noop(
+    tmp_path, capsys, change
+):
+    import matters.rules as rules
+
+    path = tmp_path / "matters.json"
+    revision_state(path)
+    assert main(["show", "goal", "--json", "--state", str(path)]) == 0
+    revision = json.loads(capsys.readouterr().out)["revision"]
+
+    if change == "rename":
+        rules.edit_condition_label(path, "goal", "1", "different criterion")
+    elif change == "reorder":
+        with rules.state_transaction(path) as draft:
+            draft.conditions["goal"].reverse()
+    elif change == "dependency":
+        rules.link(path, "goal", "prerequisite")
+    else:
+        rules.set_condition_truth(path, "goal", "1", True)
+    changed_bytes = path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main([
+            "mark", "goal", "1", "true", "--state", str(path),
+            "--expected-revision", revision,
+        ])
+
+    captured = capsys.readouterr()
+    assert error.value.code == 2
+    assert captured.out == ""
+    assert "graph changed" in captured.err
+    assert path.read_bytes() == changed_bytes
+
+
+@pytest.mark.parametrize("revision", ["", "   "])
+def test_cli_empty_expected_revision_is_rejected_before_opening_graph(
+    tmp_path, capsys, revision
+):
+    path = tmp_path / "matters.json"
+    revision_state(path)
+    original = path.read_bytes()
+
+    with pytest.raises(SystemExit) as error:
+        main([
+            "mark", "goal", "1", "true", "--state", str(path),
+            "--expected-revision", revision,
+        ])
+
+    assert error.value.code == 2
+    assert "expected revision must not be empty" in capsys.readouterr().err
+    assert path.read_bytes() == original
+    assert list(tmp_path.iterdir()) == [path]

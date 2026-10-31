@@ -470,6 +470,7 @@ def test_read_helpers_create_no_lock_file(tmp_path):
     assert rules.list_matters(state_path) == ["a", "b"]
     assert rules.describe_matter(state_path, "a") == {
         "id": "a",
+        "revision": rules.state_revision(*rules.load_state(state_path)),
         "conditions": [{"index": 0, "label": "a done", "truth": False}],
         "prerequisites": [],
         "dependents": ["b"],
@@ -521,6 +522,50 @@ def test_set_condition_truth_is_byte_identical_when_already_set(tmp_path):
 
     assert result["changed"] is False
     assert state_path.read_bytes() == original
+
+
+def test_checked_mark_revalidates_after_waiting_for_another_writer(
+    tmp_path, monkeypatch
+):
+    from contextlib import contextmanager
+
+    state_path = tmp_path / "matters.json"
+    simple_state(state_path)
+    revision = rules.describe_matter(state_path, "a")["revision"]
+    attempting_lock = threading.Event()
+    errors = []
+    original_lock = rules.state_lock
+
+    @contextmanager
+    def observed_lock(path):
+        if threading.current_thread() is worker:
+            attempting_lock.set()
+        with original_lock(path):
+            yield
+
+    def mark_from_old_snapshot():
+        try:
+            rules.set_condition_truth(
+                state_path, "a", "1", True, expected_revision=revision
+            )
+        except Exception as error:
+            errors.append(error)
+
+    monkeypatch.setattr(rules, "state_lock", observed_lock)
+    worker = threading.Thread(target=mark_from_old_snapshot)
+    with rules.state_mutation_locks.lock(state_path):
+        worker.start()
+        assert attempting_lock.wait(timeout=5)
+        # This writer completes while the checked mark waits for the lock.
+        rules.edit_condition_label(state_path, "a", "1", "new acceptance criterion")
+        changed_bytes = state_path.read_bytes()
+
+    worker.join(timeout=5)
+    assert not worker.is_alive()
+    assert len(errors) == 1
+    assert isinstance(errors[0], RuleError)
+    assert errors[0].code == "conflict"
+    assert state_path.read_bytes() == changed_bytes
 
 
 def test_add_condition_appends_with_a_stripped_label_and_false_truth(tmp_path):

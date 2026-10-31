@@ -747,7 +747,9 @@ def remove_dependency(state_path, payload, *, load=None, expected_revision=None)
 # ---------------------------------------------------------------------------
 
 
-def set_condition_truth(state_path, matter_id, ref, truth_value):
+def set_condition_truth(
+    state_path, matter_id, ref, truth_value, *, expected_revision=None
+):
     """Set one condition's truth. ``truth_value`` must be a real ``bool``.
 
     Deliberately *not* funnelled through :func:`engine.truth`, which
@@ -758,11 +760,15 @@ def set_condition_truth(state_path, matter_id, ref, truth_value):
 
     Web writes use the same strict validation. ``engine.truth`` retains its
     legacy coercion when interpreting conditions already stored on disk.
+    When supplied, ``expected_revision`` is checked against the loaded graph
+    under the transaction lock, before resolving a possibly stale position.
     """
 
     require_condition_truth(truth_value)
 
-    with state_transaction(state_path, require_exists=True) as draft:
+    with state_transaction(
+        state_path, require_exists=True, expected_revision=expected_revision
+    ) as draft:
         require_matter(matter_id, draft.matters)
         current = list(draft.conditions.get(matter_id, []))
         position = resolve_condition_ref(matter_id, current, ref)
@@ -964,6 +970,7 @@ def describe_matter(state_path, matter_id):
     require_matter(matter_id, matters)
     return {
         "id": matter_id,
+        "revision": state_revision(matters, conditions, dependencies),
         "conditions": [
             {
                 "index": position,

@@ -158,6 +158,41 @@ condition and its context before retrying. Existing marks without the optional
 flag retain their behavior. CLI condition numbers start at 1; the `index` in
 `show --json` starts at 0.
 
+## Matter sources
+
+To link a matter to its evidence, put a source file next to the graph. Replace
+the graph's last extension with `.sources.json`, so `project.json` reads from
+`project.sources.json`. Each matter ID maps to a list of citations.
+
+```json
+{
+  "schema_version": 1,
+  "matter_sources": {
+    "ship_first_version": [
+      {
+        "title": "Pilot evaluation",
+        "authors": ["Alex Rivera"],
+        "url": "https://example.org/pilot.pdf",
+        "pdf_pages": [[2, 2], [5, 7]]
+      }
+    ]
+  }
+}
+```
+
+`title` and `url` are required. `authors` and `pdf_pages` are optional.
+Each page range is inclusive and counts from the first page of the linked PDF.
+Use the same number twice for a single page.
+
+```sh
+matters show ship_first_version --sources --state project.json
+matters show ship_first_version --sources --json --state project.json
+```
+
+The JSON form adds a `sources` array, empty when the file or matter entry is
+missing. The graph revision describes the graph snapshot. Update citations in
+the source file.
+
 ## Agent-driven triage with Beads
 
 The [triage skill](skills/matters-triage/SKILL.md) guides the calling agent through

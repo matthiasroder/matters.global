@@ -8,6 +8,7 @@ Find matters, change graph views and filters, and inspect actionable work throug
 - `navigation-cloud` opens the 3D cloud, focuses a selection in 2D, and returns to the prior cloud camera.
 - `navigation-filters` changes graph scope and status filters.
 - `navigation-reports` compares browser working views with CLI results.
+- `navigation-sources` reads a matter's citations from its graph's source file via the CLI.
 
 ## How to get to it (user POV)
 
@@ -15,6 +16,7 @@ Find matters, change graph views and filters, and inspect actionable work throug
 - Use **3D cloud**, **Whole cloud**, **2D focus**, **Open 2D focus**, **Back to overview**, zoom, and **Reset**. The cloud button reads **Overview** when the canvas fallback is active.
 - Use **Universe**, **Unlock**, **Frontier**, and **Horizon**. The last two require a selected matter.
 - Run `matters universe`, `matters unlock`, `matters frontier`, or `matters horizon`.
+- Run `matters show ship_first_version --sources --state "$VERIFY_SCRATCH/matters.json"`.
 
 ## Driving it with CUA and the Matters CLI
 
@@ -31,6 +33,14 @@ Preconditions:
 - **Unlock.** Click **Unlock**. Require an actionable report for `ship_first_version` and its false condition. Compare with `.venv/bin/python -m matters.cli unlock --json --state "$VERIFY_SCRATCH/matters.json"`.
 - **Frontier and Horizon.** Restore scope `all`, search `define project goal`, and select `#search-results button[data-matter-id="define_project_goal"]`. Click **Frontier** and require `ship_first_version`. Reselect the root if needed, click **Horizon**, and require the same matter for this seed. Compare with `.venv/bin/python -m matters.cli frontier define_project_goal --state "$VERIFY_SCRATCH/matters.json"` and the equivalent `horizon` command.
 - **Proof.** Preserve screenshots and operation output for every exercised entry point. Compare state bytes with `state-before.json`. Navigation and reports must not mutate the graph.
+
+### CLI source lookup
+
+Use the CLI-only launch recipe. Add `matters.sources.json` beside the seed with
+one citation for `ship_first_version`, following the [source file format](../../../../README.md#matter-sources).
+Run `show --sources` in text and JSON forms. Check the citation title, URL,
+and page ranges. Run ordinary `show --json` and check that its output shape
+is unchanged. Compare both input files with their pre-command copies.
 
 ## Gotchas
 

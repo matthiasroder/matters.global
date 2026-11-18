@@ -22,6 +22,7 @@ from .rules import (
     parse_create_segment,
 )
 from .sharing import merge_public_state, public_state
+from .sources import sources_for_matter
 from .storage import load_state, resolve_state_path, state_revision
 from .tots import TotsError, build_tots_proposal
 from .view import open_view, write_view
@@ -420,6 +421,11 @@ def main(argv=None):
     )
     show_parser.add_argument("matter", help="Matter id to describe.")
     show_parser.add_argument(
+        "--sources",
+        action="store_true",
+        help="Include citations from the graph's .sources.json file.",
+    )
+    show_parser.add_argument(
         "--json",
         action="store_true",
         help=(
@@ -616,7 +622,10 @@ def main(argv=None):
     # sidecar behind (AC-10).
     if args.command == "show":
         try:
-            described = rules.describe_matter(args.state, args.matter)
+            state_path = resolve_state_path(args.state)
+            described = rules.describe_matter(state_path, args.matter)
+            if args.sources:
+                described["sources"] = sources_for_matter(state_path, described["id"])
         except (RuleError, ValueError, OSError) as error:
             parser.error(error_message(error))
         if args.json:
@@ -921,6 +930,21 @@ def print_matter(described):
     print_matter_section(described["prerequisites"])
     print("required by:")
     print_matter_section(described["dependents"])
+    if "sources" in described:
+        print("sources:")
+        if not described["sources"]:
+            print("  none")
+        for source in described["sources"]:
+            authors = ", ".join(source.get("authors", []))
+            print(f"  {source['title']}" + (f" — {authors}" if authors else ""))
+            print(f"    {source['url']}")
+            pages = source.get("pdf_pages", [])
+            if pages:
+                ranges = ", ".join(
+                    str(first) if first == last else f"{first}–{last}"
+                    for first, last in pages
+                )
+                print(f"    PDF pages {ranges}")
 
 
 def print_matter_section(matter_ids):

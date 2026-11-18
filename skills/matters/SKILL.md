@@ -141,6 +141,7 @@ When the user asks about or mentions a matter in a matter-management context:
 2. Read the current state with the CLI, not by opening the file.
    - `matters list [--state <path>]` prints every known matter id, sorted.
    - `matters show <matter> [--state <path>]` prints that matter's numbered conditions with their truth values, its direct prerequisites, and its direct dependents.
+   - Use `matters show <matter> --sources [--json] --state <path>` to read citations keyed by matter ID. For a graph named `matters.json`, the CLI reads `matters.sources.json` beside it.
    - Match by the matter's stable name or id.
    - If there are near matches, show them and ask whether the user means an existing matter or a new one.
    - Never hand-edit the state file and never write it from a script. Every write goes through a `matters` command so the shared rules apply: matter-id syntax, condition normalization, endpoint existence, cycle refusal, and the advisory lock that keeps a running `matters web` and the CLI from clobbering each other.

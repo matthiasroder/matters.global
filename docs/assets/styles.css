@@ -305,32 +305,46 @@ code {
 
 .split {
   align-items: start;
+  column-gap: clamp(28px, 6vw, 70px);
   display: grid;
-  gap: clamp(28px, 6vw, 70px);
   grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.7fr);
+  row-gap: 26px;
+}
+
+.split > h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.public-view a {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
 }
 
 .example-panel {
+  background: var(--line);
   display: grid;
   gap: 1px;
   overflow: hidden;
 }
 
 .panel-row {
-  align-items: center;
+  align-items: start;
   background: var(--white);
   display: grid;
   gap: 12px;
-  grid-template-columns: 14px 1fr;
-  min-height: 72px;
+  grid-template-columns: 14px minmax(0, 1fr);
   padding: 16px 18px;
 }
 
-.panel-row p {
-  color: var(--ink);
+.panel-row h3 {
   font-size: 17px;
-  font-weight: 690;
   margin: 0;
+}
+
+.panel-row p {
+  font-size: 16px;
+  margin: 8px 0 0;
 }
 
 .dot {
@@ -338,15 +352,12 @@ code {
   border-radius: 50%;
   display: block;
   height: 12px;
+  margin-top: 7px;
   width: 12px;
 }
 
 .dot.active {
   background: var(--gold);
-}
-
-.panel-row.muted p {
-  color: var(--soft-ink);
 }
 
 .panel-row.resolved .dot {
@@ -372,6 +383,12 @@ code {
   font-weight: 730;
 }
 
+@media (max-width: 1000px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 860px) {
   .site-header {
     align-items: flex-start;
@@ -395,8 +412,7 @@ code {
 
   .steps,
   .quick-grid,
-  .quick-reference,
-  .split {
+  .quick-reference {
     grid-template-columns: 1fr;
   }
 

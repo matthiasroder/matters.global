@@ -196,15 +196,11 @@ h1 {
   margin-top: 34px;
 }
 
-.steps article,
-.example-panel {
+.steps article {
   background: var(--white);
   border: 1px solid rgba(23, 23, 23, 0.12);
   border-radius: 8px;
   box-shadow: 0 12px 40px rgba(23, 23, 23, 0.07);
-}
-
-.steps article {
   min-height: 235px;
   padding: 22px;
 }
@@ -303,65 +299,9 @@ code {
   padding-left: 18px;
 }
 
-.split {
-  align-items: start;
-  column-gap: clamp(28px, 6vw, 70px);
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.7fr);
-  row-gap: 26px;
-}
-
-.split > h2 {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
-}
-
 .public-view a {
   text-decoration: underline;
   text-underline-offset: 0.16em;
-}
-
-.example-panel {
-  background: var(--line);
-  display: grid;
-  gap: 1px;
-  overflow: hidden;
-}
-
-.panel-row {
-  align-items: start;
-  background: var(--white);
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 14px minmax(0, 1fr);
-  padding: 16px 18px;
-}
-
-.panel-row h3 {
-  font-size: 17px;
-  margin: 0;
-}
-
-.panel-row p {
-  font-size: 16px;
-  margin: 8px 0 0;
-}
-
-.dot {
-  background: var(--line);
-  border-radius: 50%;
-  display: block;
-  height: 12px;
-  margin-top: 7px;
-  width: 12px;
-}
-
-.dot.active {
-  background: var(--gold);
-}
-
-.panel-row.resolved .dot {
-  background: var(--green);
 }
 
 .site-footer {
@@ -381,12 +321,6 @@ code {
 .site-footer a {
   color: var(--ink);
   font-weight: 730;
-}
-
-@media (max-width: 1000px) {
-  .split {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 860px) {

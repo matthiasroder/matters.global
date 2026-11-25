@@ -1,6 +1,7 @@
 {
   "schema_version": 2,
   "matters": [
+    "chatgpt_web_cloud_connection_available",
     "cloud_commercial_policy_decided",
     "cloud_hosting_and_operations_ready",
     "cloud_subscriptions_and_limits_available",
@@ -49,8 +50,8 @@
     ],
     "local_mcp_available": [
       {
-        "label": "Local MCP provides typed graph editing and source tools, configured graph access, credential-free project references and a demonstrated ChatGPT web connection via authenticated HTTPS or Secure MCP Tunnel while preserving account-free CLI and visual workflows.",
-        "truth": false
+        "label": "Local MCP exposes typed graph editing and source tools over stdio, enforces configured graph access, supports credential-free project references, and preserves local JSON graphs, CLI and visual workflows without a Matters account or subscription.",
+        "truth": true
       }
     ],
     "shared_storage_interface_available": [
@@ -85,7 +86,7 @@
     ],
     "matters_cloud_pilot_available": [
       {
-        "label": "A pilot user creates personal and project graphs, uses browser and remote MCP editing, and moves a graph through verified export and import without cross-user access.",
+        "label": "A pilot user signs into Matters Cloud, creates personal and project graphs, uses the hosted browser and ChatGPT web/MCP editing, and moves a graph through verified export and import without cross-user access.",
         "truth": false
       }
     ],
@@ -109,13 +110,13 @@
     ],
     "matters_cloud_available": [
       {
-        "label": "The hosted service demonstrates accounts, durable personal and project graphs, browser and MCP controls, collaboration, a free allowance, paid upgrades and tested recovery.",
+        "label": "The hosted service demonstrates accounts, durable personal and project graphs, browser and MCP controls including signed-in ChatGPT web access through Matters Cloud, collaboration, a free allowance, paid upgrades and tested recovery.",
         "truth": false
       }
     ],
     "private_company_requirements_agreed": [
       {
-        "label": "A company pilot agrees identity, access, network connectivity, model data egress, residency, retention, support and recovery requirements without requiring a public Matters Cloud account.",
+        "label": "A company pilot agrees identity, access, network connectivity, model data egress, residency, retention, support and recovery requirements; any ChatGPT web access uses its isolated endpoint configured and operated by Matters, without requiring a public Matters Cloud account.",
         "truth": false
       }
     ],
@@ -141,13 +142,31 @@
       {
         "label": "Local Matters, Matters Cloud and private hosted Matters operate with one shared engine and consistent MCP tools, preserve local workflows and support graph portability.",
         "truth": false
+      },
+      {
+        "label": "The product plan requires a Matters Cloud account for standard ChatGPT web access, keeps local Matters account-free, and allows isolated company endpoints as a managed-service exception.",
+        "truth": true
+      }
+    ],
+    "chatgpt_web_cloud_connection_available": [
+      {
+        "label": "A user with a Matters Cloud account signs in and authorizes ChatGPT web to use the hosted HTTPS MCP endpoint; a live call verifies the selected graph and access rejection without requiring a user-installed Matters server or tunnel.",
+        "truth": false
       }
     ]
   },
   "dependencies": [
     [
+      "chatgpt_web_cloud_connection_available",
+      "matters_cloud_pilot_available"
+    ],
+    [
       "cloud_commercial_policy_decided",
       "cloud_subscriptions_and_limits_available"
+    ],
+    [
+      "cloud_hosting_and_operations_ready",
+      "chatgpt_web_cloud_connection_available"
     ],
     [
       "cloud_hosting_and_operations_ready",
@@ -176,6 +195,10 @@
     [
       "hosted_accounts_and_access_available",
       "hosted_graph_service_available"
+    ],
+    [
+      "hosted_graph_service_available",
+      "chatgpt_web_cloud_connection_available"
     ],
     [
       "hosted_graph_service_available",

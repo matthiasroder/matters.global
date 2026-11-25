@@ -92,6 +92,28 @@ Project-local files such as `.matters/matters.json` are supported when selected
 explicitly with `--state` or `MATTERS_STATE`; they are not auto-selected by
 default.
 
+## Local MCP Server
+
+Install the optional MCP adapter to let Codex and other compatible clients use
+the same local graphs and engine rules as the CLI and browser:
+
+```sh
+python -m pip install -e '.[mcp]'
+matters mcp --state /absolute/path/to/project.json --graph-id project
+```
+
+The selected graph must already exist. The server uses stdio, requires no
+Matters account or subscription, and exposes only configured graphs. Pass
+`--read-only` to prohibit edits, or repeat `--graph ID=PATH` to configure several
+graphs. Each graph tool takes an explicit `graph_id`; every write also requires
+the revision returned by a read. The existing CLI and local browser remain
+available without the MCP extra.
+
+See [Local MCP setup and tool contract](docs/local-mcp.md) for client
+configuration, project graph references, export/import, and the additional
+connection needed for ChatGPT web. The local browser server includes a shell
+and must not be used as an MCP tunnel endpoint.
+
 ## Creating Matters
 
 `matters create` writes new matters to the selected state file. The compact

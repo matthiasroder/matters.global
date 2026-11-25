@@ -819,8 +819,14 @@ def edit_condition_label(state_path, matter_id, ref, label):
         }
 
 
-def delete_condition(state_path, matter_id, ref, *, confirmed=False):
-    with state_transaction(state_path, require_exists=True) as draft:
+def delete_condition(
+    state_path, matter_id, ref, *, confirmed=False, load=None,
+    expected_revision=None,
+):
+    with state_transaction(
+        state_path, require_exists=True, load=load,
+        expected_revision=expected_revision,
+    ) as draft:
         require_matter(matter_id, draft.matters)
         current = list(draft.conditions.get(matter_id, []))
         position = resolve_condition_ref(matter_id, current, ref)
@@ -910,8 +916,14 @@ def unlink(state_path, dependent, prerequisite):
         }
 
 
-def delete_matter(state_path, matter_id, *, cascade=False, confirmed=False):
-    with state_transaction(state_path, require_exists=True) as draft:
+def delete_matter(
+    state_path, matter_id, *, cascade=False, confirmed=False, load=None,
+    expected_revision=None,
+):
+    with state_transaction(
+        state_path, require_exists=True, load=load,
+        expected_revision=expected_revision,
+    ) as draft:
         require_matter(matter_id, draft.matters)
         blocking_dependents = sorted(draft.index.dependents[matter_id])
         if blocking_dependents and not cascade:

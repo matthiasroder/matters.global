@@ -1,0 +1,261 @@
+{
+  "schema_version": 2,
+  "matters": [
+    "cloud_commercial_policy_decided",
+    "cloud_hosting_and_operations_ready",
+    "cloud_subscriptions_and_limits_available",
+    "graph_collaboration_available",
+    "graph_portability_available",
+    "graph_tool_contract_defined",
+    "hosted_accounts_and_access_available",
+    "hosted_graph_service_available",
+    "hosted_visual_interface_available",
+    "local_mcp_available",
+    "local_mcp_first_milestone",
+    "matters_cloud_available",
+    "matters_cloud_pilot_available",
+    "matters_product_available",
+    "private_company_isolation_available",
+    "private_company_operations_ready",
+    "private_company_requirements_agreed",
+    "private_hosted_matters_available",
+    "shared_local_foundation_available",
+    "shared_storage_interface_available"
+  ],
+  "conditions": {
+    "shared_local_foundation_available": [
+      {
+        "label": "Repository provides a shared Python graph engine and mutation rules, JSON storage, CLI and editable local browser interface.",
+        "truth": true
+      }
+    ],
+    "graph_tool_contract_defined": [
+      {
+        "label": "A versioned MCP contract defines explicit graph identity and access checks, revision-checked mutations, structured errors, explicit boolean values and condition indexing.",
+        "truth": true
+      }
+    ],
+    "local_mcp_first_milestone": [
+      {
+        "label": "A local MCP client reads actionable matters and sets a verified condition through shared rules; stale or unauthorized writes change nothing and CLI and browser show the same graph without a Matters account.",
+        "truth": true
+      }
+    ],
+    "graph_portability_available": [
+      {
+        "label": "Versioned export and import preserve existing graph data and citations, validate through the shared engine, rebuild optional caches and do not copy installation permissions.",
+        "truth": true
+      }
+    ],
+    "local_mcp_available": [
+      {
+        "label": "Local MCP provides typed graph editing and source tools, configured graph access, credential-free project references and a demonstrated ChatGPT web connection via authenticated HTTPS or Secure MCP Tunnel while preserving account-free CLI and visual workflows.",
+        "truth": false
+      }
+    ],
+    "shared_storage_interface_available": [
+      {
+        "label": "File-backed and database-backed transactions invoke the same graph rules, with passing compatibility and parity checks for existing local files.",
+        "truth": false
+      }
+    ],
+    "hosted_accounts_and_access_available": [
+      {
+        "label": "Users can sign in and own separate personal and project graphs; server-side roles check every operation using authenticated identity.",
+        "truth": false
+      }
+    ],
+    "hosted_graph_service_available": [
+      {
+        "label": "Hosted graphs have stable IDs, persistent transactional storage, revision-checked writes, change history and the same authenticated HTTPS MCP tools, with isolation and concurrent-edit tests passing.",
+        "truth": false
+      }
+    ],
+    "hosted_visual_interface_available": [
+      {
+        "label": "Authenticated web users can select and edit their permitted graphs using reused visual controls; hosted routes expose no terminal or arbitrary filesystem selection.",
+        "truth": false
+      }
+    ],
+    "cloud_hosting_and_operations_ready": [
+      {
+        "label": "Provider, region and recovery targets are recorded, and the deployment demonstrates HTTPS, protected secrets, monitoring, resource limits, encrypted backups and a successful restore.",
+        "truth": false
+      }
+    ],
+    "matters_cloud_pilot_available": [
+      {
+        "label": "A pilot user creates personal and project graphs, uses browser and remote MCP editing, and moves a graph through verified export and import without cross-user access.",
+        "truth": false
+      }
+    ],
+    "graph_collaboration_available": [
+      {
+        "label": "Whole graphs support owner, editor and viewer invitations and revocation; simultaneous edits produce reviewable conflicts and clients can refresh changes without exposing other graphs.",
+        "truth": false
+      }
+    ],
+    "cloud_commercial_policy_decided": [
+      {
+        "label": "Measured pilot usage supports a recorded decision on hosting costs, free allowance, billing units, prices, model costs and data-preserving over-limit behavior.",
+        "truth": false
+      }
+    ],
+    "cloud_subscriptions_and_limits_available": [
+      {
+        "label": "Subscriptions update entitlements through verified replay-safe billing events, and usage limits apply across every interface while cancellation and over-limit use retain data and export.",
+        "truth": false
+      }
+    ],
+    "matters_cloud_available": [
+      {
+        "label": "The hosted service demonstrates accounts, durable personal and project graphs, browser and MCP controls, collaboration, a free allowance, paid upgrades and tested recovery.",
+        "truth": false
+      }
+    ],
+    "private_company_requirements_agreed": [
+      {
+        "label": "A company pilot agrees identity, access, network connectivity, model data egress, residency, retention, support and recovery requirements without requiring a public Matters Cloud account.",
+        "truth": false
+      }
+    ],
+    "private_company_isolation_available": [
+      {
+        "label": "The company deployment uses separate database, storage, network, keys, credentials and backups, with company identity configuration and passing isolation tests.",
+        "truth": false
+      }
+    ],
+    "private_company_operations_ready": [
+      {
+        "label": "Provisioning, upgrades, rollback, restore, controlled support access and export/offboarding are demonstrated using shared software releases and agreed company requirements.",
+        "truth": false
+      }
+    ],
+    "private_hosted_matters_available": [
+      {
+        "label": "A company pilot operates the shared engine and MCP tools in an isolated installation with agreed controls, verified recovery and an accepted managed-service handover.",
+        "truth": false
+      }
+    ],
+    "matters_product_available": [
+      {
+        "label": "Local Matters, Matters Cloud and private hosted Matters operate with one shared engine and consistent MCP tools, preserve local workflows and support graph portability.",
+        "truth": false
+      }
+    ]
+  },
+  "dependencies": [
+    [
+      "cloud_commercial_policy_decided",
+      "cloud_subscriptions_and_limits_available"
+    ],
+    [
+      "cloud_hosting_and_operations_ready",
+      "matters_cloud_pilot_available"
+    ],
+    [
+      "cloud_subscriptions_and_limits_available",
+      "matters_cloud_available"
+    ],
+    [
+      "graph_collaboration_available",
+      "matters_cloud_available"
+    ],
+    [
+      "graph_portability_available",
+      "local_mcp_available"
+    ],
+    [
+      "graph_portability_available",
+      "matters_cloud_pilot_available"
+    ],
+    [
+      "graph_tool_contract_defined",
+      "local_mcp_first_milestone"
+    ],
+    [
+      "hosted_accounts_and_access_available",
+      "hosted_graph_service_available"
+    ],
+    [
+      "hosted_graph_service_available",
+      "hosted_visual_interface_available"
+    ],
+    [
+      "hosted_graph_service_available",
+      "matters_cloud_pilot_available"
+    ],
+    [
+      "hosted_visual_interface_available",
+      "matters_cloud_pilot_available"
+    ],
+    [
+      "local_mcp_available",
+      "cloud_hosting_and_operations_ready"
+    ],
+    [
+      "local_mcp_available",
+      "hosted_accounts_and_access_available"
+    ],
+    [
+      "local_mcp_available",
+      "matters_product_available"
+    ],
+    [
+      "local_mcp_available",
+      "shared_storage_interface_available"
+    ],
+    [
+      "local_mcp_first_milestone",
+      "graph_portability_available"
+    ],
+    [
+      "local_mcp_first_milestone",
+      "local_mcp_available"
+    ],
+    [
+      "matters_cloud_available",
+      "matters_product_available"
+    ],
+    [
+      "matters_cloud_available",
+      "private_company_requirements_agreed"
+    ],
+    [
+      "matters_cloud_pilot_available",
+      "cloud_commercial_policy_decided"
+    ],
+    [
+      "matters_cloud_pilot_available",
+      "graph_collaboration_available"
+    ],
+    [
+      "matters_cloud_pilot_available",
+      "matters_cloud_available"
+    ],
+    [
+      "private_company_isolation_available",
+      "private_company_operations_ready"
+    ],
+    [
+      "private_company_operations_ready",
+      "private_hosted_matters_available"
+    ],
+    [
+      "private_company_requirements_agreed",
+      "private_company_isolation_available"
+    ],
+    [
+      "private_hosted_matters_available",
+      "matters_product_available"
+    ],
+    [
+      "shared_local_foundation_available",
+      "graph_tool_contract_defined"
+    ],
+    [
+      "shared_storage_interface_available",
+      "hosted_graph_service_available"
+    ]
+  ]
+}

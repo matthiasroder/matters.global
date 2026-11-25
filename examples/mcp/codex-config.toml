@@ -1,0 +1,5 @@
+# Replace both absolute paths with paths on the machine running Codex.
+# The selected graph must already exist; create it with matters init if needed.
+[mcp_servers.matters-local]
+command = "/absolute/path/to/.venv/bin/matters"
+args = ["mcp", "--state", "/absolute/path/to/project.json", "--graph-id", "project"]

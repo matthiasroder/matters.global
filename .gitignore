@@ -13,3 +13,6 @@ dist/
 .beads-credential-key
 
 artifacts/verification/matters/
+
+# Advisory locks remain local to each checkout.
+graphs/.*.lock

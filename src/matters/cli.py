@@ -71,6 +71,29 @@ def main(argv=None):
     subparsers.add_parser(
         "state-path", parents=[state_parent], help="Print the resolved state path."
     )
+    mcp_parser = subparsers.add_parser(
+        "mcp", parents=[state_parent], help="Serve configured local graphs over MCP stdio."
+    )
+    mcp_parser.add_argument("--graph-id", help="Explicit ID for the single --state graph.")
+    mcp_parser.add_argument(
+        "--graph", action="append", default=[], metavar="ID=PATH",
+        help="Configure a graph alias and existing file; repeat for multiple graphs.",
+    )
+    mcp_parser.add_argument(
+        "--read-only", action="store_true", help="Refuse every graph mutation."
+    )
+    export_parser = subparsers.add_parser(
+        "export", parents=[state_parent], help="Export a portable graph and citation package."
+    )
+    export_parser.add_argument("--output", help="Write the package here instead of stdout.")
+    import_parser = subparsers.add_parser(
+        "import", parents=[state_parent], help="Import a graph package into a new state file."
+    )
+    import_parser.add_argument("source", help="Graph package or native JSON file, or '-' for stdin.")
+    import_parser.add_argument(
+        "--rebuild-embeddings", action="store_true",
+        help="Explicitly rebuild embedding caches; may download a local model.",
+    )
     subparsers.add_parser(
         "universe", parents=[state_parent], help="Print globally actionable matters."
     )
@@ -446,6 +469,51 @@ def main(argv=None):
     )
 
     args = parser.parse_args(argv)
+
+    if args.command == "mcp":
+        try:
+            from .mcp_server import configured_graphs, run_mcp
+        except ModuleNotFoundError:
+            parser.error("MCP support is optional; install matters-global[mcp] to use matters mcp")
+        try:
+            graphs = configured_graphs(
+                args.state, graph_id=args.graph_id, graph_specs=args.graph
+            )
+            run_mcp(graphs, read_only=args.read_only)
+        except (RuleError, ValueError, OSError) as error:
+            parser.error(error_message(error))
+        return 0
+
+    if args.command == "export":
+        from .portability import export_bundle
+
+        try:
+            state_path = resolve_state_path(args.state)
+            package = export_bundle(state_path)
+            text = json.dumps(package, indent=2) + "\n"
+            if args.output:
+                output_path = Path(args.output).expanduser()
+                if output_path.resolve() == state_path.resolve():
+                    raise ValueError("export output must not overwrite the source graph")
+                with output_path.open("x", encoding="utf-8") as output_file:
+                    output_file.write(text)
+            else:
+                print(text, end="")
+        except (RuleError, ValueError, OSError) as error:
+            parser.error(error_message(error))
+        return 0
+
+    if args.command == "import":
+        from .portability import import_bundle
+
+        try:
+            bundle = json.loads(read_source_text(args.source))
+            state_path = resolve_state_path(args.state)
+            import_bundle(bundle, state_path, rebuild_embeddings=args.rebuild_embeddings)
+        except (RuleError, ValueError, OSError) as error:
+            parser.error(error_message(error))
+        print(f"imported matters graph: {state_path}")
+        return 0
 
     if args.command == "init":
         try:

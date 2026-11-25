@@ -750,7 +750,7 @@ def test_cli_mark_rejects_a_truth_value_that_is_not_true_or_false(tmp_path, caps
     assert error.value.code == 2
     assert captured.out == ""
     assert "invalid choice: 'yes'" in captured.err
-    assert "'true', 'false'" in captured.err
+    assert "choose from true, false" in captured.err.replace("'", "")
     assert "Traceback" not in captured.err
     assert state_path.read_bytes() == original
 

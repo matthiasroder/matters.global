@@ -43,6 +43,17 @@ def load_state(path=None):
     except FileNotFoundError:
         data = {"matters": [], "conditions": {}, "dependencies": []}
 
+    return state_from_data(data)
+
+
+def state_from_data(data):
+    """Decode primitive graph facts without choosing a persistence backend.
+
+    Keep the same legacy condition normalization and structural validation
+    used by JSON files. Cycle policy belongs to the graph operation, so this
+    decoder deliberately permits broken graphs that need edge-removal repair.
+    """
+
     validate_state_data(data)
     matters = set(data["matters"])
     return (
@@ -52,10 +63,8 @@ def load_state(path=None):
     )
 
 
-def save_state(*args, path=None):
-    matters, conditions, dependencies, state_path = resolve_save_args(args, path)
-    state_path = resolve_state_path(state_path)
-    state_path.parent.mkdir(parents=True, exist_ok=True)
+def state_data(matters, conditions, dependencies):
+    """Encode canonical schema-2 graph data with no filesystem operations."""
 
     data = {
         "schema_version": 2,
@@ -72,6 +81,15 @@ def save_state(*args, path=None):
         "dependencies": sorted([list(dependency) for dependency in dependencies]),
     }
     validate_state_data(data)
+    return data
+
+
+def save_state(*args, path=None):
+    matters, conditions, dependencies, state_path = resolve_save_args(args, path)
+    state_path = resolve_state_path(state_path)
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+
+    data = state_data(matters, conditions, dependencies)
 
     fd, tmp_name = tempfile.mkstemp(
         prefix=f".{state_path.name}.",

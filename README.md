@@ -110,9 +110,34 @@ the revision returned by a read. The existing CLI and local browser remain
 available without the MCP extra.
 
 See [Local MCP setup and tool contract](docs/local-mcp.md) for client
-configuration, project graph references, export/import, and the additional
-connection needed for ChatGPT web. The local browser server includes a shell
-and must not be used as an MCP tunnel endpoint.
+configuration, project graph references and export/import. Local MCP is for
+clients that can launch the local process. The normal ChatGPT web product route
+uses a Matters Cloud account; it does not ask users to expose a local server or
+configure a tunnel. The local browser server includes a shell and must not be
+used as an MCP tunnel endpoint.
+
+## Matters Cloud Foundation
+
+The optional Cloud foundation adds accounts, persistent personal and project
+graphs, an authenticated HTTP API, and a small account/graph-management web
+interface. PostgreSQL is the intended hosted database; SQLite supports local
+development. The database path uses the same graph rules as local JSON files.
+
+```sh
+python -m pip install -e '.[cloud]'
+matters cloud --database-url sqlite:///./matters-cloud-dev.db --development
+```
+
+This starts a development service on `127.0.0.1:8766`. It does not deploy Matters
+to a provider. See [Cloud foundation setup and operations](docs/cloud-foundation.md)
+for database configuration, an optional container setup, security settings and
+backup/restore preparation.
+
+The standard ChatGPT web offering will connect to Matters Cloud with a Matters
+account. Private company installations will use separately operated, isolated
+endpoints configured by us. Hosted MCP/OAuth, full visual graph controls,
+collaboration, subscriptions and a production deployment are still future work.
+Local CLI, local browser use and local MCP remain account-free.
 
 ## Creating Matters
 

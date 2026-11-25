@@ -286,6 +286,15 @@ synchronization between installations.
 
 ## Connect ChatGPT web to a local or private server
 
+The standard ChatGPT web product will use a Matters Cloud account and our
+hosted HTTPS MCP connection. Local CLI, browser and local MCP clients remain
+account-free. The first Cloud foundation does not yet implement hosted
+MCP/OAuth; see [Cloud foundation](cloud-foundation.md) for its current scope.
+
+The connectivity details below are a technical reference for operator testing
+or managed private installations. They are not standard customer onboarding,
+and normal ChatGPT web users will not be asked to configure a local tunnel.
+
 ChatGPT web cannot reach a laptop's `localhost` simply because a browser tab can
 open it. A running network path from OpenAI to the MCP server is required, and
 the local machine must remain awake and connected.

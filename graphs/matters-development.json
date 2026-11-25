@@ -57,13 +57,13 @@
     "shared_storage_interface_available": [
       {
         "label": "File-backed and database-backed transactions invoke the same graph rules, with passing compatibility and parity checks for existing local files.",
-        "truth": false
+        "truth": true
       }
     ],
     "hosted_accounts_and_access_available": [
       {
         "label": "Users can sign in and own separate personal and project graphs; server-side roles check every operation using authenticated identity.",
-        "truth": false
+        "truth": true
       }
     ],
     "hosted_graph_service_available": [

@@ -1,0 +1,9 @@
+**
+!Dockerfile.cloud
+!pyproject.toml
+!README.md
+!src/
+!src/**
+src/**/__pycache__/
+src/**/*.py[cod]
+src/**/*.egg-info/

@@ -1,0 +1,65 @@
+name: matters-cloud-foundation
+
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      # Disposable foundation setup; split administrative and app roles before hosting.
+      POSTGRES_DB: matters
+      POSTGRES_USER: matters
+      POSTGRES_PASSWORD: ${MATTERS_DB_PASSWORD:?Set MATTERS_DB_PASSWORD outside the repository}
+    volumes:
+      - matters_database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U matters -d matters"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloud
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "3000"
+      - --public-origin
+      - ${MATTERS_CLOUD_PUBLIC_ORIGIN:?Set an HTTPS public origin for the TLS reverse proxy}
+    environment:
+      MATTERS_CLOUD_DATABASE_URL: ${MATTERS_CLOUD_DATABASE_URL:?Set the PostgreSQL URL outside the repository}
+      MATTERS_CLOUD_PUBLIC_ORIGIN: ${MATTERS_CLOUD_PUBLIC_ORIGIN:?Set an HTTPS public origin for the TLS reverse proxy}
+    ports:
+      - "127.0.0.1:${MATTERS_CLOUD_HTTP_PORT:-8766}:3000"
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import http.client, os, urllib.parse;
+          host = urllib.parse.urlsplit(os.environ['MATTERS_CLOUD_PUBLIC_ORIGIN']).netloc;
+          connection = http.client.HTTPConnection('127.0.0.1', 3000, timeout=3);
+          connection.request('GET', '/healthz', headers={'Host': host});
+          assert connection.getresponse().status == 200
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+volumes:
+  matters_database:

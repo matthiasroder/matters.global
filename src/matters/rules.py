@@ -160,6 +160,8 @@ class StateDraft:
     """The mutable state a :func:`state_transaction` hands to its caller.
 
     Callers mutate ``matters``, ``conditions`` and ``dependencies`` in place.
+    Database transaction owners may construct a draft with ``path=None``
+    and use :func:`apply_graph_operation` without opening a file.
     ``index`` is the :class:`GraphIndex` built from the state as loaded, or
     ``None`` when the transaction was opened with ``require_acyclic=False``
     -- in which case the caller must not read it, because no index of a
@@ -648,78 +650,108 @@ def parse_create_segment(segment):
 
 
 # ---------------------------------------------------------------------------
-# Web-shaped operations
+# Pure graph operations
 #
-# These four take the web API payload shapes and return None; the web
-# wrappers call graph_payload themselves.
+# These helpers operate on a draft only. File transactions and database
+# transactions supply their own atomicity, persistence, revisions and access
+# checks, and call the same graph mutation rules below.
+# ---------------------------------------------------------------------------
+
+
+def _create_matter_in_draft(draft, payload):
+    matter_id = normalized_matter_id(payload)
+    if matter_id in draft.matters:
+        raise RuleError(f"matter already exists: {matter_id}", "conflict")
+
+    condition_payloads = payload.get("conditions") or [
+        {"label": f"Resolved: {matter_id.replace('_', ' ')}", "truth": False}
+    ]
+    if not isinstance(condition_payloads, list):
+        raise RuleError("conditions must be a list")
+    normalized_conditions = [
+        normalize_condition(condition, index)
+        for index, condition in enumerate(condition_payloads, start=1)
+    ]
+
+    draft.matters.add(matter_id)
+    draft.conditions[matter_id] = normalized_conditions
+    return {"matter": matter_id}
+
+
+def _update_conditions_in_draft(draft, matter_id, payload):
+    if matter_id not in draft.matters:
+        raise RuleError(f"unknown matter: {matter_id}", "not_found")
+
+    action = payload.get("action")
+    current = list(draft.conditions.get(matter_id, []))
+
+    if "conditions" in payload:
+        if not isinstance(payload["conditions"], list):
+            raise RuleError("conditions must be a list")
+        current = [
+            normalize_condition(condition, index)
+            for index, condition in enumerate(payload["conditions"], start=1)
+        ]
+    elif action == "toggle":
+        index = require_condition_index(payload, current)
+        current[index]["truth"] = not condition_truth(current[index])
+    elif action == "delete":
+        index = require_condition_index(payload, current)
+        delete_condition_at(current, index)
+    else:
+        index = payload.get("index")
+        if index is None:
+            current = append_condition(current, payload)
+        else:
+            index = require_condition_index(payload, current)
+            patch = {}
+            if "label" in payload:
+                patch["label"] = payload["label"]
+            if "truth" in payload:
+                patch["truth"] = payload["truth"]
+            current[index] = apply_condition_patch(current, index, **patch)
+
+    draft.conditions[matter_id] = current
+    return {"matter": matter_id}
+
+
+def _add_dependency_in_draft(draft, payload):
+    source, target = dependency_endpoints(payload, draft.matters)
+    if would_create_cycle(
+        draft.matters, draft.conditions, draft.dependencies, (source, target)
+    ):
+        raise RuleError("dependency would create a cycle")
+    draft.dependencies.add((source, target))
+    return {"source": source, "target": target}
+
+
+def _remove_dependency_in_draft(draft, payload):
+    source, target = dependency_endpoints(payload, draft.matters)
+    draft.dependencies.discard((source, target))
+    return {"source": source, "target": target}
+
+
+# ---------------------------------------------------------------------------
+# File-backed web-shaped operations
+#
+# Keep the historical payloads and None returns. The pure helpers above also
+# serve the strict public dispatcher below.
 # ---------------------------------------------------------------------------
 
 
 def create_matter(state_path, payload, *, load=None, expected_revision=None):
     with state_transaction(state_path, load=load, expected_revision=expected_revision) as draft:
-        matter_id = normalized_matter_id(payload)
-        if matter_id in draft.matters:
-            raise RuleError(f"matter already exists: {matter_id}", "conflict")
-
-        condition_payloads = payload.get("conditions") or [
-            {"label": f"Resolved: {matter_id.replace('_', ' ')}", "truth": False}
-        ]
-        if not isinstance(condition_payloads, list):
-            raise RuleError("conditions must be a list")
-        normalized_conditions = [
-            normalize_condition(condition, index)
-            for index, condition in enumerate(condition_payloads, start=1)
-        ]
-
-        draft.matters.add(matter_id)
-        draft.conditions[matter_id] = normalized_conditions
+        _create_matter_in_draft(draft, payload)
 
 
 def update_conditions(state_path, matter_id, payload, *, load=None, expected_revision=None):
     with state_transaction(state_path, load=load, expected_revision=expected_revision) as draft:
-        if matter_id not in draft.matters:
-            raise RuleError(f"unknown matter: {matter_id}", "not_found")
-
-        action = payload.get("action")
-        current = list(draft.conditions.get(matter_id, []))
-
-        if "conditions" in payload:
-            if not isinstance(payload["conditions"], list):
-                raise RuleError("conditions must be a list")
-            current = [
-                normalize_condition(condition, index)
-                for index, condition in enumerate(payload["conditions"], start=1)
-            ]
-        elif action == "toggle":
-            index = require_condition_index(payload, current)
-            current[index]["truth"] = not condition_truth(current[index])
-        elif action == "delete":
-            index = require_condition_index(payload, current)
-            delete_condition_at(current, index)
-        else:
-            index = payload.get("index")
-            if index is None:
-                current = append_condition(current, payload)
-            else:
-                index = require_condition_index(payload, current)
-                patch = {}
-                if "label" in payload:
-                    patch["label"] = payload["label"]
-                if "truth" in payload:
-                    patch["truth"] = payload["truth"]
-                current[index] = apply_condition_patch(current, index, **patch)
-
-        draft.conditions[matter_id] = current
+        _update_conditions_in_draft(draft, matter_id, payload)
 
 
 def add_dependency(state_path, payload, *, load=None, expected_revision=None):
     with state_transaction(state_path, load=load, expected_revision=expected_revision) as draft:
-        source, target = dependency_endpoints(payload, draft.matters)
-        if would_create_cycle(
-            draft.matters, draft.conditions, draft.dependencies, (source, target)
-        ):
-            raise RuleError("dependency would create a cycle")
-        draft.dependencies.add((source, target))
+        _add_dependency_in_draft(draft, payload)
 
 
 def remove_dependency(state_path, payload, *, load=None, expected_revision=None):
@@ -735,8 +767,7 @@ def remove_dependency(state_path, payload, *, load=None, expected_revision=None)
     with state_transaction(
         state_path, require_acyclic=False, load=load, expected_revision=expected_revision
     ) as draft:
-        source, target = dependency_endpoints(payload, draft.matters)
-        draft.dependencies.discard((source, target))
+        _remove_dependency_in_draft(draft, payload)
 
 
 # ---------------------------------------------------------------------------
@@ -819,6 +850,36 @@ def edit_condition_label(state_path, matter_id, ref, label):
         }
 
 
+def _delete_condition_in_draft(draft, matter_id, ref, *, confirmed=False):
+    require_matter(matter_id, draft.matters)
+    current = list(draft.conditions.get(matter_id, []))
+    position = resolve_condition_ref(matter_id, current, ref)
+    removed = delete_condition_at(current, position)
+    draft.conditions[matter_id] = current
+
+    emptied = not current
+    after = build_index(draft.matters, draft.conditions, draft.dependencies)
+    unblocked = unblocked_matters(draft.index, after)
+
+    if emptied and not confirmed:
+        raise RuleError(
+            f"deleting the last condition of {matter_id} will make it "
+            f"resolved, unblocking: {format_matter_list(unblocked)} "
+            f"— rerun with --yes",
+            "conflict",
+        )
+
+    return {
+        "matter": matter_id,
+        "position": position + 1,
+        "label": removed["label"],
+        "truth": removed["truth"],
+        "emptied": emptied,
+        "unblocked": unblocked,
+        "changed": True,
+    }
+
+
 def delete_condition(
     state_path, matter_id, ref, *, confirmed=False, load=None,
     expected_revision=None,
@@ -827,33 +888,7 @@ def delete_condition(
         state_path, require_exists=True, load=load,
         expected_revision=expected_revision,
     ) as draft:
-        require_matter(matter_id, draft.matters)
-        current = list(draft.conditions.get(matter_id, []))
-        position = resolve_condition_ref(matter_id, current, ref)
-        removed = delete_condition_at(current, position)
-        draft.conditions[matter_id] = current
-
-        emptied = not current
-        after = build_index(draft.matters, draft.conditions, draft.dependencies)
-        unblocked = unblocked_matters(draft.index, after)
-
-        if emptied and not confirmed:
-            raise RuleError(
-                f"deleting the last condition of {matter_id} will make it "
-                f"resolved, unblocking: {format_matter_list(unblocked)} "
-                f"— rerun with --yes",
-                "conflict",
-            )
-
-        return {
-            "matter": matter_id,
-            "position": position + 1,
-            "label": removed["label"],
-            "truth": removed["truth"],
-            "emptied": emptied,
-            "unblocked": unblocked,
-            "changed": True,
-        }
+        return _delete_condition_in_draft(draft, matter_id, ref, confirmed=confirmed)
 
 
 def link(state_path, dependent, prerequisite):
@@ -916,6 +951,46 @@ def unlink(state_path, dependent, prerequisite):
         }
 
 
+def _delete_matter_in_draft(draft, matter_id, *, cascade=False, confirmed=False):
+    require_matter(matter_id, draft.matters)
+    blocking_dependents = sorted(draft.index.dependents[matter_id])
+    if blocking_dependents and not cascade:
+        raise RuleError(
+            f"matter {matter_id} is required by: "
+            f"{format_matter_list(blocking_dependents)} — rerun with "
+            f"--cascade to delete it and those dependencies, or unlink "
+            f"them first",
+            "conflict",
+        )
+
+    removed_edges = sorted(
+        edge for edge in draft.dependencies if matter_id in edge
+    )
+    draft.matters.discard(matter_id)
+    draft.conditions.pop(matter_id, None)
+    for edge in removed_edges:
+        draft.dependencies.discard(edge)
+
+    after = build_index(draft.matters, draft.conditions, draft.dependencies)
+    unblocked = unblocked_matters(draft.index, after)
+
+    if not confirmed:
+        raise RuleError(
+            f"deleting matter {matter_id} removes "
+            f"{format_dependency_count(len(removed_edges))}; "
+            f"unblocked: {format_matter_list(unblocked)} "
+            f"— rerun with --yes",
+            "conflict",
+        )
+
+    return {
+        "matter": matter_id,
+        "removed_edges": [list(edge) for edge in removed_edges],
+        "unblocked": unblocked,
+        "changed": True,
+    }
+
+
 def delete_matter(
     state_path, matter_id, *, cascade=False, confirmed=False, load=None,
     expected_revision=None,
@@ -924,43 +999,123 @@ def delete_matter(
         state_path, require_exists=True, load=load,
         expected_revision=expected_revision,
     ) as draft:
-        require_matter(matter_id, draft.matters)
-        blocking_dependents = sorted(draft.index.dependents[matter_id])
-        if blocking_dependents and not cascade:
-            raise RuleError(
-                f"matter {matter_id} is required by: "
-                f"{format_matter_list(blocking_dependents)} — rerun with "
-                f"--cascade to delete it and those dependencies, or unlink "
-                f"them first",
-                "conflict",
-            )
-
-        removed_edges = sorted(
-            edge for edge in draft.dependencies if matter_id in edge
+        return _delete_matter_in_draft(
+            draft, matter_id, cascade=cascade, confirmed=confirmed
         )
-        draft.matters.discard(matter_id)
-        draft.conditions.pop(matter_id, None)
-        for edge in removed_edges:
-            draft.dependencies.discard(edge)
 
-        after = build_index(draft.matters, draft.conditions, draft.dependencies)
-        unblocked = unblocked_matters(draft.index, after)
 
-        if not confirmed:
-            raise RuleError(
-                f"deleting matter {matter_id} removes "
-                f"{format_dependency_count(len(removed_edges))}; "
-                f"unblocked: {format_matter_list(unblocked)} "
-                f"— rerun with --yes",
-                "conflict",
+_GRAPH_OPERATION_FIELDS = {
+    "create_matter": ({"id"}, {"id", "conditions"}),
+    "set_condition": ({"matter_id", "index", "truth"}, {"matter_id", "index", "truth"}),
+    "add_condition": ({"matter_id", "label"}, {"matter_id", "label", "truth"}),
+    "edit_condition": ({"matter_id", "index", "label"}, {"matter_id", "index", "label"}),
+    "delete_condition": ({"matter_id", "index"}, {"matter_id", "index", "confirmed"}),
+    "delete_matter": ({"matter_id"}, {"matter_id", "cascade", "confirmed"}),
+    "add_dependency": ({"source", "target"}, {"source", "target"}),
+    "remove_dependency": ({"source", "target"}, {"source", "target"}),
+}
+
+
+def _require_graph_operation_payload(operation, payload):
+    """Validate the strict public operation shape, before graph mutation.
+
+    Legacy web and CLI entry points retain their existing coercions and
+    aliases. This contract accepts only the explicitly named typed fields;
+    all actual graph rules remain in the helpers shared by both routes.
+    """
+
+    if not isinstance(operation, str) or operation not in _GRAPH_OPERATION_FIELDS:
+        raise RuleError("unknown graph operation")
+    if not isinstance(payload, dict):
+        raise RuleError("graph operation payload must be an object")
+    required, allowed = _GRAPH_OPERATION_FIELDS[operation]
+    if set(payload) - allowed:
+        raise RuleError("graph operation payload contains unsupported fields")
+    if required - set(payload):
+        raise RuleError("graph operation payload is missing required fields")
+    for field in ("id", "matter_id", "source", "target"):
+        if field in payload:
+            if not isinstance(payload[field], str):
+                raise RuleError(f"{field} must be a string")
+            require_matter_id_syntax(payload[field])
+    if "index" in payload:
+        if type(payload["index"]) is not int or payload["index"] < 0:
+            raise RuleError("index must be a nonnegative integer")
+    for field in ("truth", "cascade", "confirmed"):
+        if field in payload and type(payload[field]) is not bool:
+            raise RuleError(f"{field} must be a boolean")
+    if "label" in payload and not isinstance(payload["label"], str):
+        raise RuleError("label must be a string")
+    if "conditions" in payload:
+        if not isinstance(payload["conditions"], list):
+            raise RuleError("conditions must be a list")
+        for condition in payload["conditions"]:
+            if not isinstance(condition, dict) or set(condition) - {"label", "truth"}:
+                raise RuleError("conditions must be objects containing only label and truth")
+            if not isinstance(condition.get("label"), str):
+                raise RuleError("condition label must be a string")
+            require_condition_truth(condition.get("truth", False))
+
+
+def apply_graph_operation(draft, operation, payload):
+    """Apply a validated operation in memory, using the file-backed rules.
+
+    This function performs no I/O and knows nothing about accounts or SQL.
+    The caller owns the enclosing persistence transaction and its permission
+    and expected-revision checks. The supplied draft is left unchanged when
+    a rule rejects the operation, including a refused destructive change.
+
+    Input and returned condition indexes are 0-based. A fresh index is built
+    for each operation; edge removal alone may repair a pre-existing cycle
+    without trying to derive values from the still-broken graph.
+    """
+
+    if not isinstance(draft, StateDraft):
+        raise RuleError("a StateDraft is required")
+    _require_graph_operation_payload(operation, payload)
+    before = copy.deepcopy(draft.as_tuple())
+    staged = StateDraft(None, *copy.deepcopy(before))
+    if operation != "remove_dependency":
+        staged.index = require_acyclic_index(*staged.as_tuple())
+
+    if operation == "create_matter":
+        result = _create_matter_in_draft(staged, payload)
+    elif operation == "add_dependency":
+        result = _add_dependency_in_draft(staged, payload)
+    elif operation == "remove_dependency":
+        result = _remove_dependency_in_draft(staged, payload)
+    else:
+        matter_id = payload["matter_id"]
+        if operation == "delete_matter":
+            result = _delete_matter_in_draft(
+                staged, matter_id, cascade=payload.get("cascade", False),
+                confirmed=payload.get("confirmed", False),
+            )
+        elif operation == "delete_condition":
+            result = _delete_condition_in_draft(
+                staged, matter_id, str(payload["index"] + 1),
+                confirmed=payload.get("confirmed", False),
+            )
+            result["index"] = result.pop("position") - 1
+        else:
+            update = {key: value for key, value in payload.items() if key != "matter_id"}
+            result = _update_conditions_in_draft(staged, matter_id, update)
+            result["index"] = (
+                len(staged.conditions[matter_id]) - 1
+                if operation == "add_condition" else payload["index"]
             )
 
-        return {
-            "matter": matter_id,
-            "removed_edges": [list(edge) for edge in removed_edges],
-            "unblocked": unblocked,
-            "changed": True,
-        }
+    changed = staged.as_tuple() != before
+    # Preserve the identity of the primitive containers, as file loader
+    # callbacks and other transaction owners can retain references to them.
+    draft.matters.clear()
+    draft.matters.update(staged.matters)
+    draft.conditions.clear()
+    draft.conditions.update(staged.conditions)
+    draft.dependencies.clear()
+    draft.dependencies.update(staged.dependencies)
+    draft.index = None  # An index of the old snapshot must never survive a write.
+    return {"operation": operation, **result, "changed": changed}
 
 
 # ---------------------------------------------------------------------------

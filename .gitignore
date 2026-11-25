@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 dist/
+build/
 *.egg-info/
 .DS_Store
 
@@ -13,6 +14,7 @@ dist/
 .beads-credential-key
 
 artifacts/verification/matters/
+artifacts/verification/cloud/
 
 # Advisory locks remain local to each checkout.
 graphs/.*.lock

@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -70,6 +71,21 @@ def main(argv=None):
     )
     subparsers.add_parser(
         "state-path", parents=[state_parent], help="Print the resolved state path."
+    )
+    cloud_parser = subparsers.add_parser(
+        "cloud", help="Run the account-based Matters Cloud pilot service."
+    )
+    cloud_parser.add_argument(
+        "--database-url", help="Database URL; otherwise MATTERS_CLOUD_DATABASE_URL."
+    )
+    cloud_parser.add_argument("--host", default="127.0.0.1", help="Bind host; default loopback.")
+    cloud_parser.add_argument("--port", type=int, default=8766, help="HTTP port; default 8766.")
+    cloud_parser.add_argument(
+        "--development", action="store_true",
+        help="Allow HTTP session cookies for loopback-only development."
+    )
+    cloud_parser.add_argument(
+        "--public-origin", help="Exact public HTTPS origin when behind a trusted proxy."
     )
     mcp_parser = subparsers.add_parser(
         "mcp", parents=[state_parent], help="Serve configured local graphs over MCP stdio."
@@ -469,6 +485,43 @@ def main(argv=None):
     )
 
     args = parser.parse_args(argv)
+
+    if args.command == "cloud":
+        import ipaddress
+
+        try:
+            loopback = args.host == "localhost" or ipaddress.ip_address(args.host).is_loopback
+        except ValueError:
+            loopback = False
+        if args.state is not None or args.config is not None:
+            parser.error("--state and --config do not apply to matters cloud")
+        if args.development and not loopback:
+            parser.error("--development requires a loopback --host")
+        if not loopback and not args.public_origin:
+            parser.error("a non-loopback --host requires --public-origin https://...")
+        if not 1 <= args.port <= 65535:
+            parser.error("--port must be between 1 and 65535")
+        database_url = args.database_url or os.environ.get("MATTERS_CLOUD_DATABASE_URL")
+        if not database_url:
+            parser.error("set --database-url or MATTERS_CLOUD_DATABASE_URL")
+        try:
+            from .cloud.app import create_app
+            import uvicorn
+        except ModuleNotFoundError:
+            parser.error("Cloud support is optional; install matters-global[cloud] to use matters cloud")
+        try:
+            app = create_app(
+                database_url, secure_cookies=not args.development,
+                public_origin=args.public_origin,
+            )
+        except ValueError as error:
+            parser.error(str(error))
+        except Exception:
+            parser.error("Cloud database initialization failed; check the database configuration")
+        # A raw request-target access log can include accidental credentials in
+        # query strings. Product telemetry can add explicitly safe fields later.
+        uvicorn.run(app, host=args.host, port=args.port, access_log=False)
+        return 0
 
     if args.command == "mcp":
         try:

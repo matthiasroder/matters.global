@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Matters Cloud</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+    <script src="/assets/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Matters Cloud home"><span class="brand-mark" aria-hidden="true">m</span><span>matters<span class="brand-dot">.</span></span></a>
+      <span class="preview-badge">Cloud preview</span>
+      <div id="account-controls" class="account-controls" hidden>
+        <span id="account-email"></span>
+        <button id="sign-out" class="text-button" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <main id="auth-view" class="auth-layout">
+      <section class="intro">
+        <p class="eyebrow">A little clarity goes a long way</p>
+        <h1>Make room for<br>what matters.</h1>
+        <p class="intro-copy">Keep your goals, open questions and next steps in one place. Give your personal concerns and each project a space of their own.</p>
+        <div class="intro-line" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <p class="intro-note">Your graphs are private to your account.</p>
+      </section>
+      <section class="auth-card" aria-labelledby="auth-title">
+        <p class="eyebrow">Your space to move forward</p>
+        <h2 id="auth-title">Welcome back</h2>
+        <p id="auth-subtitle" class="muted">Sign in to pick up where you left off.</p>
+        <form id="auth-form" class="stack">
+          <label>Email<input id="email" name="email" type="email" autocomplete="username" maxlength="254" required></label>
+          <label>Password<input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required></label>
+          <p id="password-help" class="field-help" hidden>Use at least 12 characters.</p>
+          <button id="auth-submit" class="primary-button" type="submit">Sign in</button>
+        </form>
+        <p id="auth-message" class="message" role="status" aria-live="polite"></p>
+        <p class="auth-switch"><span id="auth-switch-label">New to Matters?</span> <button id="auth-switch" class="text-button" type="button">Create an account</button></p>
+      </section>
+    </main>
+
+    <main id="workspace-view" class="workspace" hidden>
+      <aside class="sidebar">
+        <div class="sidebar-heading"><h2>Your graphs</h2><span id="graph-count" class="count-badge">0</span></div>
+        <p class="sidebar-copy">A separate space for every kind of concern.</p>
+        <nav id="graph-list" class="graph-list" aria-label="Your graphs"></nav>
+        <form id="new-graph-form" class="new-graph-form stack">
+          <h3>Create a graph</h3>
+          <label>Name<input name="title" placeholder="A new project" maxlength="200" required></label>
+          <label>Space<select name="kind"><option value="personal">Personal</option><option value="project">Project</option></select></label>
+          <button class="secondary-button" type="submit">Create graph</button>
+        </form>
+      </aside>
+      <section class="graph-panel" aria-live="polite">
+        <p id="workspace-message" class="message workspace-message" role="status"></p>
+        <section id="no-graph" class="empty-graph">
+          <span class="empty-orbit" aria-hidden="true"></span>
+          <p class="eyebrow">Start with what is on your mind</p>
+          <h1>Your first graph starts here.</h1>
+          <p>Create a personal graph for everyday concerns, or give a project its own space.</p>
+        </section>
+        <section id="graph-detail" hidden>
+          <div class="graph-heading"><div><p id="graph-kind" class="eyebrow"></p><h1 id="graph-title"></h1></div><button id="refresh-graph" class="secondary-button" type="button">Refresh</button></div>
+          <div class="stat-grid" aria-label="Graph progress"><div><span id="ready-count">0</span><p>Ready to move</p></div><div><span id="open-count">0</span><p>Still open</p></div><div><span id="resolved-count">0</span><p>Resolved</p></div></div>
+          <form id="new-matter-form" class="new-matter-form">
+            <div><h2>What matters next?</h2><p class="muted">Name a concern and what would make it resolved.</p></div>
+            <label>Matter<input name="name" placeholder="Ship the first version" maxlength="128" required></label>
+            <label>Resolved when<input name="condition" placeholder="One real person can use it" maxlength="2000" required></label>
+            <button class="primary-button" type="submit">Add matter</button>
+          </form>
+          <div class="matters-heading"><h2>Your matters</h2><span id="view-only" class="count-badge" hidden>View only</span></div>
+          <div id="matters-list" class="matters-list"></div>
+        </section>
+      </section>
+    </main>
+    <footer>Matters Cloud <span aria-hidden="true">·</span> Keep sight of what moves you forward.</footer>
+  </body>
+</html>

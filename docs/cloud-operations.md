@@ -16,11 +16,12 @@ separate Python environment for the recovery tool:
 
 ```sh
 python -m venv /tmp/matters-operations-venv
-/tmp/matters-operations-venv/bin/pip install -r ops/cloud/requirements.txt
+/tmp/matters-operations-venv/bin/pip install -e '.[cloud]' -r ops/cloud/requirements.txt
 ```
 
-The extra dependency is for authenticated backup encryption only; the application
-does not acquire a new mandatory dependency. The key is an operator-owned file
+The operator environment installs the reviewed Cloud schema and the separate
+backup encryption dependency. Local CLI and MCP use do not acquire an account
+requirement or a new mandatory dependency. The key is an operator-owned file
 containing exactly 32 random bytes, with mode 0600 or stricter, outside the
 repository. Do not pass encryption keys, database passwords or tokens on command
 lines, put them in logs, or commit them.
@@ -46,12 +47,14 @@ Build the reviewed application image with the Cloud and MCP extras:
 docker build -f Dockerfile.cloud -t matters-cloud:staging .
 python ops/cloud/staging.py prepare \
   --directory /tmp/matters-staging-run \
-  --image matters-cloud:staging --port 19443
+  --image matters-cloud:staging --port 19443 --subnet 10.243.17.0/28
 ```
 
 The destination must be new and outside the repository. Preparation creates a
-mode-0700 directory containing a private environment file, an encryption key and
-a two-day localhost certificate. The certificate key is readable by the
+mode-0700 directory containing a private environment file, three distinct
+database-role password files, an encryption key and a two-day localhost
+certificate. Choose an unused private IPv4 /28 subnet; do not reuse another
+installation’s network. The certificate key is readable by the
 non-root proxy through its read-only mount; the protected host directory limits
 host access. No other service receives that key. The helper prints paths and an
 operations-owner label, never secret values.
@@ -64,7 +67,12 @@ docker compose --project-name matters-staging-run \
   -f ops/cloud/staging.compose.yml config --quiet
 docker compose --project-name matters-staging-run \
   --env-file /tmp/matters-staging-run/staging.env \
-  -f ops/cloud/staging.compose.yml up --build -d
+  -f ops/cloud/staging.compose.yml up --wait -d database
+/tmp/matters-operations-venv/bin/python ops/cloud/staging.py provision \
+  --directory /tmp/matters-staging-run --project matters-staging-run
+docker compose --project-name matters-staging-run \
+  --env-file /tmp/matters-staging-run/staging.env \
+  -f ops/cloud/staging.compose.yml up --build --wait -d app proxy
 python ops/cloud/staging.py probe \
   --origin https://localhost:19443 \
   --ca-file /tmp/matters-staging-run/server.crt
@@ -74,9 +82,20 @@ The probe verifies the certificate and hostname; it does not disable TLS checks
 or follow redirects. It reports only sample counts and health latency. The
 certificate is trusted for that probe alone; no machine-wide trust is installed.
 
+Start a fresh database first, provision its schema and roles, then start the
+application. Provisioning refuses existing databases or roles and writes a
+private ownership inventory to `roles.json`. It is not an in-place installer
+for an existing production database. Older staging directories must be replaced
+with a new prepared run rather than silently acquiring new secrets or privileges.
+
 Only the TLS proxy is published, on loopback. Application and PostgreSQL ports
 stay inside this project's network. The app receives an exact HTTPS origin and
-uses secure cookies. The proxy preserves that host and sets the forwarded scheme.
+uses secure cookies. The proxy preserves that host, sets the forwarded scheme and **overwrites**
+`X-Forwarded-For` with its observed peer address. The app trusts only the proxy’s
+fixed private `/32` address via `--trusted-proxy`; it never trusts all senders.
+Other deployments must configure their actual controlled proxy addresses and
+prevent clients from bypassing that boundary. Without this explicit option the
+CLI disables forwarded-header handling.
 Its small image copies only the public proxy configuration with explicit read
 permissions; TLS private keys are supplied at runtime, never baked into it.
 The app and proxy are non-root, have read-only root filesystems, bounded temporary
@@ -91,11 +110,24 @@ and retention procedure. Health checks prove availability,
 not authorization. Verify an incorrect browser origin is refused, test account
 separation, and check only aggregate metrics before using a real pilot.
 
-The database initialization administrator is a disposable staging role. A
-production installation needs separately reviewed application, migration, backup
-and support roles. Configure client IP handling only for the trusted proxy and
-add deployment-wide abuse controls; process-local attempt limits are not a
-shared protection across workers.
+The initialization administrator provisions three separate login roles: the
+application receives only runtime access, the migration role owns the reviewed
+schema, and the backup role can read and dump it. The app never receives the
+bootstrap administrator password. These are tested PostgreSQL privilege
+boundaries, not a selected production secret manager or support-access policy.
+The disposable PostgreSQL image uses password-authenticated network connections
+(SCRAM). Never carry a test-only trust-authentication setting into an actual
+installation. Agree the database transport and secret-rotation policies for the
+real network boundary before deployment.
+
+Authentication limits use shared database buckets; configure any additional
+deployment-wide abuse controls before a public pilot. Optional
+`matters cloud --mail-events` emits only dedicated JSON aggregate mail outcomes to stderr
+(`event`, `outcome`, `count`). Collect per-worker events with instance and time
+context and alert on failed/dropped delivery or event-sink failure. The private
+in-process delivery counters and mail queue reset on restart; they are not
+durable billing records or a public metrics API. No address, link, token or
+message body belongs in routine logs.
 
 If a managed build proxy needs an additional CA, use a temporary Dockerfile with
 a BuildKit secret for that build step. Keep certificate verification enabled;
@@ -116,7 +148,7 @@ password. Keep all following artifacts outside the checkout:
 ```sh
 /tmp/matters-operations-venv/bin/python ops/cloud/recovery.py backup \
   --container "$MATTERS_DB_CONTAINER" --owner THE_PRINTED_OWNER \
-  --username matters_ops --database matters \
+  --username matters_backup --database matters \
   --key-file /tmp/matters-staging-run/backup.key \
   --output /tmp/matters-staging-run/backup.enc
 ```
@@ -157,19 +189,42 @@ Restore never replaces an existing database. Its target must start with
   --source /tmp/matters-staging-run/backup.enc
 ```
 
-The archive is restored in one PostgreSQL transaction. Schema versions 1 and 2
-are supported; other versions require a reviewed tool update. The destination
+The archive is restored in one PostgreSQL transaction. Schema versions 1, 2
+and 3 are supported; other versions require a reviewed tool update. The destination
 receives a unique ownership comment. Ordinary failures attempt cleanup only when
 that exact comment is unchanged. There is no force-drop operation. A process
 kill or another active database connection can leave an isolated destination;
 inspect ownership and active connections before any manual cleanup.
 
-Restored browser sessions are deleted by default. For schema 2, pending OAuth
+Restored browser sessions are deleted by default. For schema 2 and later, pending OAuth
 requests, grants, codes and access/refresh credentials are removed while client
-registrations are retained. An old revoked login or issued token must not become
-valid again merely because a backup was restored. Users sign in and authorize
+registrations are retained. For schema 3, password-reset/email-verification
+credentials and rate-limit buckets are cleared as well; recorded email
+verification status and graph data remain. These invalidations run in one
+transaction before an application may use the destination. An old revoked login
+or issued token must not become valid again merely because a backup was restored. Users sign in and authorize
 again. Do not route application traffic to the restored database until validation
 finishes.
+
+The result includes the new database’s `restore_ownership_marker`. Keep the app
+stopped and apply the existing installation’s runtime and backup grants to that
+new database using the exact marker and explicit destination confirmation:
+
+```sh
+/tmp/matters-operations-venv/bin/python ops/cloud/database_roles.py grant-restored \
+  --container "$MATTERS_DB_CONTAINER" --owner THE_PRINTED_OWNER \
+  --admin-user matters_ops --record /tmp/matters-staging-run/roles.json \
+  --database restore_drill --confirm-database restore_drill \
+  --restore-marker THE_RETURNED_RESTORE_MARKER \
+  --output-record /tmp/matters-staging-run/restored-roles.json
+```
+
+This adopts only the exact new restore database and its reviewed objects. It
+refuses unknown tables, changed ownership or role flags/memberships. It does not
+reassign unrelated administrator-owned objects. Point the application’s protected
+connection configuration at the restored database with its **application** role;
+do not run the app as the restore administrator. Keep the source database and
+inventory until an authorized cutover is complete.
 
 The result reports schema version and aggregate database/account/graph/event
 measurements. Check expected graph content and ownership through the same
@@ -184,6 +239,37 @@ change while the consistent `pg_dump` snapshot is taken. Record capture time,
 restore duration, data verification and the observed lost-work window. A fast
 fixture drill does not establish the service's RPO or RTO.
 
+## Database role maintenance and upgrades
+
+`database_roles.py provision` accepts a fresh database name, role prefix and
+three `--app-password-file`, `--migration-password-file`,
+`--backup-password-file` values. Files must be regular, private, operator-owned
+and outside this checkout; symlinks and named pipes are rejected before reading.
+Passwords travel through protected files and psql input, never command arguments
+or printed connection URLs. For password-authenticated administrative access,
+use `--passfile` with an operator-managed file already mounted inside the selected
+container. Retain the private ownership inventory separately from backups.
+
+The runtime role has SELECT/INSERT/UPDATE/DELETE on known application tables and
+SELECT only on `schema_versions`. It has no database/schema CREATE, TEMP,
+TRUNCATE, role membership or large-object write privileges. The backup role has
+SELECT/dump access and no data writes. The migration role owns the reviewed
+schema and can run explicit supported upgrades. PUBLIC and direct runtime/backup
+grants are revoked before applying the allowlist; grant repair does not silently
+remove unexpected role memberships or elevated role flags, which instead fail
+closed for investigation. Future tables do not receive automatic runtime grants.
+
+For an upgrade, stop writers, capture and validate an encrypted backup, rehearse
+against a new restore, and run `matters cloud-migrate` using the **migration**
+role’s protected `MATTERS_CLOUD_DATABASE_URL`. The runtime role cannot migrate.
+Then run `database_roles.py grant` with the existing private `--record`, selected
+container, owner and administrator credentials to check the reviewed table set
+and reapply grants. Validate the app using its own role before traffic resumes.
+Do not pass a credential-bearing URL as a command-line argument. Schema 3 is
+current; upgrades from supported older versions are explicit, never an automatic
+runtime DDL operation. Support operators need separately agreed, time-limited
+access rather than sharing these three service-role passwords.
+
 ## Measurements and resource evidence
 
 Use aggregate database inputs without account emails, graph titles, source text,
@@ -192,7 +278,7 @@ tokens or request URLs:
 ```sh
 /tmp/matters-operations-venv/bin/python ops/cloud/recovery.py sample \
   --container "$MATTERS_DB_CONTAINER" --owner THE_PRINTED_OWNER \
-  --username matters_ops --database matters
+  --username matters_backup --database matters
 ```
 
 The sample reports database bytes, accounts, graphs and graph-event count.

@@ -17,7 +17,7 @@ from sqlalchemy.exc import ArgumentError, SQLAlchemyError
 from sqlalchemy.pool import StaticPool
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 metadata = MetaData()
 
 schema_versions = Table(
@@ -103,11 +103,36 @@ oauth_records = Table(
     Column("created_at", BigInteger, nullable=False),
     Column("expires_at", BigInteger, nullable=False, index=True),
 )
+account_security = Table(
+    "account_security", metadata,
+    Column("user_id", String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("email_verified_at", BigInteger),
+)
+account_actions = Table(
+    "account_actions", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("user_id", String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("kind", String(24), nullable=False),
+    Column("data", JSON, nullable=False),
+    Column("created_at", BigInteger, nullable=False),
+    Column("expires_at", BigInteger, nullable=False, index=True),
+    Column("used_at", BigInteger),
+    CheckConstraint("kind IN ('verify_email', 'reset_password')", name="ck_account_action_kind"),
+)
+rate_limit_buckets = Table(
+    "rate_limit_buckets", metadata,
+    Column("key", String(64), primary_key=True),
+    Column("window_started", BigInteger, nullable=False),
+    Column("hits", Integer, nullable=False),
+    Column("expires_at", BigInteger, nullable=False, index=True),
+    CheckConstraint("hits >= 0", name="ck_rate_limit_hits"),
+)
 
 VERSION_ONE_TABLES = {
     "schema_versions", "users", "sessions", "graphs", "graph_members", "graph_events",
 }
 VERSION_TWO_TABLES = (graph_sources, graph_invitations, oauth_records)
+VERSION_THREE_TABLES = (account_security, account_actions, rate_limit_buckets)
 
 
 class CloudDatabaseError(RuntimeError):
@@ -196,7 +221,7 @@ class Database:
         return self
 
     def migrate(self):
-        """Explicitly upgrade a complete version-1 installation in one transaction.
+        """Explicitly upgrade a version-1 or version-2 installation transactionally.
 
         Startup never invokes this method. Existing graph/account rows are not
         rewritten; this additive migration only creates installation tables.
@@ -214,27 +239,29 @@ class Database:
                     if not set(metadata.tables) <= existing:
                         raise CloudDatabaseError("The Cloud schema is incomplete; recovery is required.")
                     return {"from_version": version, "to_version": version, "changed": False}
-                if version != 1:
+                if version not in (1, 2):
                     raise CloudDatabaseError("Unsupported Cloud schema version; migration was refused.")
-                if not VERSION_ONE_TABLES <= existing or any(t.name in existing for t in VERSION_TWO_TABLES):
+                expected = VERSION_ONE_TABLES | ({t.name for t in VERSION_TWO_TABLES} if version == 2 else set())
+                additions = VERSION_THREE_TABLES if version == 2 else VERSION_TWO_TABLES + VERSION_THREE_TABLES
+                if not expected <= existing or any(t.name in existing for t in additions):
                     raise CloudDatabaseError("The Cloud schema is incomplete or partially migrated; recovery is required.")
                 inspector = inspect(connection)
                 if any(
                     not set(metadata.tables[name].columns.keys()) <= {
                         column["name"] for column in inspector.get_columns(name)
                     }
-                    for name in VERSION_ONE_TABLES
+                    for name in expected
                 ):
                     raise CloudDatabaseError("The Cloud schema is incomplete; recovery is required.")
                 # Explicit BEGIN IMMEDIATE also makes SQLite DDL transactional.
-                for table in VERSION_TWO_TABLES:
+                for table in additions:
                     table.create(connection)
                 connection.execute(schema_versions.update().where(schema_versions.c.id == 1).values(version=SCHEMA_VERSION))
         except CloudDatabaseError:
             raise
         except SQLAlchemyError:
             raise CloudDatabaseError("Cloud schema migration failed and was rolled back.") from None
-        return {"from_version": 1, "to_version": SCHEMA_VERSION, "changed": True}
+        return {"from_version": version, "to_version": SCHEMA_VERSION, "changed": True}
 
     def close(self):
         self.engine.dispose()

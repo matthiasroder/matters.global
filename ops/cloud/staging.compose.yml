@@ -2,7 +2,7 @@ services:
   database:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: matters
+      POSTGRES_DB: postgres
       POSTGRES_USER: matters_ops
       POSTGRES_PASSWORD: ${MATTERS_PG_PASSWORD:?Supply an operator-owned staging environment file}
     labels:
@@ -13,14 +13,17 @@ services:
     mem_limit: 512m
     pids_limit: 128
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U matters_ops -d matters"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U matters_ops -d postgres"]
       interval: 5s
       timeout: 3s
       retries: 12
+    networks:
+      staging:
+        ipv4_address: ${MATTERS_STAGING_DATABASE_IP:?Prepare the private staging network}
 
   app:
     image: ${MATTERS_CLOUD_IMAGE:?Build and select the reviewed application image}
-    command: ["--host", "0.0.0.0", "--port", "3000", "--public-origin", "${MATTERS_CLOUD_PUBLIC_ORIGIN:?Set the exact staging HTTPS origin}", "--mcp"]
+    command: ["--host", "0.0.0.0", "--port", "3000", "--public-origin", "${MATTERS_CLOUD_PUBLIC_ORIGIN:?Set the exact staging HTTPS origin}", "--mcp", "--trusted-proxy", "${MATTERS_STAGING_PROXY_IP:?Prepare the explicit trusted proxy}/32"]
     environment:
       MATTERS_CLOUD_DATABASE_URL: ${MATTERS_CLOUD_DATABASE_URL:?Supply a protected database URL}
     labels:
@@ -48,6 +51,9 @@ services:
     cpus: 1.0
     mem_limit: 512m
     pids_limit: 128
+    networks:
+      staging:
+        ipv4_address: ${MATTERS_STAGING_APP_IP:?Prepare the private staging network}
 
   proxy:
     build:
@@ -72,6 +78,17 @@ services:
     cpus: 0.5
     mem_limit: 64m
     pids_limit: 64
+    networks:
+      staging:
+        ipv4_address: ${MATTERS_STAGING_PROXY_IP:?Prepare the explicit trusted proxy}
 
 volumes:
   database:
+
+networks:
+  staging:
+    labels:
+      global.matters.operations-owner: ${MATTERS_OPERATIONS_OWNER:?Supply an explicit operations owner}
+    ipam:
+      config:
+        - subnet: ${MATTERS_STAGING_SUBNET:?Choose an unused private staging subnet}

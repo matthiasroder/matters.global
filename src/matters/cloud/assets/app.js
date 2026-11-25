@@ -1,6 +1,6 @@
 "use strict";
 
-const state = { user: null, graphs: [], graph: null, report: null, visual: null, selectedMatter: null, visualMode: "overview", sharingRequest: 0, register: false, generation: 0, authEpoch: 0, authAttempt: 0, requestedGraph: null, catalogRequest: 0 };
+const state = { user: null, graphs: [], graph: null, report: null, visual: null, selectedMatter: null, visualMode: "overview", sharingRequest: 0, accountSecurity: null, securityRequest: 0, recoveryCapabilities: null, recoveryRequest: 0, register: false, generation: 0, authEpoch: 0, authAttempt: 0, requestedGraph: null, catalogRequest: 0 };
 const byId = id => document.getElementById(id);
 const authForm = byId("auth-form");
 const graphForm = byId("new-graph-form");
@@ -8,6 +8,8 @@ const matterForm = byId("new-matter-form");
 const invitationForm = byId("invitation-form");
 const joinForm = byId("join-graph-form");
 const dependencyForm = byId("dependency-form");
+const recoveryForm = byId("recovery-request-form");
+const passwordChangeForm = byId("password-change-form");
 let overviewRenderer = null;
 let rendererLoading = null;
 let lastVisualMode = null;
@@ -74,6 +76,27 @@ function clearGraphDisplay() {
   byId("no-graph").hidden = false;
 }
 
+function resetAccountControls() {
+  state.accountSecurity = null;
+  state.securityRequest += 1;
+  state.recoveryCapabilities = null;
+  state.recoveryRequest += 1;
+  recoveryForm.reset(); passwordChangeForm.reset();
+  formBusy(recoveryForm, false); formBusy(passwordChangeForm, false);
+  for (const id of ["recovery-email", "current-password", "new-password", "confirm-new-password"]) byId(id).value = "";
+  byId("account-security-panel").open = false;
+  byId("recovery-panel").open = false;
+  byId("security-verified-status").textContent = "Open this panel to check email verification.";
+  byId("security-delivery").textContent = "";
+  byId("security-message").textContent = "";
+  byId("recovery-message").textContent = "";
+  byId("recovery-capability").textContent = "Checking whether account recovery is available…";
+  byId("request-verification").hidden = true;
+  byId("request-verification").disabled = false;
+  passwordChangeForm.hidden = true;
+  recoveryForm.hidden = true;
+}
+
 function showAuth() {
   if (state.user) incomingInvitation = null;
   state.authEpoch += 1;
@@ -89,9 +112,12 @@ function showAuth() {
   byId("account-controls").hidden = true;
   byId("auth-view").hidden = false;
   clearGraphDisplay();
+  resetAccountControls();
   formBusy(authForm, false);
   byId("auth-switch").disabled = false;
   byId("password").value = "";
+  state.register = false;
+  renderAuthMode();
   if (incomingInvitation) byId("join-token").value = incomingInvitation;
 }
 
@@ -105,6 +131,7 @@ function showWorkspace(user) {
   state.catalogRequest += 1;
   state.generation += 1;
   clearGraphDisplay();
+  resetAccountControls();
   if (incomingInvitation) byId("join-token").value = incomingInvitation;
   byId("account-email").textContent = user.email;
   byId("auth-view").hidden = true;
@@ -471,8 +498,7 @@ async function mutate(operation, payload) {
   }
 }
 
-byId("auth-switch").addEventListener("click", () => {
-  state.register = !state.register;
+function renderAuthMode() {
   byId("auth-title").textContent = state.register ? "A space of your own" : "Welcome back";
   byId("auth-subtitle").textContent = state.register ? "Create an account to start your first graph." : "Sign in to pick up where you left off.";
   byId("auth-submit").textContent = state.register ? "Create account" : "Sign in";
@@ -481,6 +507,19 @@ byId("auth-switch").addEventListener("click", () => {
   byId("password").autocomplete = state.register ? "new-password" : "current-password";
   byId("password").minLength = state.register ? 12 : 1;
   byId("password-help").hidden = !state.register;
+  byId("recovery-panel").hidden = state.register;
+  if (state.register) {
+    byId("recovery-panel").open = false;
+    state.recoveryRequest += 1;
+    recoveryForm.reset();
+    byId("recovery-email").value = "";
+    byId("recovery-message").textContent = "";
+  }
+}
+
+byId("auth-switch").addEventListener("click", () => {
+  state.register = !state.register;
+  renderAuthMode();
   message("", true);
 });
 
@@ -618,6 +657,153 @@ dependencyForm.addEventListener("submit", async event => {
     await mutate(byId("dependency-operation").value, { source: byId("dependency-source").value, target: byId("dependency-target").value });
   } catch (error) { if (!error.stale) message(error.message); }
   finally { if (sameSession(epoch, userId)) formBusy(dependencyForm, false); }
+});
+
+function securityMessage(text) {
+  byId("security-message").textContent = text || "";
+}
+
+function hasAccountCsrf(data) {
+  return typeof data?.csrf_token === "string" && data.csrf_token.length > 0 && data.csrf_token.length <= 512;
+}
+
+async function loadRecoveryCapabilities() {
+  const epoch = state.authEpoch;
+  const request = ++state.recoveryRequest;
+  recoveryForm.hidden = true;
+  byId("recovery-message").textContent = "";
+  byId("recovery-capability").textContent = "Checking whether account recovery is available…";
+  try {
+    const data = await api("/api/auth/capabilities");
+    if (epoch !== state.authEpoch || request !== state.recoveryRequest || state.user) throw staleRequest();
+    if (typeof data.email_delivery !== "boolean" || typeof data.password_reset !== "boolean") throw new Error("Account recovery status is unavailable. Try again later.");
+    state.recoveryCapabilities = { email_delivery: data.email_delivery, password_reset: data.password_reset };
+    const available = data.email_delivery && data.password_reset;
+    recoveryForm.hidden = !available;
+    byId("recovery-capability").textContent = available
+      ? "Request a single-use link to choose a new password."
+      : "Email recovery is not configured for this installation. Contact the installation operator for help.";
+    if (available && !byId("recovery-email").value) byId("recovery-email").value = byId("email").value.trim();
+  } catch (error) {
+    if (!error.stale && epoch === state.authEpoch && request === state.recoveryRequest) {
+      state.recoveryCapabilities = null;
+      byId("recovery-capability").textContent = "Account recovery status is unavailable. Try again later.";
+    }
+  }
+}
+
+async function loadAccountSecurity() {
+  const epoch = state.authEpoch;
+  const userId = state.user?.id;
+  const request = ++state.securityRequest;
+  if (!userId) throw staleRequest();
+  state.accountSecurity = null;
+  byId("security-verified-status").textContent = "Checking account security…";
+  byId("request-verification").hidden = true;
+  passwordChangeForm.hidden = true;
+  try {
+    const data = await api("/api/auth/security");
+    if (!sameSession(epoch, userId) || request !== state.securityRequest) throw staleRequest();
+    if (typeof data.email_verified !== "boolean") throw new Error("Account security status is unavailable. Try again later.");
+    state.accountSecurity = data;
+    byId("security-verified-status").textContent = data.email_verified ? "Email verified." : "Your email has not been verified yet.";
+    byId("security-delivery").textContent = data.email_delivery === true
+      ? "Verification and recovery emails are available."
+      : "Email verification and recovery delivery are not configured for this installation. Password changes remain available.";
+    byId("request-verification").hidden = !(data.email_delivery === true && data.email_verification === true && !data.email_verified && hasAccountCsrf(data));
+    passwordChangeForm.hidden = !(data.password_change === true && hasAccountCsrf(data));
+    return data;
+  } catch (error) {
+    if (sameSession(epoch, userId) && request === state.securityRequest) {
+      state.accountSecurity = null;
+      byId("security-verified-status").textContent = "Account security status is unavailable.";
+      byId("security-delivery").textContent = "";
+      securityMessage(error.message || "Try again later.");
+    }
+    throw error;
+  }
+}
+
+byId("recovery-panel").addEventListener("toggle", () => {
+  if (byId("recovery-panel").open && !state.user && !state.register) loadRecoveryCapabilities();
+});
+
+recoveryForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const epoch = state.authEpoch;
+  const request = ++state.recoveryRequest;
+  if (!state.recoveryCapabilities?.email_delivery || !state.recoveryCapabilities?.password_reset) {
+    byId("recovery-message").textContent = "Email recovery is not configured for this installation.";
+    return;
+  }
+  const email = byId("recovery-email").value.trim();
+  formBusy(recoveryForm, true);
+  try {
+    const result = await api("/api/auth/password/reset/request", { method: "POST", body: JSON.stringify({ email }) });
+    if (epoch !== state.authEpoch || request !== state.recoveryRequest || state.user) throw staleRequest();
+    recoveryForm.reset();
+    byId("recovery-email").value = "";
+    byId("recovery-message").textContent = result.message || "If recovery is available for this address, instructions may arrive shortly. Check your inbox or contact the installation operator.";
+  } catch (error) {
+    if (!error.stale && epoch === state.authEpoch && request === state.recoveryRequest && !state.user) byId("recovery-message").textContent = error.message;
+  } finally {
+    if (epoch === state.authEpoch && request === state.recoveryRequest) formBusy(recoveryForm, false);
+  }
+});
+
+byId("account-security-panel").addEventListener("toggle", () => {
+  if (byId("account-security-panel").open && state.user) {
+    securityMessage("");
+    loadAccountSecurity().catch(() => {});
+  }
+});
+
+byId("request-verification").addEventListener("click", async () => {
+  const epoch = state.authEpoch;
+  const userId = state.user?.id;
+  const security = state.accountSecurity;
+  if (!userId || !hasAccountCsrf(security) || security.email_delivery !== true || security.email_verification !== true || security.email_verified) return;
+  byId("request-verification").disabled = true;
+  securityMessage("");
+  try {
+    const result = await api("/api/auth/verification/request", { method: "POST", body: JSON.stringify({ csrf_token: security.csrf_token }) });
+    if (!sameSession(epoch, userId)) throw staleRequest();
+    await loadAccountSecurity();
+    securityMessage(result.message || "If verification is available, instructions may arrive shortly. Check your inbox or contact the installation operator.");
+  } catch (error) { if (!error.stale && sameSession(epoch, userId)) securityMessage(error.message); }
+  finally { if (sameSession(epoch, userId)) byId("request-verification").disabled = false; }
+});
+
+passwordChangeForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const epoch = state.authEpoch;
+  const userId = state.user?.id;
+  const security = state.accountSecurity;
+  securityMessage("");
+  if (!userId || !hasAccountCsrf(security) || security.password_change !== true) {
+    securityMessage("Open Account security again to refresh this form.");
+    return;
+  }
+  const currentPassword = byId("current-password").value;
+  const newPassword = byId("new-password").value;
+  if (!currentPassword) { securityMessage("Enter your current password."); return; }
+  if (newPassword.length < 12 || newPassword.length > 1024) { securityMessage("Use between 12 and 1024 characters for the new password."); return; }
+  if (newPassword !== byId("confirm-new-password").value) { securityMessage("The new passwords do not match."); return; }
+  const email = state.user.email;
+  formBusy(passwordChangeForm, true);
+  for (const id of ["current-password", "new-password", "confirm-new-password"]) byId(id).value = "";
+  try {
+    const result = await api("/api/auth/password/change", {
+      method: "POST", body: JSON.stringify({ current_password: currentPassword, new_password: newPassword, csrf_token: security.csrf_token })
+    });
+    if (!sameSession(epoch, userId)) throw staleRequest();
+    showAuth();
+    byId("email").value = email;
+    message(result.password_changed === true && result.sign_in_required === true
+      ? "Password changed. Sign in with your new password."
+      : "Sign in again to check your account.", true);
+  } catch (error) { if (!error.stale && sameSession(epoch, userId)) securityMessage(error.message); }
+  finally { if (sameSession(epoch, userId)) formBusy(passwordChangeForm, false); }
 });
 
 (async () => {

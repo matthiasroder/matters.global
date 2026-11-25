@@ -36,8 +36,10 @@ from authorization capabilities.
 The [OpenAI authentication guide](https://developers.openai.com/plugins/build/auth)
 still describes DCR with public-client token authentication and S256 PKCE.
 It also describes additional corporate-domain protections that depend on
-OpenID Connect and verified email. Those protections are not supplied by the
-current account model. Using a tested development authorization server is not
+OpenID Connect and verified email. Those corporate identity protections are not supplied by the
+current account model. Optional SMTP email verification now records control of
+a mailbox, but it does not create an OpenID Connect provider or verified
+corporate-domain claims. Using a tested development authorization server is not
 evidence of production identity-provider readiness.
 
 The [ChatGPT connection guide](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt)

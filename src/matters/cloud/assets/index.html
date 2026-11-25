@@ -30,13 +30,22 @@
         <p class="eyebrow">Your space to move forward</p>
         <h2 id="auth-title">Welcome back</h2>
         <p id="auth-subtitle" class="muted">Sign in to pick up where you left off.</p>
-        <form id="auth-form" class="stack">
+        <form id="auth-form" class="stack" method="post">
           <label>Email<input id="email" name="email" type="email" autocomplete="username" maxlength="254" required></label>
           <label>Password<input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required></label>
           <p id="password-help" class="field-help" hidden>Use at least 12 characters.</p>
           <button id="auth-submit" class="primary-button" type="submit">Sign in</button>
         </form>
         <p id="auth-message" class="message" role="status" aria-live="polite"></p>
+        <details id="recovery-panel" class="recovery-panel">
+          <summary id="forgot-password">Forgot your password?</summary>
+          <p id="recovery-capability" class="field-help" role="status">Checking whether account recovery is available…</p>
+          <form id="recovery-request-form" class="stack" method="post" hidden>
+            <label>Account email<input id="recovery-email" name="email" type="email" autocomplete="username" maxlength="320" required></label>
+            <button class="secondary-button" type="submit">Request password reset</button>
+          </form>
+          <p id="recovery-message" class="message" role="status" aria-live="polite"></p>
+        </details>
         <p class="auth-switch"><span id="auth-switch-label">New to Matters?</span> <button id="auth-switch" class="text-button" type="button">Create an account</button></p>
       </section>
     </main>
@@ -59,6 +68,21 @@
             <p class="field-help">Sign in with the email address the owner invited.</p>
             <button class="secondary-button" type="submit">Join graph</button>
           </form>
+        </details>
+        <details id="account-security-panel" class="account-security-panel">
+          <summary>Account security</summary>
+          <p id="security-verified-status" class="field-help" role="status">Open this panel to check email verification.</p>
+          <p id="security-delivery" class="field-help"></p>
+          <button id="request-verification" class="secondary-button" type="button" hidden>Send verification email</button>
+          <form id="password-change-form" class="stack" method="post" hidden>
+            <h3>Change password</h3>
+            <label>Current password<input id="current-password" name="current_password" type="password" autocomplete="current-password" maxlength="1024" required></label>
+            <label>New password<input id="new-password" name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
+            <label>Confirm new password<input id="confirm-new-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
+            <p class="field-help">Changing your password signs out every browser and connected client.</p>
+            <button class="secondary-button" type="submit">Change password</button>
+          </form>
+          <p id="security-message" class="message" role="status" aria-live="polite"></p>
         </details>
       </aside>
       <section class="graph-panel" aria-live="polite">

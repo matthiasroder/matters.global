@@ -51,7 +51,11 @@ their graph contents into a central public service.
 
 Provisioning should record the approved release/image digest, configuration
 version, schema version, network boundary, secret references and ownership.
-Create separate application, migration, backup and support roles. Verify both
+The reviewed [database role tool](cloud-operations.md#database-role-maintenance-and-upgrades)
+provides separate application, migration and read-only backup roles with an
+installation ownership inventory. Support access remains separately approved
+and time-limited. Keep bootstrap credentials out of the application; trust only
+explicit controlled proxies and overwrite client-forwarded headers. Verify both
 expected access and cross-installation refusal before handing over the endpoint.
 Package assets and required model artifacts locally when external downloads are
 prohibited. The localhost staging setup is a rehearsal pattern, not proof that
@@ -86,8 +90,10 @@ which emergency access process, if any, has been agreed.
 
 Run encrypted backup and restore drills against the actual agreed boundary and
 data size. Retain keys separately from backups, validate new sign-in and graph
-permissions after recovery, and revoke old sessions/issued OAuth grants by
-default. Record drill outcomes; do not convert a successful small fixture test
+permissions after recovery, and revoke old sessions, issued OAuth grants and
+password-reset/email-verification credentials by default. Preserve recorded
+verification state and graph data, then reapply reviewed runtime/backup grants
+to the exact new restore database before admitting traffic. Record drill outcomes; do not convert a successful small fixture test
 into a service-level recovery promise.
 
 For offboarding, verify the requesting authority, export graph facts and source

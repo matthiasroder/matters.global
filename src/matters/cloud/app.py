@@ -6,11 +6,8 @@ that identity to the permission-checking repository.
 """
 
 from contextlib import asynccontextmanager
-from collections import OrderedDict
 import ipaddress
 from pathlib import Path
-import threading
-import time
 from typing import Annotated, Any, Literal
 from urllib.parse import parse_qsl, urlsplit
 
@@ -21,10 +18,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, model_validator
 from sqlalchemy import text
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.concurrency import run_in_threadpool
 
 from .accounts import AccountError, CloudAccounts
 from .db import CloudDatabaseError, Database
 from .repository import CloudGraphError, GraphRepository
+from .rate_limits import DatabaseRateLimiter, RateLimitUnavailable
+from .lifecycle import AccountLifecycle
 
 
 SESSION_COOKIE = "matters_session"
@@ -69,28 +69,6 @@ def loopback_host(host):
         return ipaddress.ip_address(host.strip("[]")).is_loopback
     except ValueError:
         return False
-
-
-class AuthAttemptLimiter:
-    """A bounded, process-local guard for this pilot, not a distributed quota."""
-
-    def __init__(self, *, attempts=20, window_seconds=60, capacity=1024):
-        self.attempts = attempts
-        self.window_seconds = window_seconds
-        self.capacity = capacity
-        self._buckets = OrderedDict()
-        self._lock = threading.Lock()
-
-    def allow(self, peer):
-        now = time.monotonic()
-        with self._lock:
-            started, count = self._buckets.pop(peer, (now, 0))
-            if now - started >= self.window_seconds:
-                started, count = now, 0
-            self._buckets[peer] = (started, count + 1)
-            while len(self._buckets) > self.capacity:
-                self._buckets.popitem(last=False)
-            return count < self.attempts
 
 
 class CloudBoundaryMiddleware:
@@ -148,7 +126,12 @@ class CloudBoundaryMiddleware:
             and self.auth_limiter is not None
         ):
             peer = (scope.get("client") or ("unknown",))[0]
-            if not self.auth_limiter.allow(peer):
+            try:
+                allowed = await run_in_threadpool(self.auth_limiter.allow, peer)
+            except RateLimitUnavailable:
+                await refuse("unavailable", "The security limit service is temporarily unavailable.", 503)
+                return
+            if not allowed:
                 await refuse("rate_limited", "Too many sign-in attempts. Please try again shortly.", 429, {"Retry-After": str(self.auth_limiter.window_seconds)})
                 return
         if is_api and unsafe:
@@ -300,7 +283,7 @@ class GraphOperation(APIModel):
         return self
 
 
-def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed_hosts=None, enable_mcp=False):
+def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed_hosts=None, enable_mcp=False, mail_delivery=None, mail_event_sink=None):
     """Create a pilot ASGI application owning its database-engine lifecycle."""
 
     if type(secure_cookies) is not bool:
@@ -336,6 +319,12 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
         raise
     accounts = CloudAccounts(db)
     graphs = GraphRepository(db)
+    try:
+        lifecycle = AccountLifecycle(db, accounts, public_origin=public_origin, delivery=mail_delivery, allow_loopback_http=not secure_cookies, event_sink=mail_event_sink)
+    except Exception:
+        db.close()
+        raise
+    limiter = DatabaseRateLimiter(db)
     hosted_mcp = None
 
     @asynccontextmanager
@@ -347,13 +336,15 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
                 async with hosted_mcp.lifespan():
                     yield
         finally:
+            await run_in_threadpool(lifecycle.close)
             db.close()
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.db = db
     app.state.accounts = accounts
     app.state.graphs = graphs
-    app.state.auth_limiter = AuthAttemptLimiter()
+    app.state.auth_limiter = limiter
+    app.state.lifecycle = lifecycle
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
     app.add_middleware(
         CloudBoundaryMiddleware, public_origin=public_origin,
@@ -366,8 +357,15 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
 
     @app.exception_handler(AccountError)
     async def account_error(_request, error):
-        status = {"invalid": 400, "conflict": 409, "unauthorized": 401, "unavailable": 503}.get(error.code, 400)
-        return error_response(error.code, error.message, status)
+        status = {"invalid": 400, "conflict": 409, "unauthorized": 401, "forbidden": 403, "rate_limited": 429, "unavailable": 503}.get(error.code, 400)
+        response = error_response(error.code, error.message, status)
+        if status == 429:
+            response.headers["Retry-After"] = str(getattr(error, "retry_after", 60))
+        return response
+
+    @app.exception_handler(RateLimitUnavailable)
+    async def security_limit_unavailable(_request, _error):
+        return error_response("unavailable", "The security limit service is temporarily unavailable.", 503)
 
     @app.exception_handler(CloudGraphError)
     async def graph_error(_request, error):
@@ -387,10 +385,12 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
     from .transfer import create_transfer_router
     from .collaboration import register_collaboration_routes
     from .visual import register_visual_routes
+    from .lifecycle_routes import create_lifecycle_router
 
     app.include_router(create_transfer_router(graphs, authenticated_user))
     register_collaboration_routes(app, graphs, authenticated_user)
     register_visual_routes(app, graphs, authenticated_user)
+    app.include_router(create_lifecycle_router(lifecycle, authenticated_user, public_origin=public_origin, secure_cookies=secure_cookies, cookie_name=SESSION_COOKIE, limiter=limiter))
 
     @app.get("/healthz")
     def health():
@@ -466,7 +466,7 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
         oauth = CloudOAuth(db, issuer_url=public_origin, allow_loopback_http=not secure_cookies)
         app.state.oauth = oauth
         app.include_router(build_oauth_router(
-            oauth, accounts, graphs, secure_cookies=secure_cookies, cookie_name=SESSION_COOKIE,
+            oauth, accounts, graphs, secure_cookies=secure_cookies, cookie_name=SESSION_COOKIE, limiter=limiter,
         ))
         hosted_mcp = create_hosted_mcp(oauth, graphs)
         app.state.hosted_mcp = hosted_mcp

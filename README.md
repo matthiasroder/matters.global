@@ -121,8 +121,9 @@ used as an MCP tunnel endpoint.
 The optional Cloud foundation adds accounts, persistent personal and project
 graphs, an authenticated HTTP API, graph import/export, whole-graph invitations and
 a browser interface with reused Overview controls. Optional hosted MCP uses
-OAuth consent for explicitly selected graphs. PostgreSQL is the intended hosted database; SQLite supports local
-development. The database path uses the same graph rules as local JSON files.
+OAuth consent for explicitly selected graphs. Account settings add email
+verification, secure password changes and optional SMTP recovery. PostgreSQL
+is the intended hosted database; SQLite supports local development. The database path uses the same graph rules as local JSON files.
 
 ```sh
 python -m pip install -e '.[cloud]'
@@ -139,7 +140,9 @@ account. Private company installations will use separately operated, isolated
 endpoints configured by us. See [hosted MCP setup](docs/hosted-mcp.md) for the
 optional `matters cloud --mcp` connection. A live ChatGPT web connection,
 subscriptions, usage limits and production hosting remain unfinished.
-Local CLI, local browser use and local MCP remain account-free.
+Local CLI, local browser use and local MCP remain account-free. Shared security
+limits, least-privilege database provisioning, encrypted recovery and monitoring
+are covered in the [operator guide](docs/cloud-operations.md).
 
 ## Creating Matters
 

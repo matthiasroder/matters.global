@@ -48,10 +48,10 @@ def outside_repository(path):
 def load_key(path):
     path = outside_repository(path)
     try:
-        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
         with os.fdopen(descriptor, "rb") as stream:
             info = os.fstat(stream.fileno())
-            if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+            if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077 or info.st_uid not in {os.getuid(), 0}:
                 raise OpsError("The encryption key must be a private regular file with mode 0600 or stricter.")
             key = stream.read(33)
     except OSError:
@@ -90,7 +90,7 @@ def unseal(package, key):
         or type(metadata.get("schema_version")) is not int
         or metadata.get("schema_version") != 1
         or type(metadata.get("database_schema")) is not int
-        or metadata.get("database_schema") not in (1, 2)
+        or metadata.get("database_schema") not in (1, 2, 3)
         or not isinstance(metadata.get("source_database"), str)
         or not NAME.fullmatch(metadata["source_database"])
         or not isinstance(metadata.get("source_operations_owner"), str)
@@ -195,7 +195,7 @@ class PostgreSQL:
 
     def schema(self, database):
         version = self.sql(database, "SELECT version FROM schema_versions WHERE id=1")
-        if version not in {"1", "2"}:
+        if version not in {"1", "2", "3"}:
             raise OpsError("The database schema is unsupported; review recovery before proceeding.")
         return int(version)
 
@@ -249,16 +249,19 @@ def restore(pg, database, confirmation, package, key):
         if result.returncode or pg.schema(database) != metadata["database_schema"]:
             raise OpsError("The PostgreSQL restore or schema validation failed.")
         # Old browser sessions and issued OAuth grants must not revive after a restore.
-        pg.sql(database, "DELETE FROM sessions")
-        if metadata["database_schema"] == 2:
-            pg.sql(database, "DELETE FROM oauth_records WHERE kind <> 'client'")
-        result = {"schema_version": 1, "restored_database": database, "database_schema": metadata["database_schema"], "sessions_and_issued_grants_revoked": True, "measurements": pg.sample(database)}
+        invalidations = ["DELETE FROM sessions;"]
+        if metadata["database_schema"] >= 2:
+            invalidations.append("DELETE FROM oauth_records WHERE kind <> 'client';")
+        if metadata["database_schema"] >= 3:
+            invalidations += ["DELETE FROM account_actions;", "DELETE FROM rate_limit_buckets;"]
+        pg.sql(database, "BEGIN;\n" + "\n".join(invalidations) + "\nCOMMIT;")
+        result = {"schema_version": 1, "restored_database": database, "restore_ownership_marker": marker, "database_schema": metadata["database_schema"], "sessions_and_issued_grants_revoked": True, "account_actions_revoked": metadata["database_schema"] >= 3, "measurements": pg.sample(database)}
         return result
     except BaseException:
         if created:
             # Never force-drop or delete a destination whose ownership marker changed.
             try:
-                observed = pg.sql("postgres", f"SELECT obj_description(oid,'pg_database') FROM pg_database WHERE datname='{database}'")
+                observed = pg.sql("postgres", f"SELECT shobj_description(oid,'pg_database') FROM pg_database WHERE datname='{database}'")
                 if observed == marker:
                     pg.sql("postgres", f'DROP DATABASE "{database}"')
             except OpsError:
@@ -286,6 +289,8 @@ def parser():
 def main(argv=None):
     args = parser().parse_args(argv)
     try:
+        if args.max_bytes <= 0 or args.timeout <= 0:
+            raise OpsError("Positive byte and time bounds are required.")
         key = load_key(args.key_file) if args.command != "sample" and args.key_file else None
         if args.command != "sample" and key is None:
             raise OpsError("An operator-owned encryption key file is required.")
@@ -294,7 +299,7 @@ def main(argv=None):
             if not args.source:
                 raise OpsError("An encrypted source backup is required.")
             source = outside_repository(args.source)
-            with os.fdopen(os.open(source, os.O_RDONLY | os.O_NOFOLLOW), "rb") as stream:
+            with os.fdopen(os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK), "rb") as stream:
                 if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
                     raise OpsError("The encrypted source must be a regular file.")
                 package = stream.read(args.max_bytes + 131073)

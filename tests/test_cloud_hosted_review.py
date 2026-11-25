@@ -10,6 +10,7 @@ import secrets
 import shutil
 import subprocess
 import runpy
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -33,7 +34,7 @@ from mcp.shared.auth import OAuthClientMetadata
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import make_url
 
-from matters.cloud.db import Database, graph_events, users
+from matters.cloud.db import Database, graph_events, sessions, users
 from matters.cloud.app import create_app
 from matters.cloud.collaboration import CloudCollaboration
 from matters.cloud.oauth import CloudOAuth, OAuthError
@@ -91,7 +92,7 @@ def authorization(oauth, repository, actor, graph_ids, scope="graphs:read graphs
         "code_challenge": challenge, "code_challenge_method": "S256",
     }
     request = oauth.create_authorization_request(parameters)
-    session, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    session, csrf = _browser_session(oauth.db, actor), secrets.token_urlsafe(32)
     oauth.prepare_consent(request, actor, session, csrf)
     redirect = oauth.consent(request, actor, session, csrf, graph_ids, repository=repository)
     result = parse_qs(urlsplit(redirect).query)
@@ -101,6 +102,15 @@ def authorization(oauth, repository, actor, graph_ids, scope="graphs:read graphs
         "code_verifier": verifier, "resource": oauth.resource_url,
     }
     return oauth.exchange_code(**exchange), client, exchange, parameters
+
+
+def _browser_session(db, actor):
+    """Give direct service tests a real persisted session, as HTTP login does."""
+    token = secrets.token_urlsafe(32)
+    now = int(time.time())
+    with db.transaction(write=True) as connection:
+        connection.execute(sessions.insert().values(token_hash=hashlib.sha256(token.encode()).hexdigest(), user_id=actor, created_at=now, expires_at=now + 86400))
+    return token
 
 
 def test_granted_graphs_and_current_membership_both_limit_each_operation(installation):
@@ -173,7 +183,7 @@ def test_consent_refuses_account_session_csrf_and_foreign_graph_substitution(ins
     foreign = repository.create_graph(people["bob"], "Bob")
     _, _, _, parameters = authorization(oauth, repository, people["alice"], [graph["graph_id"]])
     request = oauth.create_authorization_request(parameters)
-    session, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    session, csrf = _browser_session(oauth.db, people["alice"]), secrets.token_urlsafe(32)
     oauth.prepare_consent(request, people["alice"], session, csrf)
     for actor, cookie, nonce, selected in (
         (people["bob"], session, csrf, [graph["graph_id"]]),

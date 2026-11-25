@@ -90,6 +90,13 @@ def main(argv=None):
     cloud_parser.add_argument(
         "--mcp", action="store_true", help="Enable hosted OAuth and MCP; requires the mcp extra."
     )
+    cloud_parser.add_argument(
+        "--trusted-proxy", action="append", default=[], metavar="IP_OR_CIDR",
+        help="Trust forwarded client headers only from this proxy IP or network; repeat as needed."
+    )
+    cloud_parser.add_argument(
+        "--mail-events", action="store_true", help="Write aggregate mail outcome events to stderr without recipient or credential fields."
+    )
     migration_parser = subparsers.add_parser(
         "cloud-migrate", help="Explicitly upgrade an existing Cloud database after a verified backup."
     )
@@ -530,6 +537,15 @@ def main(argv=None):
             parser.error("a non-loopback --host requires --public-origin https://...")
         if not 1 <= args.port <= 65535:
             parser.error("--port must be between 1 and 65535")
+        trusted_proxies = []
+        for value in args.trusted_proxy:
+            try:
+                network = ipaddress.ip_network(value, strict=False)
+                if network.prefixlen == 0:
+                    raise ValueError()
+                trusted_proxies.append(str(network) if "/" in value else str(ipaddress.ip_address(value)))
+            except ValueError:
+                parser.error("--trusted-proxy requires an explicit proxy IP or limited CIDR; global trust is refused")
         database_url = args.database_url or os.environ.get("MATTERS_CLOUD_DATABASE_URL")
         if not database_url:
             parser.error("set --database-url or MATTERS_CLOUD_DATABASE_URL")
@@ -540,10 +556,16 @@ def main(argv=None):
             parser.error("Cloud support is optional; install matters-global[cloud] to use matters cloud")
         try:
             options = {"secure_cookies": not args.development, "public_origin": args.public_origin}
+            from .cloud.mail_delivery import JSONMailEventSink, mail_delivery_from_env
+            delivery = mail_delivery_from_env()
+            if args.mail_events:
+                options["mail_event_sink"] = JSONMailEventSink()
+            if delivery.configured:
+                options["mail_delivery"] = delivery
+            if args.development and not args.public_origin and (args.mcp or delivery.configured):
+                origin_host = f"[{args.host}]" if ":" in args.host else args.host
+                options["public_origin"] = f"http://{origin_host}:{args.port}"
             if args.mcp:
-                if args.development and not args.public_origin:
-                    origin_host = f"[{args.host}]" if ":" in args.host else args.host
-                    options["public_origin"] = f"http://{origin_host}:{args.port}"
                 options["enable_mcp"] = True
             app = create_app(database_url, **options)
         except ModuleNotFoundError:
@@ -554,7 +576,10 @@ def main(argv=None):
             parser.error("Cloud database initialization failed; check the database configuration")
         # A raw request-target access log can include accidental credentials in
         # query strings. Product telemetry can add explicitly safe fields later.
-        uvicorn.run(app, host=args.host, port=args.port, access_log=False)
+        uvicorn.run(
+            app, host=args.host, port=args.port, access_log=False,
+            proxy_headers=bool(trusted_proxies), forwarded_allow_ips=",".join(trusted_proxies),
+        )
         return 0
 
     if args.command == "mcp":

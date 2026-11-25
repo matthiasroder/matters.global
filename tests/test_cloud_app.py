@@ -170,7 +170,11 @@ def test_auth_attempt_limiter_is_bounded_and_returns_retry_hint(client):
     limiter.capacity = 3
     for peer in range(10):
         limiter.allow(f"peer-{peer}")
-    assert len(limiter._buckets) <= 3
+    from sqlalchemy import func, select
+    from matters.cloud.db import rate_limit_buckets
+    with client.app.state.db.transaction() as connection:
+        # One durable capacity lock plus at most three subject buckets.
+        assert connection.execute(select(func.count()).select_from(rate_limit_buckets)).scalar_one() <= 4
 
 
 def test_unknown_identity_query_fields_are_rejected(client):
@@ -209,18 +213,26 @@ def test_optional_cloud_cli_configuration_and_loopback_development(tmp_path, mon
     assert main(["cloud", "--development", "--port", "8767"]) == 0
     assert invocations == [
         ("sqlite:///pilot.db", {"secure_cookies": False, "public_origin": None}),
-        (sentinel, {"host": "127.0.0.1", "port": 8767, "access_log": False}),
+        (sentinel, {"host": "127.0.0.1", "port": 8767, "access_log": False, "proxy_headers": False, "forwarded_allow_ips": ""}),
     ]
     assert capsys.readouterr().out == ""
     for arguments in (
         ["cloud", "--host", "0.0.0.0", "--development"],
         ["cloud", "--host", "0.0.0.0"],
         ["cloud", "--port", "0"],
+        ["cloud", "--trusted-proxy", "*"],
+        ["cloud", "--trusted-proxy", "0.0.0.0/0"],
+        ["cloud", "--trusted-proxy", "not-a-proxy"],
         ["--state", str(tmp_path / "local.json"), "cloud"],
     ):
         with pytest.raises(SystemExit) as error:
             main(arguments)
         assert error.value.code == 2
+
+    invocations.clear()
+    assert main(["cloud", "--development", "--trusted-proxy", "127.0.0.1", "--trusted-proxy", "172.30.1.0/24"]) == 0
+    assert invocations[-1][1]["proxy_headers"] is True
+    assert invocations[-1][1]["forwarded_allow_ips"] == "127.0.0.1,172.30.1.0/24"
 
 
 def test_core_cli_remains_usable_without_optional_cloud_dependencies():

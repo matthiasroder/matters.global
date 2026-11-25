@@ -182,16 +182,23 @@ an arbitrary acting user. The browser-session API remains separate from the opti
 endpoints enabled with `--mcp`. Mutation bodies are JSON and are subject to request-size and origin
 checks. All assets are served from the installed package.
 
-Authentication attempt limiting is process-local. A hosted release still needs
-deployment-wide abuse controls and appropriate proxy configuration; running
-several workers does not create a shared limiter.
+Authentication and OAuth attempt limits use shared, atomic database counters
+across workers and restarts. Recovery and verification have separate security
+budgets; these are not subscription allowances. Stored counter keys are hashes,
+cardinality and cleanup are bounded, and a storage failure refuses admission.
+
+Forwarded client headers are disabled by default. Behind a proxy, explicitly
+repeat `--trusted-proxy IP_OR_CIDR` for the trusted proxy addresses/networks.
+The proxy must overwrite incoming forwarding headers and the application port
+must remain private. Do not trust a global range or a client-supplied header as
+identity. See the operator guide for the isolated staging network configuration.
 
 ## Schema changes and deployment boundaries
 
-The database carries schema version 2. Startup initializes a new database or
+The database carries schema version 3. Startup initializes a new database or
 validates that exact version. An existing unversioned, incomplete or unsupported
 Matters schema fails closed rather than being silently upgraded or rewritten.
-Version 1 installations require an explicit upgrade after a verified backup:
+Version 1 and version 2 installations require an explicit upgrade after a verified backup:
 
 ```sh
 matters cloud-migrate
@@ -199,7 +206,8 @@ matters cloud-migrate
 
 Set `MATTERS_CLOUD_DATABASE_URL` to the intended installation first. This
 transactional, additive upgrade preserves existing accounts, sessions, graphs,
-roles and history while adding citation, invitation and OAuth tables. Partial
+roles, history, citations, invitations and OAuth grants while adding the missing
+installation tables, including account-action and shared security-limit records. Partial
 or unsupported schemas are refused. Repeating a successful upgrade is a no-op.
 Before any schema upgrade, review the migration, test it on a restored copy
 and record how to recover. Do not run an older
@@ -271,7 +279,7 @@ recovery point and recovery time still require product and operational decisions
 - Recovery point and recovery time objectives, backup schedule and retention.
 - Production credential management, monitoring, alerting and incident ownership.
 - TLS hostname/certificates, public authentication and deployment controls.
-- Account recovery, broader abuse protections and production migration procedures.
+- Production mail/domain configuration, signup/activation policy, abuse thresholds and migration rehearsal for the chosen deployment.
 - Live ChatGPT onboarding, free allowance, subscription units and prices.
 
 This guide and its optional containers prepare those decisions. They do not
@@ -280,3 +288,36 @@ satisfy the hosting-and-recovery graph condition by themselves.
 See [operations and recovery tooling](cloud-operations.md),
 [open product decisions](cloud-product-decisions.md), and the
 [private installation runbook](private-hosted.md) for the remaining preparation.
+
+## Account verification and recovery
+
+Account settings support email verification and password changes. Password reset
+links use expiring single-use hashed action records. A password reset or change
+revokes all browser sessions and issued OAuth grants for that account, including
+concurrent issuance, while preserving graphs, ownership and verified-email state.
+Another account signed into the reset browser keeps its own session.
+
+Email delivery is optional, configured through verified-TLS SMTP and protected
+operator secret files. Without it, the browser explicitly reports that recovery
+and verification delivery are unavailable; authenticated password changes still
+work. Requests do not return action tokens. Recovery request responses remain
+generic before account lookup or delivery. Existing registration still distinguishes
+a new address from an existing one; this is not a claim that every account
+endpoint prevents enumeration.
+
+The bounded in-memory delivery queue is not durable: restarting during delivery
+can discard pending jobs, so the person may request another link. Action tokens
+are never placed in a plaintext database outbox or ordinary logs. Link credentials
+use fragments, are removed from the displayed URL, and require an explicit
+same-origin confirmation. SMTP setup, account-action handling after restore and
+operator limitations are described in [Cloud operations](cloud-operations.md).
+
+Use the [monitoring tool](cloud-monitoring.md) for verified HTTPS health and
+authenticated encrypted-backup freshness checks. Its alert events are local
+operator output; notification routing and production thresholds remain explicit
+operator configuration.
+
+Enable `matters cloud --mail-events` to emit fixed-schema aggregate delivery
+outcomes to the operator log without recipient, link, token or provider-error
+fields. Counters are private to each worker and reset on process restart; they
+are operational diagnostics, not billing usage or a public metrics endpoint.

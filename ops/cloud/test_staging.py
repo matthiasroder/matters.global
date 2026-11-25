@@ -34,6 +34,17 @@ def test_prepare_creates_private_disposable_configuration_without_printing_secre
     assert len((target / "backup.key").read_bytes()) == 32
     assert result["origin"] == "https://localhost:19444"
     assert "PASSWORD" not in str(result) and "postgresql" not in str(result)
+    values = dict(line.split("=", 1) for line in (target / "staging.env").read_text().splitlines())
+    assert values["MATTERS_CLOUD_DATABASE_URL"].startswith("postgresql+psycopg://matters_app:")
+    assert result["trusted_proxy"] == values["MATTERS_STAGING_PROXY_IP"] + "/32"
+    assert result["subnet"] == "10.243.17.0/28"
+    passwords = []
+    for role in ("app", "migration", "backup"):
+        secret = target / (role + ".password")
+        assert secret.stat().st_mode & 0o777 == 0o600
+        passwords.append(secret.read_text().strip())
+    assert len(set(passwords)) == 3
+    assert values["MATTERS_PG_PASSWORD"] not in passwords
 
 
 @pytest.mark.parametrize("origin", ["http://localhost:19443", "https://example.com", "https://user:secret@localhost", "https://localhost/path", "https://localhost?key=secret"])
@@ -47,4 +58,12 @@ def test_prepare_refuses_environment_file_injection(tmp_path, image):
     target = tmp_path / "not-created"
     with pytest.raises(ValueError):
         staging.prepare(target, image)
+    assert not target.exists()
+
+
+@pytest.mark.parametrize("subnet", ["0.0.0.0/0", "10.0.0.0/8", "203.0.113.0/28", "::1/128", "10.0.0.0/28\nINJECTED=yes"])
+def test_prepare_requires_narrow_private_network_before_creating_files(tmp_path, subnet):
+    target = tmp_path / "not-created"
+    with pytest.raises(ValueError):
+        staging.prepare(target, "test:image", subnet=subnet)
     assert not target.exists()

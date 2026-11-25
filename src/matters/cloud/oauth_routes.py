@@ -1,12 +1,9 @@
 """OAuth discovery, PKCE exchange and explicit account/graph consent pages."""
 
-from collections import OrderedDict
 import hmac
 from html import escape
 import json
 import secrets
-import threading
-import time
 from urllib.parse import parse_qsl, urlencode
 
 from fastapi import APIRouter, Request
@@ -15,34 +12,11 @@ from starlette.concurrency import run_in_threadpool
 
 from .accounts import AccountError
 from .oauth import OAuthError, TOKEN_PATTERN
+from .rate_limits import DatabaseRateLimiter, RateLimitUnavailable
 
 
 MAX_OAUTH_BODY = 32 * 1024
 CSRF_COOKIE = "matters_oauth_csrf"
-
-
-class OAuthRateLimiter:
-    """Bound memory and work for public registration/token endpoints.
-
-    A deployed service must also enforce a shared edge limit across workers.
-    This guard remains useful for a single development process.
-    """
-
-    def __init__(self, attempts=30, window=60, capacity=1024):
-        self.attempts, self.window, self.capacity = attempts, window, capacity
-        self._entries, self._lock = OrderedDict(), threading.Lock()
-
-    def allow(self, category, peer):
-        now = time.monotonic()
-        with self._lock:
-            key = category, peer
-            started, count = self._entries.pop(key, (now, 0))
-            if now - started >= self.window:
-                started, count = now, 0
-            self._entries[key] = started, count + 1
-            while len(self._entries) > self.capacity:
-                self._entries.popitem(last=False)
-            return count < self.attempts
 
 
 def _response(payload, status=200):
@@ -50,7 +24,10 @@ def _response(payload, status=200):
 
 
 def _error(error):
-    return _response({"error": error.code, "error_description": error.message}, error.status)
+    response = _response({"error": error.code, "error_description": error.message}, error.status)
+    if error.status == 429:
+        response.headers["Retry-After"] = str(getattr(error, "retry_after", 60))
+    return response
 
 
 def _page(title, content):
@@ -121,7 +98,7 @@ def _query(request, allowed):
     return result
 
 
-def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_name="matters_session"):
+def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_name="matters_session", limiter=None):
     """Create routes for a configured, trusted issuer/resource origin.
 
     Consent uses the existing CloudAccounts login and session cookie. The
@@ -129,12 +106,19 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
     CSRF nonce; the server rechecks both before creating a grant.
     """
     router = APIRouter()
-    limiter = OAuthRateLimiter()
+    limiter = limiter if limiter is not None else DatabaseRateLimiter(oauth.db)
 
     def limit(request, category):
         peer = request.client.host if request.client else "unknown"
-        if not limiter.allow(category, peer):
-            raise OAuthError("Too many authorization attempts. Try again shortly.", "temporarily_unavailable", 429)
+        category = "auth" if category == "login" else "oauth." + category
+        try:
+            allowed = limiter.allow(peer, category=category)
+        except RateLimitUnavailable:
+            raise OAuthError("The authorization service is temporarily unavailable.", "temporarily_unavailable", 503) from None
+        if not allowed:
+            error = OAuthError("Too many authorization attempts. Try again shortly.", "temporarily_unavailable", 429)
+            error.retry_after = limiter.policy(category)[1]
+            raise error
 
     def browser_origin(request):
         if request.headers.get("origin") != oauth.issuer_url or request.headers.get("sec-fetch-site", "same-origin") not in {"same-origin", "none"}:
@@ -161,7 +145,7 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
     @router.post("/oauth/register")
     async def register(request: Request):
         try:
-            limit(request, "register")
+            await run_in_threadpool(limit, request, "register")
             document = await _body(request, json_body=True)
             return _response(await run_in_threadpool(oauth.register_client, document), 201)
         except OAuthError as error:
@@ -181,6 +165,7 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
     @router.get("/oauth/consent")
     def consent_page(request: Request):
         try:
+            limit(request, "consent")
             parameters = _query(request, {"request"})
             pending = parameters.get("request")
             data = oauth.inspect_request(pending)
@@ -229,7 +214,7 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
     @router.post("/oauth/consent/login")
     async def consent_login(request: Request):
         try:
-            limit(request, "login")
+            await run_in_threadpool(limit, request, "login")
             browser_origin(request)
             body = await _body(request)
             if set(body) != {"request", "csrf", "email", "password"}:
@@ -248,6 +233,7 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
     @router.post("/oauth/consent")
     async def submit_consent(request: Request):
         try:
+            await run_in_threadpool(limit, request, "consent")
             browser_origin(request)
             body = await _body(request, repeated=("graph_id",))
             if set(body) != {"request", "csrf", "graph_id", "decision"} or body["decision"] not in {"approve", "deny"}:
@@ -265,7 +251,7 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
     @router.post("/oauth/token")
     async def token(request: Request):
         try:
-            limit(request, "token")
+            await run_in_threadpool(limit, request, "token")
             if request.headers.get("authorization"):
                 raise OAuthError("This endpoint accepts public PKCE clients.", "invalid_client", 401)
             body = await _body(request)
@@ -287,7 +273,7 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
     @router.post("/oauth/revoke")
     async def revoke(request: Request):
         try:
-            limit(request, "revoke")
+            await run_in_threadpool(limit, request, "revoke")
             if request.headers.get("authorization"):
                 raise OAuthError("This endpoint accepts public PKCE clients.", "invalid_client", 401)
             body = await _body(request)

@@ -130,9 +130,25 @@ def test_restore_revokes_sessions_and_issued_oauth_but_preserves_clients(monkeyp
     pg = FakePG()
     result = recovery.restore(pg, "restore_new", "restore_new", encrypted, key)
     assert result["sessions_and_issued_grants_revoked"]
-    assert ("restore_new", "DELETE FROM sessions") in pg.statements
-    assert ("restore_new", "DELETE FROM oauth_records WHERE kind <> 'client'") in pg.statements
+    invalidation = next(statement for database, statement in pg.statements if database == "restore_new")
+    assert "DELETE FROM sessions;" in invalidation
+    assert "DELETE FROM oauth_records WHERE kind <> 'client';" in invalidation
     assert not any("DROP DATABASE" in statement for _, statement in pg.statements)
+
+
+def test_schema_three_revokes_action_tokens_and_buckets_but_preserves_verified_state(monkeypatch):
+    encrypted, key = package(version=3)
+    monkeypatch.setattr(recovery.subprocess, "run", lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0))
+    pg = FakePG()
+    pg.schema = lambda _database: 3
+    result = recovery.restore(pg, "restore_new", "restore_new", encrypted, key)
+    invalidation = next(statement for database, statement in pg.statements if database == "restore_new")
+    assert invalidation.startswith("BEGIN;") and invalidation.endswith("COMMIT;")
+    assert "DELETE FROM account_actions;" in invalidation
+    assert "DELETE FROM rate_limit_buckets;" in invalidation
+    assert "DELETE FROM oauth_records" in invalidation
+    assert "account_security" not in invalidation and "graph_events" not in invalidation
+    assert result["account_actions_revoked"]
 
 
 @pytest.mark.parametrize("changed", [False, True])
@@ -160,3 +176,23 @@ def test_container_owner_must_match_before_database_command(monkeypatch):
     monkeypatch.setattr(recovery.subprocess, "run", lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, b'{"global.matters.operations-owner":"another-owner"}'))
     with pytest.raises(recovery.OpsError, match="operations-owner label"):
         recovery.PostgreSQL("staging-db", "our-owner", "matters_ops")
+
+
+def test_key_fifo_is_rejected_without_blocking(tmp_path):
+    fifo = tmp_path / "not-a-key"
+    os.mkfifo(fifo, 0o600)
+    code = "import sys;sys.path.insert(0,'ops/cloud');import recovery as m;\ntry:m.load_key(" + repr(str(fifo)) + ")\nexcept m.OpsError:pass\nelse:raise AssertionError('FIFO accepted')"
+    subprocess.run([sys.executable, "-c", code], check=True, timeout=3, capture_output=True)
+
+
+def test_restore_ciphertext_fifo_and_negative_bounds_fail_before_docker(tmp_path):
+    fifo = tmp_path / "not-an-archive"
+    os.mkfifo(fifo, 0o600)
+    key = tmp_path / "backup.key"
+    key.write_bytes(os.urandom(32))
+    key.chmod(0o600)
+    command = [sys.executable, str(Path(recovery.__file__)), "restore", "--container", "not-contacted", "--owner", "owner", "--username", "admin", "--database", "restore_fixture", "--key-file", str(key), "--source", str(fifo)]
+    result = subprocess.run(command, capture_output=True, timeout=3)
+    assert result.returncode == 1 and b"regular file" in result.stderr
+    result = subprocess.run([*command, "--max-bytes", "-131074"], capture_output=True, timeout=3)
+    assert result.returncode == 1 and b"Positive byte and time bounds" in result.stderr

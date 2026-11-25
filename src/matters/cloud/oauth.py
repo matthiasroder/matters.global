@@ -19,7 +19,7 @@ from urllib.parse import urlencode, urlsplit
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from .db import CloudDatabaseError, oauth_records, users
+from .db import CloudDatabaseError, oauth_records, sessions, users
 from .repository import CloudGraphError
 
 
@@ -260,6 +260,13 @@ class CloudOAuth:
         if type(approve) is not bool or not isinstance(graph_ids, list) or any(not isinstance(g, str) for g in graph_ids) or len(graph_ids) > 100:
             raise OAuthError()
         with self._transaction(write=True) as connection:
+            self._lock_user(connection, actor_id)
+            active_session = connection.execute(select(sessions.c.user_id).where(
+                sessions.c.token_hash == token_hash(session_token), sessions.c.user_id == actor_id,
+                sessions.c.expires_at > int(self._now()),
+            )).first()
+            if active_session is None:
+                raise OAuthError("Sign in again before authorizing a connection.", "access_denied", 401)
             request = self._record(connection, request_token, "request", lock=True)
             data = request["data"]
             if data.get("used") or data.get("actor_id") != actor_id or not hmac.compare_digest(data.get("session_hash", ""), token_hash(session_token)) or not hmac.compare_digest(data.get("csrf_hash", ""), token_hash(csrf_token)):
@@ -289,6 +296,11 @@ class CloudOAuth:
             redirect = data["redirect_uri"] + separator + urlencode(response)
         return redirect
 
+    @staticmethod
+    def _lock_user(connection, actor_id):
+        if not actor_id or connection.execute(select(users.c.id).where(users.c.id == actor_id).with_for_update()).first() is None:
+            raise OAuthError("The authorization is invalid or expired.", "invalid_grant")
+
     def _grant(self, connection, identity, *, lock=False):
         grant = self._record(connection, identity, "grant", identity=True, lock=lock)
         if grant["data"].get("revoked") or connection.execute(select(users.c.id).where(users.c.id == grant["user_id"])).first() is None:
@@ -314,6 +326,8 @@ class CloudOAuth:
         replay = False
         with self._transaction(write=True) as connection:
             self._client(connection, client_id)
+            hint = self._record(connection, code, "code")
+            self._lock_user(connection, hint["user_id"])
             row = self._record(connection, code, "code", lock=True)
             if row["client_id"] != client_id or row["data"]["redirect_uri"] != redirect_uri or row["data"]["resource"] != resource or not hmac.compare_digest(row["data"]["code_challenge"], challenge):
                 raise OAuthError("The authorization code is invalid.", "invalid_grant")
@@ -338,6 +352,8 @@ class CloudOAuth:
             client = self._client(connection, client_id)
             if "refresh_token" not in client["grant_types"]:
                 raise OAuthError("This client cannot refresh tokens.", "unauthorized_client")
+            hint = self._record(connection, refresh_token, "refresh")
+            self._lock_user(connection, hint["user_id"])
             row = self._record(connection, refresh_token, "refresh", lock=True)
             if row["client_id"] != client_id or row["data"]["resource"] != resource:
                 raise OAuthError("The refresh token is invalid.", "invalid_grant")

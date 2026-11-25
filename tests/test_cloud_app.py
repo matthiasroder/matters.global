@@ -59,7 +59,9 @@ def test_assets_health_and_authenticated_graph_boundary(client):
     assert client.get("/healthz").json() == {"schema_version": 1, "status": "ok"}
     page = client.get("/")
     assert page.status_code == 200
-    assert "Make room for" in page.text
+    assert 'id="auth-form"' in page.text
+    assert 'autocomplete="username"' in page.text
+    assert 'autocomplete="current-password"' in page.text
     assert client.get("/assets/app.js").status_code == 200
     assert client.get("/assets/styles.css").status_code == 200
     assert client.get("/api/graphs").status_code == 401

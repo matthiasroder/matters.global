@@ -59,7 +59,8 @@ export function createOverviewRenderer({
   container,
   onSelect = () => {},
   onError = () => {},
-  reducedMotion = false
+  reducedMotion = false,
+  minimal = false
 } = {}) {
   if (!(container instanceof HTMLElement)) {
     const error = new TypeError("Overview renderer requires a container element");
@@ -244,9 +245,11 @@ export function createOverviewRenderer({
     projectNodes();
     if (!moving) {
       classifyNodeOverlaps();
-      drawSystemBoundaries(projectedNodes);
-      drawOrbitGuides(projectedNodes);
-      drawSunHalos(projectedNodes);
+      if (!minimal) {
+        drawSystemBoundaries(projectedNodes);
+        drawOrbitGuides(projectedNodes);
+        drawSunHalos(projectedNodes);
+      }
     }
     drawEdges(moving);
     if (moving) {
@@ -259,6 +262,11 @@ export function createOverviewRenderer({
   }
 
   function drawAtmosphere(moving) {
+    if (minimal) {
+      context.fillStyle = "#fbfcf7";
+      context.fillRect(0, 0, width, height);
+      return;
+    }
     if (moving) {
       context.fillStyle = PALETTE.paper;
       context.fillRect(0, 0, width, height);
@@ -273,7 +281,7 @@ export function createOverviewRenderer({
   }
 
   function rebuildBackground() {
-    if (!backgroundContext) return;
+    if (minimal || !backgroundContext) return;
     backgroundCanvas.width = Math.round(width * dpr);
     backgroundCanvas.height = Math.round(height * dpr);
     backgroundContext.setTransform(dpr, 0, 0, dpr, 0, 0);

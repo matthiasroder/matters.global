@@ -166,14 +166,14 @@ def test_closed_pilot_native_browser_shows_existing_account_signin(tmp_path):
 const fs=require('node:fs');const{chromium}=require('playwright');const c=JSON.parse(fs.readFileSync(0,'utf8'));
 (async()=>{const b=await chromium.launch({executablePath:c.executable,headless:true,args:['--no-sandbox']});
 try{const context=await b.newContext();const page=await context.newPage();page.setDefaultTimeout(10000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.goto(c.origin);await page.getByRole('heading',{name:'Welcome back',exact:true}).waitFor();
+await page.goto(c.origin);await page.getByRole('heading',{name:'Sign in',exact:true}).waitFor();
 if(await page.locator('#signup-controls').isVisible()||!await page.locator('#signup-message').isVisible())throw Error('Closed signup was advertised');
 await page.locator('#auth-switch').evaluate(button=>button.click());
-if(await page.locator('#auth-title').innerText()!=='Welcome back')throw Error('Hidden signup control changed mode');
+if(await page.locator('#auth-title').innerText()!=='Sign in')throw Error('Hidden signup control changed mode');
 const caps=await(await context.request.get(c.origin+'/api/auth/capabilities')).json();
 if(caps.signup_enabled!==false||caps.email_delivery!==true)throw Error('Signup and mail policies were conflated');
 const refused=await context.request.post(c.origin+'/api/auth/register',{headers:{Origin:c.origin},data:{email:'new@example.com',password:c.password}});if(refused.status()!==403)throw Error('Public signup succeeded');
-await page.locator('#auth-form').getByLabel('Email',{exact:true}).fill('existing@example.com');await page.locator('#auth-form').getByLabel('Password',{exact:true}).fill(c.password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.locator('#account-email').filter({hasText:'existing@example.com'}).waitFor();
+await page.locator('#auth-form').getByLabel('Email',{exact:true}).fill('existing@example.com');await page.locator('#auth-form').getByLabel('Password',{exact:true}).fill(c.password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.locator('#workspace-view').waitFor({state:'visible'});await page.locator('#account-menu > summary').click();await page.locator('#account-email').filter({hasText:'existing@example.com'}).waitFor();
 if(errors.length)throw Error('Browser script failed');console.log(JSON.stringify({closed_signup:true,existing_signin:true,independent_mail_capability:true,errors}));
 }finally{await b.close();}})().catch(()=>{console.error('Owned pilot browser check failed');process.exitCode=1;});
 """

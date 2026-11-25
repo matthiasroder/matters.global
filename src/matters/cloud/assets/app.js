@@ -1,6 +1,6 @@
 "use strict";
 
-const state = { user: null, graphs: [], graph: null, report: null, visual: null, selectedMatter: null, visualMode: "overview", sharingRequest: 0, accountSecurity: null, securityRequest: 0, recoveryCapabilities: null, recoveryRequest: 0, register: false, generation: 0, authEpoch: 0, authAttempt: 0, requestedGraph: null, catalogRequest: 0 };
+const state = { user: null, graphs: [], graph: null, report: null, visual: null, selectedMatter: null, detailsMode: null, visualMode: "overview", sharingRequest: 0, accountSecurity: null, securityRequest: 0, recoveryCapabilities: null, recoveryRequest: 0, register: false, generation: 0, authEpoch: 0, authAttempt: 0, requestedGraph: null, catalogRequest: 0 };
 const byId = id => document.getElementById(id);
 const authForm = byId("auth-form");
 const graphForm = byId("new-graph-form");
@@ -15,6 +15,38 @@ let overviewRenderer = null;
 let rendererLoading = null;
 let lastVisualMode = null;
 let incomingInvitation = initialInvitation();
+let inspectorReturnFocus = null;
+const menuIds = ["graph-menu", "new-matter-panel", "account-menu"];
+
+function closeMenus(restoreFocus = false) {
+  const opened = menuIds.map(byId).find(menu => menu.open);
+  for (const id of menuIds) byId(id).open = false;
+  if (restoreFocus) opened?.querySelector?.("summary")?.focus();
+}
+
+function openMenu(id, field) {
+  closeMenus();
+  byId(id).open = true;
+  if (field) field.focus?.();
+}
+
+function closeInspector(restoreFocus = false) {
+  state.detailsMode = null;
+  renderMatters();
+  if (restoreFocus) {
+    if (inspectorReturnFocus?.isConnected) inspectorReturnFocus.focus?.({ preventScroll: true });
+    else byId("toggle-list").focus?.({ preventScroll: true });
+  }
+  inspectorReturnFocus = null;
+}
+
+function openInspector(mode) {
+  if (!state.graph) return;
+  inspectorReturnFocus = document.activeElement || null;
+  state.detailsMode = mode;
+  renderMatters();
+  byId("matter-inspector").focus?.({ preventScroll: true });
+}
 
 function initialInvitation() {
   if (typeof window === "undefined" || !window.location) return null;
@@ -49,6 +81,7 @@ function sameSession(epoch, userId) {
 }
 
 function clearGraphDisplay() {
+  closeMenus();
   graphForm.reset();
   matterForm.reset();
   formBusy(graphForm, false);
@@ -62,17 +95,26 @@ function clearGraphDisplay() {
   byId("sharing-invitations").replaceChildren();
   byId("sharing-panel").hidden = true;
   byId("sharing-panel").open = false;
-  byId("visual-selection").textContent = "Select a matter in the overview or list.";
+  byId("visual-selection").textContent = "";
+  byId("visual-selection").hidden = true;
   state.visual = null;
   state.selectedMatter = null;
+  state.detailsMode = null;
+  inspectorReturnFocus = null;
   state.visualMode = "overview";
   state.sharingRequest += 1;
   lastVisualMode = null;
   overviewRenderer?.setModel({ nodes: [], edges: [] });
   byId("matters-list").replaceChildren();
   byId("graph-list").replaceChildren();
-  for (const id of ["graph-title", "graph-kind", "account-email"]) byId(id).textContent = "";
-  for (const id of ["graph-count", "ready-count", "open-count", "resolved-count"]) byId(id).textContent = "0";
+  byId("graph-title").textContent = "Graphs";
+  byId("account-email").textContent = "";
+  byId("view-only").hidden = true;
+  byId("matter-inspector").hidden = true;
+  byId("empty-matters-state").hidden = true;
+  byId("toggle-list").setAttribute("aria-pressed", "false");
+  byId("new-graph-panel").open = false;
+  byId("new-matter-panel").open = false;
   byId("graph-detail").hidden = true;
   byId("no-graph").hidden = false;
 }
@@ -110,6 +152,8 @@ function showAuth() {
   state.catalogRequest += 1;
   state.generation += 1;
   byId("workspace-view").hidden = true;
+  byId("graph-menu").hidden = true;
+  byId("new-matter-panel").hidden = true;
   byId("account-controls").hidden = true;
   byId("auth-view").hidden = false;
   clearGraphDisplay();
@@ -137,6 +181,8 @@ function showWorkspace(user) {
   byId("account-email").textContent = user.email;
   byId("auth-view").hidden = true;
   byId("account-controls").hidden = false;
+  byId("graph-menu").hidden = false;
+  byId("new-matter-panel").hidden = true;
   byId("workspace-view").hidden = false;
   message("");
 }
@@ -162,13 +208,15 @@ async function api(path, options = {}) {
 function renderGraphs() {
   const list = byId("graph-list");
   list.replaceChildren();
-  byId("graph-count").textContent = state.graphs.length;
   for (const graph of state.graphs) {
     const button = element("button", "graph-link");
     button.type = "button";
     if (state.graph?.graph_id === graph.graph_id) button.setAttribute("aria-current", "page");
     button.append(element("strong", "", graph.title), element("small", "", graph.kind === "personal" ? "Personal space" : "Project space"));
-    button.addEventListener("click", () => loadGraph(graph.graph_id).catch(error => { if (!error.stale) message(error.message); }));
+    button.addEventListener("click", () => {
+      closeMenus();
+      return loadGraph(graph.graph_id).catch(error => { if (!error.stale) message(error.message); });
+    });
     list.append(button);
   }
 }
@@ -178,6 +226,8 @@ function forgetCurrentGraph() {
   state.report = null;
   state.visual = null;
   state.selectedMatter = null;
+  state.detailsMode = null;
+  inspectorReturnFocus = null;
   state.requestedGraph = null;
   state.generation += 1;
   state.sharingRequest += 1;
@@ -190,9 +240,15 @@ function forgetCurrentGraph() {
   byId("sharing-members").replaceChildren(); byId("sharing-invitations").replaceChildren();
   byId("sharing-panel").hidden = true; byId("sharing-panel").open = false;
   byId("matters-list").replaceChildren();
-  byId("graph-title").textContent = ""; byId("graph-kind").textContent = "";
-  byId("visual-selection").textContent = "Select a matter in the overview or list.";
-  for (const id of ["ready-count", "open-count", "resolved-count"]) byId(id).textContent = "0";
+  byId("graph-title").textContent = "Graphs";
+  byId("visual-selection").textContent = "";
+  byId("visual-selection").hidden = true;
+  byId("matter-inspector").hidden = true;
+  byId("empty-matters-state").hidden = true;
+  byId("new-matter-panel").hidden = true;
+  byId("view-only").hidden = true;
+  byId("toggle-list").setAttribute("aria-pressed", "false");
+  closeMenus();
   byId("graph-detail").hidden = true;
   byId("no-graph").hidden = false;
 }
@@ -247,6 +303,10 @@ async function loadGraph(id) {
     const changedGraph = state.graph?.graph_id !== graph.graph_id;
     if (changedGraph) {
       state.selectedMatter = null;
+      state.detailsMode = null;
+      inspectorReturnFocus = null;
+      closeMenus();
+      matterForm.reset();
       state.visualMode = "overview";
       state.sharingRequest += 1;
       byId("invitation-link").value = "";
@@ -277,18 +337,16 @@ async function loadGraph(id) {
 
 function renderGraph() {
   const graph = state.graph;
-  const ready = new Set(state.report.universe);
-  const blocked = new Set(state.report.blocked);
   const writable = graph.role !== "viewer";
   byId("no-graph").hidden = true;
   byId("graph-detail").hidden = false;
   byId("graph-title").textContent = graph.title;
-  byId("graph-kind").textContent = `${graph.role === "owner" ? "Your" : "Shared"} ${graph.kind === "personal" ? "personal" : "project"} space`;
-  byId("ready-count").textContent = ready.size;
-  byId("open-count").textContent = ready.size + blocked.size;
-  byId("resolved-count").textContent = graph.state.matters.length - ready.size - blocked.size;
   byId("view-only").hidden = writable;
   matterForm.hidden = !writable;
+  byId("new-matter-panel").hidden = !writable;
+  if (!writable) byId("new-matter-panel").open = false;
+  byId("empty-matters-state").hidden = graph.state.matters.length !== 0;
+  byId("add-first-matter").hidden = !writable;
   byId("dependency-editor").hidden = !writable;
   byId("sharing-panel").hidden = graph.role !== "owner";
   for (const id of ["dependency-source", "dependency-target"]) {
@@ -302,13 +360,42 @@ function renderGraph() {
     }
     if (graph.state.matters.includes(previous)) select.value = previous;
   }
+  if (state.selectedMatter && !graph.state.matters.includes(state.selectedMatter)) {
+    state.selectedMatter = null;
+    if (state.detailsMode === "matter") state.detailsMode = null;
+  }
+  renderMatters();
+  renderVisual().catch(error => { if (!error.stale) message(error.message); });
+  if (graph.role === "owner" && byId("sharing-panel").open) {
+    loadSharing().catch(error => { if (!error.stale) message(error.message); });
+  }
+}
+
+function renderMatters() {
+  const graph = state.graph;
   const list = byId("matters-list");
   list.replaceChildren();
-  if (!graph.state.matters.length) {
-    list.append(element("p", "empty-matters", "No matters yet. Add the first concern you would like to move forward."));
-  }
-  for (const id of graph.state.matters) {
+  const visible = Boolean(graph && state.detailsMode);
+  byId("matter-inspector").hidden = !visible;
+  byId("toggle-list").setAttribute("aria-pressed", String(state.detailsMode === "list"));
+  byId("inspector-title").hidden = state.detailsMode !== "list";
+  byId("visual-selection").hidden = state.detailsMode !== "matter";
+  if (!visible) return;
+  const ready = new Set(state.report.universe);
+  const blocked = new Set(state.report.blocked);
+  const writable = graph.role !== "viewer";
+  const search = byId("visual-search").value.trim().toLowerCase();
+  const statusFilter = byId("visual-status").value || "all";
+  const ids = state.detailsMode === "matter" ? [state.selectedMatter] : graph.state.matters.filter(id => {
+    const text = `${id} ${id.replaceAll("_", " ")} ${(graph.state.conditions[id] || []).map(condition => condition.label).join(" ")}`.toLowerCase();
+    const status = ready.has(id) ? "actionable" : blocked.has(id) ? "blocked" : "resolved";
+    return (!search || text.includes(search)) && (statusFilter === "all" || statusFilter === status);
+  });
+  if (!ids.length) list.append(element("p", "empty-matters", graph.state.matters.length ? "No matching matters." : "No matters yet."));
+  for (const id of ids) {
+    if (!id || !graph.state.matters.includes(id)) continue;
     const card = element("article", "matter-card");
+    card.setAttribute("data-matter-id", id);
     const top = element("div", "matter-top");
     const status = ready.has(id) ? "Ready" : blocked.has(id) ? "Waiting" : "Resolved";
     const title = element("button", "matter-select", id.replaceAll("_", " "));
@@ -322,25 +409,36 @@ function renderGraph() {
       checkbox.type = "checkbox";
       checkbox.checked = condition.truth;
       checkbox.disabled = !writable;
+      checkbox.setAttribute("data-condition-index", String(index));
       checkbox.addEventListener("change", async () => {
+        const epoch = state.authEpoch;
+        const userId = state.user?.id;
+        const graphId = graph.graph_id;
+        const hadFocus = document.activeElement === checkbox;
         checkbox.disabled = true;
         try { await mutate("set_condition", { matter_id: id, index, truth: checkbox.checked }); }
         catch (error) { checkbox.checked = condition.truth; if (!error.stale) message(error.message); }
-        finally { checkbox.disabled = !writable; }
+        finally {
+          checkbox.disabled = !writable;
+          if (hadFocus && sameSession(epoch, userId) && state.graph?.graph_id === graphId && (!document.activeElement || document.activeElement === document.body)) {
+            for (const candidate of byId("matters-list").querySelectorAll?.("input[type=checkbox]") || []) {
+              if (candidate.closest(".matter-card")?.getAttribute("data-matter-id") === id && candidate.getAttribute("data-condition-index") === String(index)) candidate.focus({ preventScroll: true });
+            }
+          }
+        }
       });
       label.append(checkbox, element("span", "", condition.label));
       card.append(label);
     }
     list.append(card);
   }
-  renderVisual().catch(error => { if (!error.stale) message(error.message); });
-  if (graph.role === "owner" && byId("sharing-panel").open) {
-    loadSharing().catch(error => { if (!error.stale) message(error.message); });
-  }
 }
 
 function selectMatter(id) {
+  if (!state.graph?.state.matters.includes(id) || state.requestedGraph !== state.graph.graph_id) return;
   state.selectedMatter = id;
+  closeMenus();
+  openInspector("matter");
   renderVisual().catch(error => { if (!error.stale) message(error.message); });
 }
 
@@ -352,8 +450,14 @@ async function renderer() {
       overviewRenderer = module.createOverviewRenderer({
         container: byId("visual-canvas"),
         onSelect: id => selectMatter(id),
-        onError: () => message("The visual overview could not be displayed. Your matters are available below."),
-        reducedMotion: Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
+        onError: () => {
+          if (!state.graph) return;
+          message("The map could not be displayed. Your matters are available in the list.");
+          state.detailsMode = "list";
+          renderMatters();
+        },
+        reducedMotion: Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches),
+        minimal: true
       });
       return overviewRenderer;
     }).catch(error => { rendererLoading = null; throw error; });
@@ -374,8 +478,9 @@ async function renderVisual() {
   byId("visual-overview").setAttribute("aria-pressed", String(state.visualMode === "overview"));
   byId("visual-focus").setAttribute("aria-pressed", String(state.visualMode === "focus"));
   byId("visual-selection").textContent = selected
-    ? `${selected.label}. Prerequisites: ${selected.prerequisites.map(id => id.replaceAll("_", " ")).join(", ") || "none"}. Dependents: ${selected.dependents.map(id => id.replaceAll("_", " ")).join(", ") || "none"}.`
-    : "Select a matter in the overview or list.";
+    ? `Requires: ${selected.prerequisites.map(id => id.replaceAll("_", " ")).join(", ") || "none"}. Unlocks: ${selected.dependents.map(id => id.replaceAll("_", " ")).join(", ") || "none"}.`
+    : "";
+  byId("visual-selection").hidden = !selected || state.detailsMode !== "matter";
   const scene = await renderer();
   if (!scene || !sameSession(epoch, userId) || state.graph?.graph_id !== graphId || state.visual !== visual) return;
   const search = byId("visual-search").value.trim().toLowerCase();
@@ -503,8 +608,9 @@ function renderAuthMode() {
   if (!signupEnabled) state.register = false;
   byId("signup-controls").hidden = !signupEnabled;
   byId("signup-message").hidden = signupEnabled;
-  byId("auth-title").textContent = state.register ? "A space of your own" : "Welcome back";
-  byId("auth-subtitle").textContent = state.register ? "Create an account to start your first graph." : "Sign in to pick up where you left off.";
+  byId("auth-title").textContent = state.register ? "Create account" : "Sign in";
+  byId("auth-subtitle").textContent = "";
+  byId("auth-subtitle").hidden = true;
   byId("auth-submit").textContent = state.register ? "Create account" : "Sign in";
   byId("auth-switch-label").textContent = state.register ? "Already have an account?" : "New to Matters?";
   byId("auth-switch").textContent = state.register ? "Sign in" : "Create an account";
@@ -582,6 +688,10 @@ graphForm.addEventListener("submit", async event => {
     if (!sameSession(epoch, userId)) throw staleRequest();
     graphForm.reset();
     await loadGraphs(navigation === state.generation ? graph.graph_id : state.requestedGraph);
+    if (state.graph?.graph_id === graph.graph_id) {
+      closeMenus();
+      byId("new-graph-panel").open = false;
+    }
   } catch (error) { if (!error.stale) message(error.message); }
   finally { formBusy(graphForm, false); }
 });
@@ -595,6 +705,7 @@ matterForm.addEventListener("submit", async event => {
   try {
     await mutate("create_matter", { id, conditions: [{ label: values.get("condition").trim(), truth: false }] });
     matterForm.reset();
+    selectMatter(id);
   } catch (error) { if (!error.stale) message(error.message); }
   finally { formBusy(matterForm, false); }
 });
@@ -605,11 +716,52 @@ byId("refresh-graph").addEventListener("click", () => {
 
 byId("visual-overview").addEventListener("click", () => { state.visualMode = "overview"; renderVisual().catch(error => { if (!error.stale) message(error.message); }); });
 byId("visual-focus").addEventListener("click", () => { state.visualMode = "focus"; renderVisual().catch(error => { if (!error.stale) message(error.message); }); });
-byId("visual-search").addEventListener("input", () => renderVisual().catch(error => { if (!error.stale) message(error.message); }));
-byId("visual-status").addEventListener("change", () => renderVisual().catch(error => { if (!error.stale) message(error.message); }));
+byId("visual-search").addEventListener("input", () => {
+  renderMatters();
+  renderVisual().catch(error => { if (!error.stale) message(error.message); });
+});
+byId("visual-status").addEventListener("change", () => {
+  renderMatters();
+  renderVisual().catch(error => { if (!error.stale) message(error.message); });
+});
 byId("visual-zoom-in").addEventListener("click", () => overviewRenderer?.zoom(1.2));
 byId("visual-zoom-out").addEventListener("click", () => overviewRenderer?.zoom(1 / 1.2));
 byId("visual-reset").addEventListener("click", () => overviewRenderer?.resetCamera());
+byId("toggle-list").addEventListener("click", () => {
+  closeMenus();
+  if (state.detailsMode === "list") closeInspector(true);
+  else openInspector("list");
+});
+byId("close-inspector").addEventListener("click", () => closeInspector(true));
+byId("create-first-graph").addEventListener("click", () => {
+  openMenu("graph-menu");
+  byId("new-graph-panel").open = true;
+  graphForm.querySelector?.('input[name="title"]')?.focus();
+});
+byId("add-first-matter").addEventListener("click", () => openMenu("new-matter-panel", matterForm.querySelector?.('input[name="name"]')));
+
+for (const id of menuIds) {
+  byId(id).addEventListener("toggle", () => {
+    if (!byId(id).open) return;
+    for (const other of menuIds) if (other !== id) byId(other).open = false;
+  });
+}
+document.addEventListener?.("pointerdown", event => {
+  for (const id of menuIds) {
+    const menu = byId(id);
+    if (menu.open && !menu.contains(event.target)) menu.open = false;
+  }
+});
+document.addEventListener?.("keydown", event => {
+  if (event.key !== "Escape") return;
+  if (menuIds.some(id => byId(id).open)) {
+    closeMenus(true);
+    event.preventDefault();
+  } else if (state.detailsMode) {
+    closeInspector(true);
+    event.preventDefault();
+  }
+});
 byId("sharing-panel").addEventListener("toggle", () => {
   if (byId("sharing-panel").open && state.graph?.role === "owner") loadSharing().catch(error => { if (!error.stale) message(error.message); });
 });

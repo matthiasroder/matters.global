@@ -10,26 +10,91 @@
   </head>
   <body data-signup-enabled="true">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Matters Cloud home"><span class="brand-mark" aria-hidden="true">m</span><span>matters<span class="brand-dot">.</span></span></a>
-      <span class="preview-badge">Cloud preview</span>
+      <a class="brand" href="/" aria-label="Matters Cloud home">matters.</a>
+      <details id="graph-menu" class="header-menu graph-menu" data-menu hidden>
+        <summary><span id="graph-title">Graphs</span><span id="view-only" class="access-badge" hidden>View only</span></summary>
+        <div class="menu-popup graph-menu-popup">
+          <div class="menu-heading"><h2>Graphs</h2><button id="refresh-graph" class="text-button" type="button">Refresh</button></div>
+          <nav id="graph-list" class="graph-list" aria-label="Your graphs"></nav>
+          <details id="new-graph-panel" class="menu-section">
+            <summary>Create a graph</summary>
+            <form id="new-graph-form" class="stack" method="post">
+              <label>Name<input name="title" placeholder="Graph name" maxlength="200" required></label>
+              <label>Space<select name="kind"><option value="personal">Personal</option><option value="project">Project</option></select></label>
+              <button class="primary-button" type="submit">Create graph</button>
+            </form>
+          </details>
+          <details class="menu-section join-panel">
+            <summary>Accept an invitation</summary>
+            <form id="join-graph-form" class="stack" method="post">
+              <label>Invitation link or token<input id="join-token" name="token" autocomplete="off" maxlength="2048" required></label>
+              <button class="secondary-button" type="submit">Join graph</button>
+            </form>
+          </details>
+          <details id="sharing-panel" class="menu-section sharing-panel" hidden>
+            <summary>Share graph</summary>
+            <p id="sharing-owner" class="field-help"></p>
+            <form id="invitation-form" class="stack" method="post">
+              <label>Email<input id="invite-email" name="email" type="email" autocomplete="off" maxlength="320" required></label>
+              <label>Access<select id="invite-role" name="role"><option value="viewer">Can view</option><option value="editor">Can edit</option></select></label>
+              <button class="secondary-button" type="submit">Create invitation link</button>
+            </form>
+            <label class="invitation-link-label">New invitation link<input id="invitation-link" readonly autocomplete="off" aria-label="New invitation link"></label>
+            <p class="field-help">Share this link with the invited person. No email is sent. It expires in seven days and can be used once.</p>
+            <h3>People with access</h3><div id="sharing-members" class="sharing-list"></div>
+            <h3>Invitation links</h3><div id="sharing-invitations" class="sharing-list"></div>
+          </details>
+          <details id="dependency-editor" class="menu-section dependency-editor" hidden>
+            <summary>Edit a dependency</summary>
+            <form id="dependency-form" class="stack" method="post">
+              <label>Prerequisite<select id="dependency-source" name="source" required></select></label>
+              <label>Dependent<select id="dependency-target" name="target" required></select></label>
+              <label>Change<select id="dependency-operation" name="operation"><option value="add_dependency">Add dependency</option><option value="remove_dependency">Remove dependency</option></select></label>
+              <button class="secondary-button" type="submit">Apply change</button>
+            </form>
+          </details>
+        </div>
+      </details>
+      <details id="new-matter-panel" class="header-menu" data-menu hidden>
+        <summary>Add matter</summary>
+        <div class="menu-popup new-matter-popup">
+          <form id="new-matter-form" class="stack" method="post">
+            <label>Matter<input name="name" placeholder="What matters?" maxlength="128" required></label>
+            <label>Resolved when<input name="condition" placeholder="What would make it resolved?" maxlength="2000" required></label>
+            <button class="primary-button" type="submit">Add matter</button>
+          </form>
+        </div>
+      </details>
       <div id="account-controls" class="account-controls" hidden>
-        <span id="account-email"></span>
-        <button id="sign-out" class="text-button" type="button">Sign out</button>
+        <details id="account-menu" class="header-menu" data-menu>
+          <summary>Account</summary>
+          <div class="menu-popup account-menu-popup">
+            <p id="account-email" class="account-email"></p>
+            <details id="account-security-panel" class="menu-section account-security-panel">
+              <summary>Account security</summary>
+              <p id="security-verified-status" class="field-help" role="status">Open to check email verification.</p>
+              <p id="security-delivery" class="field-help"></p>
+              <button id="request-verification" class="secondary-button" type="button" hidden>Send verification email</button>
+              <form id="password-change-form" class="stack" method="post" hidden>
+                <h3>Change password</h3>
+                <label>Current password<input id="current-password" name="current_password" type="password" autocomplete="current-password" maxlength="1024" required></label>
+                <label>New password<input id="new-password" name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
+                <label>Confirm new password<input id="confirm-new-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
+                <p class="field-help">Changing your password signs out all browsers and connected clients.</p>
+                <button class="secondary-button" type="submit">Change password</button>
+              </form>
+              <p id="security-message" class="message" role="status" aria-live="polite"></p>
+            </details>
+            <button id="sign-out" class="text-button sign-out" type="button">Sign out</button>
+          </div>
+        </details>
       </div>
     </header>
 
     <main id="auth-view" class="auth-layout">
-      <section class="intro">
-        <p class="eyebrow">A little clarity goes a long way</p>
-        <h1>Make room for<br>what matters.</h1>
-        <p class="intro-copy">Keep your goals, open questions and next steps in one place. Give your personal concerns and each project a space of their own.</p>
-        <div class="intro-line" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-        <p class="intro-note">Your graphs start private. Share only the graphs you choose.</p>
-      </section>
       <section class="auth-card" aria-labelledby="auth-title">
-        <p class="eyebrow">Your space to move forward</p>
-        <h2 id="auth-title">Welcome back</h2>
-        <p id="auth-subtitle" class="muted">Sign in to pick up where you left off.</p>
+        <h1 id="auth-title">Sign in</h1>
+        <p id="auth-subtitle" class="muted" hidden></p>
         <form id="auth-form" class="stack" method="post">
           <label>Email<input id="email" name="email" type="email" autocomplete="username" maxlength="254" required></label>
           <label>Password<input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required></label>
@@ -52,95 +117,36 @@
     </main>
 
     <main id="workspace-view" class="workspace" hidden>
-      <aside class="sidebar">
-        <div class="sidebar-heading"><h2>Your graphs</h2><span id="graph-count" class="count-badge">0</span></div>
-        <p class="sidebar-copy">A separate space for every kind of concern.</p>
-        <nav id="graph-list" class="graph-list" aria-label="Your graphs"></nav>
-        <form id="new-graph-form" class="new-graph-form stack">
-          <h3>Create a graph</h3>
-          <label>Name<input name="title" placeholder="A new project" maxlength="200" required></label>
-          <label>Space<select name="kind"><option value="personal">Personal</option><option value="project">Project</option></select></label>
-          <button class="secondary-button" type="submit">Create graph</button>
-        </form>
-        <details class="join-panel">
-          <summary>Accept an invitation</summary>
-          <form id="join-graph-form" class="stack">
-            <label>Invitation link or token<input id="join-token" name="token" autocomplete="off" maxlength="2048" required></label>
-            <p class="field-help">Sign in with the email address the owner invited.</p>
-            <button class="secondary-button" type="submit">Join graph</button>
-          </form>
-        </details>
-        <details id="account-security-panel" class="account-security-panel">
-          <summary>Account security</summary>
-          <p id="security-verified-status" class="field-help" role="status">Open this panel to check email verification.</p>
-          <p id="security-delivery" class="field-help"></p>
-          <button id="request-verification" class="secondary-button" type="button" hidden>Send verification email</button>
-          <form id="password-change-form" class="stack" method="post" hidden>
-            <h3>Change password</h3>
-            <label>Current password<input id="current-password" name="current_password" type="password" autocomplete="current-password" maxlength="1024" required></label>
-            <label>New password<input id="new-password" name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
-            <label>Confirm new password<input id="confirm-new-password" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label>
-            <p class="field-help">Changing your password signs out every browser and connected client.</p>
-            <button class="secondary-button" type="submit">Change password</button>
-          </form>
-          <p id="security-message" class="message" role="status" aria-live="polite"></p>
-        </details>
-      </aside>
-      <section class="graph-panel" aria-live="polite">
-        <p id="workspace-message" class="message workspace-message" role="status"></p>
-        <section id="no-graph" class="empty-graph">
-          <span class="empty-orbit" aria-hidden="true"></span>
-          <p class="eyebrow">Start with what is on your mind</p>
-          <h1>Your first graph starts here.</h1>
-          <p>Create a personal graph for everyday concerns, or give a project its own space.</p>
-        </section>
-        <section id="graph-detail" hidden>
-          <div class="graph-heading"><div><p id="graph-kind" class="eyebrow"></p><h1 id="graph-title"></h1></div><button id="refresh-graph" class="secondary-button" type="button">Refresh</button></div>
-          <div class="stat-grid" aria-label="Graph progress"><div><span id="ready-count">0</span><p>Ready to move</p></div><div><span id="open-count">0</span><p>Still open</p></div><div><span id="resolved-count">0</span><p>Resolved</p></div></div>
-          <details id="sharing-panel" class="sharing-panel" hidden>
-            <summary>Share graph</summary>
-            <p id="sharing-owner" class="field-help"></p>
-            <form id="invitation-form" class="invitation-form">
-              <label>Email<input id="invite-email" name="email" type="email" autocomplete="off" maxlength="320" required></label>
-              <label>Access<select id="invite-role" name="role"><option value="viewer">Can view</option><option value="editor">Can edit</option></select></label>
-              <button class="secondary-button" type="submit">Create invitation link</button>
-            </form>
-            <label class="invitation-link-label">New invitation link<input id="invitation-link" readonly autocomplete="off" aria-label="New invitation link"></label>
-            <p class="field-help">Copy the new link for the invited person. No email is sent. Links expire after seven days and can be used once.</p>
-            <h3>People with access</h3><div id="sharing-members" class="sharing-list"></div>
-            <h3>Invitation links</h3><div id="sharing-invitations" class="sharing-list"></div>
-          </details>
-          <section class="visual-panel" aria-label="Visual graph">
-            <div class="visual-toolbar">
-              <div class="view-buttons"><button id="visual-overview" class="secondary-button" type="button" aria-pressed="true">Overview</button><button id="visual-focus" class="secondary-button" type="button" aria-pressed="false">Focus</button></div>
-              <label class="visual-search">Search<input id="visual-search" type="search" placeholder="Find a matter"></label>
-              <label>Status<select id="visual-status"><option value="all">All matters</option><option value="actionable">Ready</option><option value="blocked">Waiting</option><option value="resolved">Resolved</option></select></label>
-              <div class="view-buttons"><button id="visual-zoom-in" class="secondary-button" type="button" aria-label="Zoom in">+</button><button id="visual-zoom-out" class="secondary-button" type="button" aria-label="Zoom out">−</button><button id="visual-reset" class="secondary-button" type="button">Reset view</button></div>
-            </div>
+      <p id="workspace-message" class="message workspace-message" role="status" aria-live="polite"></p>
+      <section id="no-graph" class="empty-graph">
+        <h1>No graphs yet</h1>
+        <button id="create-first-graph" class="primary-button" type="button">Create a graph</button>
+      </section>
+      <section id="graph-detail" class="graph-detail" hidden>
+        <section class="visual-panel" aria-label="Visual graph">
+          <div class="visual-toolbar" aria-label="Graph controls">
+            <div class="view-buttons"><button id="visual-overview" class="secondary-button" type="button" aria-pressed="true">Overview</button><button id="visual-focus" class="secondary-button" type="button" aria-pressed="false">Focus</button></div>
+            <label class="visual-search"><span class="sr-only">Search</span><input id="visual-search" type="search" placeholder="Search matters"></label>
+            <label class="visual-filter"><span class="sr-only">Status</span><select id="visual-status"><option value="all">All matters</option><option value="actionable">Ready</option><option value="blocked">Waiting</option><option value="resolved">Resolved</option></select></label>
+            <div class="view-buttons"><button id="visual-zoom-in" class="secondary-button" type="button" aria-label="Zoom in">+</button><button id="visual-zoom-out" class="secondary-button" type="button" aria-label="Zoom out">−</button><button id="visual-reset" class="secondary-button" type="button">Reset view</button></div>
+            <button id="toggle-list" class="secondary-button" type="button" aria-pressed="false" aria-controls="matter-inspector">List</button>
+          </div>
+          <div class="graph-stage">
             <div id="visual-canvas" class="visual-canvas"></div>
-            <p class="field-help visual-help">Select a matter to inspect its dependencies. Drag to orbit, Shift-drag to pan, or scroll to zoom. Focus shows the selected matter and its immediate context.</p>
-            <div id="visual-selection" class="visual-selection" aria-live="polite">Select a matter in the overview or list.</div>
-          </section>
-          <form id="new-matter-form" class="new-matter-form">
-            <div><h2>What matters next?</h2><p class="muted">Name a concern and what would make it resolved.</p></div>
-            <label>Matter<input name="name" placeholder="Ship the first version" maxlength="128" required></label>
-            <label>Resolved when<input name="condition" placeholder="One real person can use it" maxlength="2000" required></label>
-            <button class="primary-button" type="submit">Add matter</button>
-          </form>
-          <details id="dependency-editor" class="dependency-editor">
-            <summary>Edit a dependency</summary>
-            <form id="dependency-form" class="dependency-form">
-              <label>Prerequisite<select id="dependency-source" name="source" required></select></label>
-              <label>Dependent<select id="dependency-target" name="target" required></select></label>
-              <label>Change<select id="dependency-operation" name="operation"><option value="add_dependency">Add dependency</option><option value="remove_dependency">Remove dependency</option></select></label>
-              <button class="secondary-button" type="submit">Apply change</button>
-            </form>
-          </details>
-          <div class="matters-heading"><h2>Your matters</h2><span id="view-only" class="count-badge" hidden>View only</span></div>
-          <div id="matters-list" class="matters-list"></div>
+            <div id="empty-matters-state" class="empty-matters-state" hidden>
+              <p>No matters yet</p>
+              <button id="add-first-matter" class="primary-button" type="button">Add matter</button>
+            </div>
+            <aside id="matter-inspector" class="matter-inspector" aria-label="Matter details" tabindex="-1" hidden>
+              <header class="inspector-heading"><h2 id="inspector-title">Details</h2><button id="close-inspector" class="text-button close-inspector" type="button" aria-label="Close details">×</button></header>
+              <div class="inspector-body">
+                <div id="matters-list" class="matters-list"></div>
+                <p id="visual-selection" class="visual-selection" aria-live="polite"></p>
+              </div>
+            </aside>
+          </div>
         </section>
       </section>
     </main>
-    <footer>Matters Cloud <span aria-hidden="true">·</span> Keep sight of what moves you forward.</footer>
   </body>
 </html>

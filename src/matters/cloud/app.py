@@ -13,7 +13,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, model_validator
 from sqlalchemy import text
@@ -283,13 +283,15 @@ class GraphOperation(APIModel):
         return self
 
 
-def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed_hosts=None, enable_mcp=False, mail_delivery=None, mail_event_sink=None):
+def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed_hosts=None, enable_mcp=False, mail_delivery=None, mail_event_sink=None, disable_signup=False):
     """Create a pilot ASGI application owning its database-engine lifecycle."""
 
     if type(secure_cookies) is not bool:
         raise ValueError("secure_cookies must be a boolean")
     if type(enable_mcp) is not bool:
         raise ValueError("enable_mcp must be a boolean")
+    if type(disable_signup) is not bool:
+        raise ValueError("disable_signup must be a boolean")
     parsed_origin = normalized_origin(public_origin) if public_origin else None
     if public_origin and parsed_origin is None:
         raise ValueError("public_origin must be an exact HTTP or HTTPS origin")
@@ -317,9 +319,9 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
     except Exception:
         db.close()
         raise
-    accounts = CloudAccounts(db)
-    graphs = GraphRepository(db)
     try:
+        accounts = CloudAccounts(db)
+        graphs = GraphRepository(db)
         lifecycle = AccountLifecycle(db, accounts, public_origin=public_origin, delivery=mail_delivery, allow_loopback_http=not secure_cookies, event_sink=mail_event_sink)
     except Exception:
         db.close()
@@ -390,7 +392,7 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
     app.include_router(create_transfer_router(graphs, authenticated_user))
     register_collaboration_routes(app, graphs, authenticated_user)
     register_visual_routes(app, graphs, authenticated_user)
-    app.include_router(create_lifecycle_router(lifecycle, authenticated_user, public_origin=public_origin, secure_cookies=secure_cookies, cookie_name=SESSION_COOKIE, limiter=limiter))
+    app.include_router(create_lifecycle_router(lifecycle, authenticated_user, public_origin=public_origin, secure_cookies=secure_cookies, cookie_name=SESSION_COOKIE, limiter=limiter, signup_enabled=not disable_signup))
 
     @app.get("/healthz")
     def health():
@@ -400,10 +402,18 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
 
     @app.get("/")
     def index():
+        if disable_signup:
+            content = (ASSETS / "index.html").read_text(encoding="utf-8")
+            content = content.replace('data-signup-enabled="true"', 'data-signup-enabled="false"')
+            content = content.replace('id="signup-controls" class="auth-switch"', 'id="signup-controls" class="auth-switch" hidden')
+            content = content.replace('id="signup-message" class="field-help" hidden', 'id="signup-message" class="field-help"')
+            return HTMLResponse(content)
         return FileResponse(ASSETS / "index.html")
 
     @app.post("/api/auth/register", status_code=201)
     def register(credentials: Credentials):
+        if disable_signup:
+            raise AccountError("New account registration is disabled on this installation.", "forbidden")
         user = accounts.register(credentials.email, credentials.password)
         return {"schema_version": 1, "user": user}
 
@@ -466,7 +476,7 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
         oauth = CloudOAuth(db, issuer_url=public_origin, allow_loopback_http=not secure_cookies)
         app.state.oauth = oauth
         app.include_router(build_oauth_router(
-            oauth, accounts, graphs, secure_cookies=secure_cookies, cookie_name=SESSION_COOKIE, limiter=limiter,
+            oauth, accounts, graphs, secure_cookies=secure_cookies, cookie_name=SESSION_COOKIE, limiter=limiter, signup_enabled=not disable_signup,
         ))
         hosted_mcp = create_hosted_mcp(oauth, graphs)
         app.state.hosted_mcp = hosted_mcp

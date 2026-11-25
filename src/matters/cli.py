@@ -97,6 +97,9 @@ def main(argv=None):
     cloud_parser.add_argument(
         "--mail-events", action="store_true", help="Write aggregate mail outcome events to stderr without recipient or credential fields."
     )
+    cloud_parser.add_argument(
+        "--disable-signup", action="store_true", help="Disable public account registration while allowing existing accounts to sign in."
+    )
     migration_parser = subparsers.add_parser(
         "cloud-migrate", help="Explicitly upgrade an existing Cloud database after a verified backup."
     )
@@ -556,6 +559,8 @@ def main(argv=None):
             parser.error("Cloud support is optional; install matters-global[cloud] to use matters cloud")
         try:
             options = {"secure_cookies": not args.development, "public_origin": args.public_origin}
+            if args.disable_signup:
+                options["disable_signup"] = True
             from .cloud.mail_delivery import JSONMailEventSink, mail_delivery_from_env
             delivery = mail_delivery_from_env()
             if args.mail_events:

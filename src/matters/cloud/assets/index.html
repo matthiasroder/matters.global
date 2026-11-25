@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/assets/styles.css">
     <script src="/assets/app.js" defer></script>
   </head>
-  <body>
+  <body data-signup-enabled="true">
     <header class="topbar">
       <a class="brand" href="/" aria-label="Matters Cloud home"><span class="brand-mark" aria-hidden="true">m</span><span>matters<span class="brand-dot">.</span></span></a>
       <span class="preview-badge">Cloud preview</span>
@@ -46,7 +46,8 @@
           </form>
           <p id="recovery-message" class="message" role="status" aria-live="polite"></p>
         </details>
-        <p class="auth-switch"><span id="auth-switch-label">New to Matters?</span> <button id="auth-switch" class="text-button" type="button">Create an account</button></p>
+        <p id="signup-message" class="field-help" hidden>New account registration is disabled. Use the account provided by this installation’s operator.</p>
+        <p id="signup-controls" class="auth-switch"><span id="auth-switch-label">New to Matters?</span> <button id="auth-switch" class="text-button" type="button">Create an account</button></p>
       </section>
     </main>
 

@@ -98,7 +98,7 @@ def _query(request, allowed):
     return result
 
 
-def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_name="matters_session", limiter=None):
+def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_name="matters_session", limiter=None, signup_enabled=True):
     """Create routes for a configured, trusted issuer/resource origin.
 
     Consent uses the existing CloudAccounts login and session cookie. The
@@ -185,7 +185,10 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
                 content += '<label>Email<input name="email" type="email" maxlength="254" autocomplete="username" required></label>'
                 content += '<label>Password<input name="password" type="password" maxlength="1024" autocomplete="current-password" required></label>'
                 content += '<button class="primary-button" type="submit">Sign in</button></form>'
-                content += '<p class="muted">Need an account? <a href="/" target="_blank" rel="noopener">Create one in Matters</a>, then return to this page.</p>'
+                if signup_enabled:
+                    content += '<p class="muted">Need an account? <a href="/" target="_blank" rel="noopener">Create one in Matters</a>, then return to this page.</p>'
+                else:
+                    content += '<p class="muted">New account registration is disabled. Use the account provided by this installation’s operator.</p>'
                 return set_csrf(_page("Sign in to connect", content), nonce)
             data = oauth.prepare_consent(pending, user["id"], session, nonce)
             available = graphs.list_graphs(user["id"])["graphs"]
@@ -227,7 +230,9 @@ def build_oauth_router(oauth, accounts, graphs, *, secure_cookies=True, cookie_n
             return response
         except OAuthError as error:
             return _error(error)
-        except AccountError:
+        except AccountError as error:
+            if error.code == "unavailable":
+                return _error(OAuthError("The account service is temporarily unavailable. Try again shortly.", "temporarily_unavailable", 503))
             return _error(OAuthError("Email or password is incorrect.", "access_denied", 401))
 
     @router.post("/oauth/consent")

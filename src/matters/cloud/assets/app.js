@@ -10,6 +10,7 @@ const joinForm = byId("join-graph-form");
 const dependencyForm = byId("dependency-form");
 const recoveryForm = byId("recovery-request-form");
 const passwordChangeForm = byId("password-change-form");
+const signupEnabled = document.body?.dataset?.signupEnabled !== "false";
 let overviewRenderer = null;
 let rendererLoading = null;
 let lastVisualMode = null;
@@ -114,7 +115,7 @@ function showAuth() {
   clearGraphDisplay();
   resetAccountControls();
   formBusy(authForm, false);
-  byId("auth-switch").disabled = false;
+  byId("auth-switch").disabled = !signupEnabled;
   byId("password").value = "";
   state.register = false;
   renderAuthMode();
@@ -499,6 +500,9 @@ async function mutate(operation, payload) {
 }
 
 function renderAuthMode() {
+  if (!signupEnabled) state.register = false;
+  byId("signup-controls").hidden = !signupEnabled;
+  byId("signup-message").hidden = signupEnabled;
   byId("auth-title").textContent = state.register ? "A space of your own" : "Welcome back";
   byId("auth-subtitle").textContent = state.register ? "Create an account to start your first graph." : "Sign in to pick up where you left off.";
   byId("auth-submit").textContent = state.register ? "Create account" : "Sign in";
@@ -518,6 +522,7 @@ function renderAuthMode() {
 }
 
 byId("auth-switch").addEventListener("click", () => {
+  if (!signupEnabled) return;
   state.register = !state.register;
   renderAuthMode();
   message("", true);
@@ -545,7 +550,7 @@ authForm.addEventListener("submit", async event => {
   finally {
     if (attempt === state.authAttempt) {
       formBusy(authForm, false);
-      byId("auth-switch").disabled = false;
+      byId("auth-switch").disabled = !signupEnabled;
     }
   }
 });

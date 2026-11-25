@@ -9,8 +9,10 @@ import hashlib
 import hmac
 import re
 import secrets
+import threading
 import time
 import uuid
+from contextlib import contextmanager
 from functools import lru_cache
 
 from argon2 import PasswordHasher
@@ -29,6 +31,8 @@ _TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]{43}")
 _LOGIN_FAILURE = "Email or password is incorrect."
 _SESSION_FAILURE = "A valid session is required."
 _UNAVAILABLE = "The account service is unavailable."
+PASSWORD_WORK_SLOTS = 2
+_PASSWORD_WORK = threading.BoundedSemaphore(PASSWORD_WORK_SLOTS)
 
 
 class AccountError(ValueError):
@@ -40,11 +44,43 @@ class AccountError(ValueError):
         self.code = code
 
 
+@contextmanager
+def _password_work():
+    """Bound Argon work across all account services in this process.
+
+    Refuse excess work instead of holding an unbounded queue of credential
+    requests. This is a memory/work bound, independent of account policy and
+    the shared database request limits.
+    """
+    if not _PASSWORD_WORK.acquire(blocking=False):
+        raise AccountError("The password service is busy. Try again shortly.", "unavailable")
+    try:
+        yield
+    finally:
+        _PASSWORD_WORK.release()
+
+
+class _BoundedPasswordHasher:
+    def __init__(self):
+        self._hasher = PasswordHasher()
+
+    def hash(self, *args, **kwargs):
+        with _password_work():
+            return self._hasher.hash(*args, **kwargs)
+
+    def verify(self, *args, **kwargs):
+        with _password_work():
+            return self._hasher.verify(*args, **kwargs)
+
+    def check_needs_rehash(self, *args, **kwargs):
+        return self._hasher.check_needs_rehash(*args, **kwargs)
+
+
 @lru_cache(maxsize=1)
 def _dummy_password_hash():
     # Unknown-account logins still perform a real password verification.
     # This hash is not a credential for an account and is never persisted.
-    return PasswordHasher().hash(secrets.token_urlsafe(32))
+    return _BoundedPasswordHasher().hash(secrets.token_urlsafe(32))
 
 
 def _normalized_email(value):
@@ -101,7 +137,7 @@ class CloudAccounts:
         self.db = db
         self.session_ttl_seconds = session_ttl_seconds
         self._now = now if now is not None else time.time
-        self._hasher = PasswordHasher()
+        self._hasher = _BoundedPasswordHasher()
         self._dummy_hash = _dummy_password_hash()
 
     def register(self, email, password):

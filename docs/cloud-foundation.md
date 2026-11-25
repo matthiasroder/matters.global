@@ -65,6 +65,20 @@ for isolated checks, not persistent local development or a hosted deployment.
 SQLite accepts `sqlite:////absolute/path/to/development.db` for an absolute path.
 The parent directory must be available to the application user.
 
+## Closed pilot registration
+
+An operator can start a closed installation with `matters cloud --disable-signup`
+and the normal database/origin options. Public registration then returns a
+generic refusal, the browser offers existing-account sign-in, and account
+capabilities report `signup_enabled: false`. Existing accounts, graph access and
+password recovery continue according to their own configuration. Email delivery
+being disabled does not determine whether registration is enabled.
+
+Registration remains open by default for compatibility. The flag neither creates
+an initial account nor adds a public administrator endpoint: provision initial
+accounts through the operator's trusted administration path with protected
+credential handling. It does not define a free allowance, storage quota or price.
+
 ## PostgreSQL configuration
 
 Use a dedicated database and database role for each installation. The SQLAlchemy
@@ -186,6 +200,14 @@ Authentication and OAuth attempt limits use shared, atomic database counters
 across workers and restarts. Recovery and verification have separate security
 budgets; these are not subscription allowances. Stored counter keys are hashes,
 cardinality and cleanup are bounded, and a storage failure refuses admission.
+
+Expensive password hashing and verification also share a nonblocking, two-slot
+budget within each application process, including registration, login and
+password changes/recovery. Excess work receives a safe temporary-unavailability
+response instead of accumulating an unbounded queue. Account credentials and
+graph data remain unchanged when work is refused. This complements the shared
+request limits; worker count and total process/container memory still need an
+operator-selected deployment budget.
 
 Forwarded client headers are disabled by default. Behind a proxy, explicitly
 repeat `--trusted-proxy IP_OR_CIDR` for the trusted proxy addresses/networks.

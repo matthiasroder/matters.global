@@ -17,7 +17,7 @@ from .oauth_routes import _body
 CSRF_COOKIE = "matters_account_csrf"
 
 
-def create_lifecycle_router(lifecycle, authenticated_user, *, public_origin=None, secure_cookies=True, cookie_name="matters_session", limiter=None):
+def create_lifecycle_router(lifecycle, authenticated_user, *, public_origin=None, secure_cookies=True, cookie_name="matters_session", limiter=None, signup_enabled=True):
     router = APIRouter()
 
     def response(payload, request, status=200, *, nonce=False):
@@ -77,7 +77,7 @@ def create_lifecycle_router(lifecycle, authenticated_user, *, public_origin=None
 
     @router.get("/api/auth/capabilities")
     def capabilities(request: Request):
-        return response(lifecycle.capabilities(), request, nonce=True)
+        return response({**lifecycle.capabilities(), "signup_enabled": signup_enabled}, request, nonce=True)
 
     @router.get("/api/auth/security")
     def security(request: Request, user=Depends(authenticated_user)):

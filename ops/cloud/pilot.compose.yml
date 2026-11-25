@@ -1,0 +1,89 @@
+# Existing edge owns TLS and public ports. Do not add a second public proxy.
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: matters_ops
+      POSTGRES_PASSWORD_FILE: /run/secrets/admin_password
+    secrets: [admin_password]
+    labels:
+      global.matters.operations-owner: ${MATTERS_OPERATIONS_OWNER:?Prepare a fresh operator inventory}
+    volumes:
+      - database:/var/lib/postgresql/data
+    cpus: ${MATTERS_PILOT_DATABASE_CPUS:?Set provisional database resource bounds}
+    mem_limit: ${MATTERS_PILOT_DATABASE_MEMORY:?Set provisional database resource bounds}
+    pids_limit: ${MATTERS_PILOT_DATABASE_PIDS:?Set provisional database resource bounds}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U matters_ops -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    networks:
+      backend:
+        ipv4_address: ${MATTERS_PILOT_DATABASE_IP:?Prepare private backend IPAM}
+
+  app:
+    image: ${MATTERS_CLOUD_IMAGE:?Select a reviewed tag or immutable digest}
+    user: "10001:10001"
+    command: ["--host", "0.0.0.0", "--port", "3000", "--public-origin", "${MATTERS_CLOUD_PUBLIC_ORIGIN:?Set the exact HTTPS origin}", "--mcp", "--disable-signup", "--trusted-proxy", "${MATTERS_PILOT_PROXY_IP:?Set the controlled proxy IP}/32"]
+    environment:
+      MATTERS_CLOUD_DATABASE_URL: ${MATTERS_CLOUD_DATABASE_URL:?Prepare application-role credentials}
+      MATTERS_CLOUD_PUBLIC_ORIGIN: ${MATTERS_CLOUD_PUBLIC_ORIGIN:?Set the exact HTTPS origin}
+    labels:
+      global.matters.operations-owner: ${MATTERS_OPERATIONS_OWNER:?Prepare a fresh operator inventory}
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import http.client, os, urllib.parse;
+          host = urllib.parse.urlsplit(os.environ['MATTERS_CLOUD_PUBLIC_ORIGIN']).netloc;
+          connection = http.client.HTTPConnection('127.0.0.1', 3000, timeout=3);
+          connection.request('GET', '/healthz', headers={'Host': host});
+          assert connection.getresponse().status == 200
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    read_only: true
+    tmpfs: ["/tmp:size=32m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    cpus: ${MATTERS_PILOT_APP_CPUS:?Set provisional application resource bounds}
+    mem_limit: ${MATTERS_PILOT_APP_MEMORY:?Set provisional application resource bounds}
+    pids_limit: ${MATTERS_PILOT_APP_PIDS:?Set provisional application resource bounds}
+    stop_grace_period: 30s
+    restart: unless-stopped
+    networks:
+      backend:
+        ipv4_address: ${MATTERS_PILOT_APP_BACKEND_IP:?Prepare private backend IPAM}
+      ingress:
+        ipv4_address: ${MATTERS_PILOT_APP_INGRESS_IP:?Prepare dedicated ingress IPAM}
+        aliases: ["${MATTERS_PILOT_UPSTREAM:?Prepare the unique edge upstream name}"]
+
+secrets:
+  admin_password:
+    file: ${MATTERS_PILOT_DIRECTORY:?Use a private directory outside the repository}/admin.password
+
+volumes:
+  database:
+    labels:
+      global.matters.operations-owner: ${MATTERS_OPERATIONS_OWNER:?Prepare a fresh operator inventory}
+
+networks:
+  backend:
+    name: ${MATTERS_PILOT_BACKEND_NETWORK:?Choose a new dedicated backend network}
+    internal: true
+    labels:
+      global.matters.operations-owner: ${MATTERS_OPERATIONS_OWNER:?Prepare a fresh operator inventory}
+    ipam:
+      config:
+        - subnet: ${MATTERS_PILOT_BACKEND_SUBNET:?Choose an unused private /28}
+  ingress:
+    external: true
+    name: ${MATTERS_PILOT_INGRESS_NETWORK:?Operator creates the dedicated controlled edge network}

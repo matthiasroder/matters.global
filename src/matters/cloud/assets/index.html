@@ -24,7 +24,7 @@
         <h1>Make room for<br>what matters.</h1>
         <p class="intro-copy">Keep your goals, open questions and next steps in one place. Give your personal concerns and each project a space of their own.</p>
         <div class="intro-line" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-        <p class="intro-note">Your graphs are private to your account.</p>
+        <p class="intro-note">Your graphs start private. Share only the graphs you choose.</p>
       </section>
       <section class="auth-card" aria-labelledby="auth-title">
         <p class="eyebrow">Your space to move forward</p>
@@ -52,6 +52,14 @@
           <label>Space<select name="kind"><option value="personal">Personal</option><option value="project">Project</option></select></label>
           <button class="secondary-button" type="submit">Create graph</button>
         </form>
+        <details class="join-panel">
+          <summary>Accept an invitation</summary>
+          <form id="join-graph-form" class="stack">
+            <label>Invitation link or token<input id="join-token" name="token" autocomplete="off" maxlength="2048" required></label>
+            <p class="field-help">Sign in with the email address the owner invited.</p>
+            <button class="secondary-button" type="submit">Join graph</button>
+          </form>
+        </details>
       </aside>
       <section class="graph-panel" aria-live="polite">
         <p id="workspace-message" class="message workspace-message" role="status"></p>
@@ -64,12 +72,45 @@
         <section id="graph-detail" hidden>
           <div class="graph-heading"><div><p id="graph-kind" class="eyebrow"></p><h1 id="graph-title"></h1></div><button id="refresh-graph" class="secondary-button" type="button">Refresh</button></div>
           <div class="stat-grid" aria-label="Graph progress"><div><span id="ready-count">0</span><p>Ready to move</p></div><div><span id="open-count">0</span><p>Still open</p></div><div><span id="resolved-count">0</span><p>Resolved</p></div></div>
+          <details id="sharing-panel" class="sharing-panel" hidden>
+            <summary>Share graph</summary>
+            <p id="sharing-owner" class="field-help"></p>
+            <form id="invitation-form" class="invitation-form">
+              <label>Email<input id="invite-email" name="email" type="email" autocomplete="off" maxlength="320" required></label>
+              <label>Access<select id="invite-role" name="role"><option value="viewer">Can view</option><option value="editor">Can edit</option></select></label>
+              <button class="secondary-button" type="submit">Create invitation link</button>
+            </form>
+            <label class="invitation-link-label">New invitation link<input id="invitation-link" readonly autocomplete="off" aria-label="New invitation link"></label>
+            <p class="field-help">Copy the new link for the invited person. No email is sent. Links expire after seven days and can be used once.</p>
+            <h3>People with access</h3><div id="sharing-members" class="sharing-list"></div>
+            <h3>Invitation links</h3><div id="sharing-invitations" class="sharing-list"></div>
+          </details>
+          <section class="visual-panel" aria-label="Visual graph">
+            <div class="visual-toolbar">
+              <div class="view-buttons"><button id="visual-overview" class="secondary-button" type="button" aria-pressed="true">Overview</button><button id="visual-focus" class="secondary-button" type="button" aria-pressed="false">Focus</button></div>
+              <label class="visual-search">Search<input id="visual-search" type="search" placeholder="Find a matter"></label>
+              <label>Status<select id="visual-status"><option value="all">All matters</option><option value="actionable">Ready</option><option value="blocked">Waiting</option><option value="resolved">Resolved</option></select></label>
+              <div class="view-buttons"><button id="visual-zoom-in" class="secondary-button" type="button" aria-label="Zoom in">+</button><button id="visual-zoom-out" class="secondary-button" type="button" aria-label="Zoom out">−</button><button id="visual-reset" class="secondary-button" type="button">Reset view</button></div>
+            </div>
+            <div id="visual-canvas" class="visual-canvas"></div>
+            <p class="field-help visual-help">Select a matter to inspect its dependencies. Drag to orbit, Shift-drag to pan, or scroll to zoom. Focus shows the selected matter and its immediate context.</p>
+            <div id="visual-selection" class="visual-selection" aria-live="polite">Select a matter in the overview or list.</div>
+          </section>
           <form id="new-matter-form" class="new-matter-form">
             <div><h2>What matters next?</h2><p class="muted">Name a concern and what would make it resolved.</p></div>
             <label>Matter<input name="name" placeholder="Ship the first version" maxlength="128" required></label>
             <label>Resolved when<input name="condition" placeholder="One real person can use it" maxlength="2000" required></label>
             <button class="primary-button" type="submit">Add matter</button>
           </form>
+          <details id="dependency-editor" class="dependency-editor">
+            <summary>Edit a dependency</summary>
+            <form id="dependency-form" class="dependency-form">
+              <label>Prerequisite<select id="dependency-source" name="source" required></select></label>
+              <label>Dependent<select id="dependency-target" name="target" required></select></label>
+              <label>Change<select id="dependency-operation" name="operation"><option value="add_dependency">Add dependency</option><option value="remove_dependency">Remove dependency</option></select></label>
+              <button class="secondary-button" type="submit">Apply change</button>
+            </form>
+          </details>
           <div class="matters-heading"><h2>Your matters</h2><span id="view-only" class="count-badge" hidden>View only</span></div>
           <div id="matters-list" class="matters-list"></div>
         </section>

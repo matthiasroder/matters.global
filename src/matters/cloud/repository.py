@@ -11,8 +11,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from .. import rules
 from ..engine import dependents, prerequisites
 from ..reports import unlock_report
+from ..portability import build_bundle, normalize_bundle, normalize_sources
 from ..storage import state_data, state_from_data, state_revision
-from .db import CloudDatabaseError, graph_events, graph_members, graphs, users
+from .db import CloudDatabaseError, graph_events, graph_members, graph_sources, graphs, users
 
 
 class CloudGraphError(ValueError):
@@ -187,10 +188,76 @@ class GraphRepository:
                     state=row["state"], revision=row["revision"],
                     version=row["version"], updated_at=row["updated_at"],
                 ))
+                # A matter deletion also removes its citations in the same
+                # commit. No export can retain orphaned source records.
+                source_document = connection.execute(
+                    select(graph_sources.c.document).where(graph_sources.c.graph_id == graph_id)
+                ).scalar_one_or_none()
+                if source_document is not None:
+                    entries = source_document.get("matter_sources", {})
+                    kept = {matter: sources for matter, sources in entries.items() if matter in final[0]}
+                    if kept != entries:
+                        connection.execute(graph_sources.update().where(
+                            graph_sources.c.graph_id == graph_id
+                        ).values(document={"schema_version": 1, "matter_sources": kept}))
                 self._event(connection, row, actor_id, operation)
             result = {**self._with_state(row, role), "result": operation_result}
         # Return this transaction's snapshot, not a post-commit reread that
         # could describe a second writer's changes.
+        return result
+
+    @staticmethod
+    def _source_document(connection, row):
+        document = connection.execute(
+            select(graph_sources.c.document).where(graph_sources.c.graph_id == row["id"])
+        ).scalar_one_or_none()
+        if document is None:
+            document = {"schema_version": 1, "matter_sources": {}}
+        return normalize_sources(document, row["state"]["matters"])
+
+    def get_graph_with_sources(self, actor_id, graph_id):
+        """Read graph and citations while holding the graph's mutation lock."""
+        with self._transaction(write=True) as connection:
+            row, role = self._authorized_graph(connection, actor_id, graph_id, write=True)
+            result = {**self._with_state(row, role), "sources": self._source_document(connection, row)}
+        return result
+
+    def export_graph(self, actor_id, graph_id):
+        """Export one authorized snapshot without account or sharing records."""
+        with self._transaction(write=True) as connection:
+            row, role = self._authorized_graph(connection, actor_id, graph_id, write=True)
+            bundle = build_bundle(row["state"], self._source_document(connection, row))
+            result = {**self._metadata(row, role), "bundle": bundle}
+        return result
+
+    def import_graph(self, actor_id, title, bundle, kind="project"):
+        """Create a fresh owned graph and citations in one atomic transaction.
+
+        A package is data, never a claim to its original installation's graph
+        ID or permissions. Imported caches are not accepted or rebuilt here.
+        """
+        if not isinstance(title, str) or not title.strip() or len(title.strip()) > 200:
+            raise CloudGraphError("Graph title must contain 1 to 200 characters.")
+        if kind not in ("personal", "project"):
+            raise CloudGraphError("Graph kind must be personal or project.")
+        try:
+            state, sources = normalize_bundle(bundle)
+            snapshot = self._snapshot(state, require_acyclic=True)
+        except rules.RuleError as error:
+            raise CloudGraphError(str(error), error.code, error.cycle) from error
+        now = int(time.time())
+        row = {
+            "id": str(uuid.uuid4()), "owner_id": actor_id, "title": title.strip(),
+            "kind": kind, "state": state_data(*snapshot),
+            "revision": state_revision(*snapshot), "version": 1,
+            "created_at": now, "updated_at": now,
+        }
+        with self._transaction(write=True) as connection:
+            self._require_user(connection, actor_id)
+            connection.execute(graphs.insert().values(**row))
+            connection.execute(graph_sources.insert().values(graph_id=row["id"], document=sources))
+            self._event(connection, row, actor_id, "import_graph")
+            result = {**self._with_state(row, "owner"), "imported": True}
         return result
 
     def query_graph(self, actor_id, graph_id, view, *, matter_id=None):

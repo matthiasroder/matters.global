@@ -98,6 +98,11 @@ def _canonical_sources(document, matters):
         raise RuleError(f"invalid sources: {error}", "invalid") from error
 
 
+def normalize_sources(document, matters):
+    """Validate portable citations against the supplied graph's matter IDs."""
+    return _canonical_sources(document, matters)
+
+
 def export_bundle(state_path):
     """Read one graph snapshot and its canonical citation sidecar.
 
@@ -106,12 +111,26 @@ def export_bundle(state_path):
     continues to describe the captured graph facts.
     """
     path = resolve_state_path(state_path)
-    graph = _canonical_graph(_read_json(path, "graph"))
+    graph = _read_json(path, "graph")
     sources_path = path.with_suffix(".sources.json")
     if os.path.lexists(sources_path):
-        sources = _canonical_sources(_read_json(sources_path, "sources"), graph["matters"])
+        sources = _read_json(sources_path, "sources")
     else:
         sources = {"schema_version": 1, "matter_sources": {}}
+    return build_bundle(graph, sources)
+
+
+def build_bundle(graph, sources=None):
+    """Build a portable package from facts, without reading or writing files.
+
+    Hosted storage and local files share this codec so citations, legacy
+    normalization and graph validation have the same meaning everywhere.
+    Installation-specific graph identity and access records are never copied.
+    """
+    graph = _canonical_graph(graph)
+    if sources is None:
+        sources = {"schema_version": 1, "matter_sources": {}}
+    sources = _canonical_sources(sources, graph["matters"])
     return {
         "format": BUNDLE_FORMAT,
         "schema_version": BUNDLE_VERSION,
@@ -120,7 +139,8 @@ def export_bundle(state_path):
     }
 
 
-def _unpack_bundle(bundle):
+def normalize_bundle(bundle):
+    """Validate a package or native legacy graph and return canonical facts."""
     if not isinstance(bundle, dict):
         raise RuleError("import must be a graph package or native graph object", "invalid")
     if "format" in bundle or "graph" in bundle:
@@ -134,6 +154,11 @@ def _unpack_bundle(bundle):
         graph = _canonical_graph(bundle)
         sources = {"schema_version": 1, "matter_sources": {}}
     return graph, sources
+
+
+# Kept for the file importer while exposing one pure codec to other storage
+# adapters. No backend needs to implement its own package validation.
+_unpack_bundle = normalize_bundle
 
 
 def _write_json(path, document):

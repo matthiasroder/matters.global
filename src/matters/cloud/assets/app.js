@@ -1,10 +1,24 @@
 "use strict";
 
-const state = { user: null, graphs: [], graph: null, report: null, register: false, generation: 0, authEpoch: 0, authAttempt: 0, requestedGraph: null, catalogRequest: 0 };
+const state = { user: null, graphs: [], graph: null, report: null, visual: null, selectedMatter: null, visualMode: "overview", sharingRequest: 0, register: false, generation: 0, authEpoch: 0, authAttempt: 0, requestedGraph: null, catalogRequest: 0 };
 const byId = id => document.getElementById(id);
 const authForm = byId("auth-form");
 const graphForm = byId("new-graph-form");
 const matterForm = byId("new-matter-form");
+const invitationForm = byId("invitation-form");
+const joinForm = byId("join-graph-form");
+const dependencyForm = byId("dependency-form");
+let overviewRenderer = null;
+let rendererLoading = null;
+let lastVisualMode = null;
+let incomingInvitation = initialInvitation();
+
+function initialInvitation() {
+  if (typeof window === "undefined" || !window.location) return null;
+  const token = new URLSearchParams(window.location.hash.slice(1)).get("invite");
+  if (token) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  return token && /^[A-Za-z0-9_-]{43}$/.test(token) ? token : null;
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -36,6 +50,22 @@ function clearGraphDisplay() {
   matterForm.reset();
   formBusy(graphForm, false);
   formBusy(matterForm, false);
+  for (const form of [invitationForm, joinForm, dependencyForm]) { form.reset(); formBusy(form, false); }
+  byId("invitation-link").value = "";
+  byId("visual-search").value = "";
+  byId("visual-status").value = "all";
+  byId("sharing-owner").textContent = "";
+  byId("sharing-members").replaceChildren();
+  byId("sharing-invitations").replaceChildren();
+  byId("sharing-panel").hidden = true;
+  byId("sharing-panel").open = false;
+  byId("visual-selection").textContent = "Select a matter in the overview or list.";
+  state.visual = null;
+  state.selectedMatter = null;
+  state.visualMode = "overview";
+  state.sharingRequest += 1;
+  lastVisualMode = null;
+  overviewRenderer?.setModel({ nodes: [], edges: [] });
   byId("matters-list").replaceChildren();
   byId("graph-list").replaceChildren();
   for (const id of ["graph-title", "graph-kind", "account-email"]) byId(id).textContent = "";
@@ -45,6 +75,7 @@ function clearGraphDisplay() {
 }
 
 function showAuth() {
+  if (state.user) incomingInvitation = null;
   state.authEpoch += 1;
   state.authAttempt += 1;
   state.user = null;
@@ -61,6 +92,7 @@ function showAuth() {
   formBusy(authForm, false);
   byId("auth-switch").disabled = false;
   byId("password").value = "";
+  if (incomingInvitation) byId("join-token").value = incomingInvitation;
 }
 
 function showWorkspace(user) {
@@ -73,6 +105,7 @@ function showWorkspace(user) {
   state.catalogRequest += 1;
   state.generation += 1;
   clearGraphDisplay();
+  if (incomingInvitation) byId("join-token").value = incomingInvitation;
   byId("account-email").textContent = user.email;
   byId("auth-view").hidden = true;
   byId("account-controls").hidden = false;
@@ -112,6 +145,30 @@ function renderGraphs() {
   }
 }
 
+function forgetCurrentGraph() {
+  state.graph = null;
+  state.report = null;
+  state.visual = null;
+  state.selectedMatter = null;
+  state.requestedGraph = null;
+  state.generation += 1;
+  state.sharingRequest += 1;
+  lastVisualMode = null;
+  overviewRenderer?.setModel({ nodes: [], edges: [] });
+  matterForm.reset(); dependencyForm.reset(); invitationForm.reset();
+  formBusy(matterForm, false); formBusy(dependencyForm, false); formBusy(invitationForm, false);
+  byId("invitation-link").value = "";
+  byId("sharing-owner").textContent = "";
+  byId("sharing-members").replaceChildren(); byId("sharing-invitations").replaceChildren();
+  byId("sharing-panel").hidden = true; byId("sharing-panel").open = false;
+  byId("matters-list").replaceChildren();
+  byId("graph-title").textContent = ""; byId("graph-kind").textContent = "";
+  byId("visual-selection").textContent = "Select a matter in the overview or list.";
+  for (const id of ["ready-count", "open-count", "resolved-count"]) byId(id).textContent = "0";
+  byId("graph-detail").hidden = true;
+  byId("no-graph").hidden = false;
+}
+
 async function loadGraphs(preferred) {
   const epoch = state.authEpoch;
   const userId = state.user?.id;
@@ -121,10 +178,16 @@ async function loadGraphs(preferred) {
   const data = await api("/api/graphs");
   if (!sameSession(epoch, userId) || request !== state.catalogRequest) throw staleRequest();
   state.graphs = data.graphs;
-  renderGraphs();
-  const selected = navigation === state.generation
+  let selected = navigation === state.generation
     ? preferred || state.requestedGraph || state.graph?.graph_id || state.graphs[0]?.graph_id
     : state.requestedGraph || state.graph?.graph_id;
+  const permitted = new Set(state.graphs.map(graph => graph.graph_id));
+  if (state.graph && !permitted.has(state.graph.graph_id)) {
+    forgetCurrentGraph();
+    message("The previous graph is no longer available to your account.");
+  }
+  if (!permitted.has(selected)) selected = state.graphs[0]?.graph_id;
+  renderGraphs();
   if (selected) await loadGraph(selected);
   else {
     byId("no-graph").hidden = false;
@@ -140,23 +203,46 @@ async function loadGraph(id) {
   state.requestedGraph = id;
   let graph;
   let report;
+  let visual;
   try {
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      [graph, report] = await Promise.all([
+      [graph, report, visual] = await Promise.all([
         api(`/api/graphs/${encodeURIComponent(id)}`),
-        api(`/api/graphs/${encodeURIComponent(id)}/views/unlock`)
+        api(`/api/graphs/${encodeURIComponent(id)}/views/unlock`),
+        api(`/api/graphs/${encodeURIComponent(id)}/visual`)
       ]);
       if (!sameSession(epoch, userId) || generation !== state.generation) throw staleRequest();
-      if (graph.revision === report.revision) break;
+      if (graph.revision === report.revision && graph.revision === visual.revision) break;
     }
     if (!sameSession(epoch, userId) || generation !== state.generation) throw staleRequest();
-    if (graph.revision !== report.revision) throw new Error("This graph is changing. Refresh it in a moment.");
+    if (graph.revision !== report.revision || graph.revision !== visual.revision) throw new Error("This graph is changing. Refresh it in a moment.");
+    const changedGraph = state.graph?.graph_id !== graph.graph_id;
+    if (changedGraph) {
+      state.selectedMatter = null;
+      state.visualMode = "overview";
+      state.sharingRequest += 1;
+      byId("invitation-link").value = "";
+      byId("sharing-members").replaceChildren();
+      byId("sharing-invitations").replaceChildren();
+      byId("sharing-panel").open = false;
+      invitationForm.reset();
+      formBusy(invitationForm, false);
+      lastVisualMode = null;
+    }
     state.graph = graph;
     state.report = report;
+    state.visual = visual;
     renderGraphs();
     renderGraph();
   } catch (error) {
-    if (sameSession(epoch, userId) && generation === state.generation) state.requestedGraph = state.graph?.graph_id || null;
+    if (sameSession(epoch, userId) && generation === state.generation) {
+      if (error.status === 403 || error.status === 404) {
+        if (state.graph?.graph_id === id) forgetCurrentGraph();
+        state.graphs = state.graphs.filter(graph => graph.graph_id !== id);
+        renderGraphs();
+      }
+      state.requestedGraph = state.graph?.graph_id || null;
+    }
     throw error;
   }
 }
@@ -169,12 +255,25 @@ function renderGraph() {
   byId("no-graph").hidden = true;
   byId("graph-detail").hidden = false;
   byId("graph-title").textContent = graph.title;
-  byId("graph-kind").textContent = graph.kind === "personal" ? "Your personal space" : "Your project space";
+  byId("graph-kind").textContent = `${graph.role === "owner" ? "Your" : "Shared"} ${graph.kind === "personal" ? "personal" : "project"} space`;
   byId("ready-count").textContent = ready.size;
   byId("open-count").textContent = ready.size + blocked.size;
   byId("resolved-count").textContent = graph.state.matters.length - ready.size - blocked.size;
   byId("view-only").hidden = writable;
   matterForm.hidden = !writable;
+  byId("dependency-editor").hidden = !writable;
+  byId("sharing-panel").hidden = graph.role !== "owner";
+  for (const id of ["dependency-source", "dependency-target"]) {
+    const select = byId(id);
+    const previous = select.value;
+    select.replaceChildren();
+    for (const matterId of graph.state.matters) {
+      const option = element("option", "", matterId.replaceAll("_", " "));
+      option.value = matterId;
+      select.append(option);
+    }
+    if (graph.state.matters.includes(previous)) select.value = previous;
+  }
   const list = byId("matters-list");
   list.replaceChildren();
   if (!graph.state.matters.length) {
@@ -184,7 +283,10 @@ function renderGraph() {
     const card = element("article", "matter-card");
     const top = element("div", "matter-top");
     const status = ready.has(id) ? "Ready" : blocked.has(id) ? "Waiting" : "Resolved";
-    top.append(element("h3", "", id.replaceAll("_", " ")), element("span", `status-label status-${status.toLowerCase()}`, status));
+    const title = element("button", "matter-select", id.replaceAll("_", " "));
+    title.type = "button";
+    title.addEventListener("click", () => selectMatter(id));
+    top.append(title, element("span", `status-label status-${status.toLowerCase()}`, status));
     card.append(top);
     for (const [index, condition] of (graph.state.conditions[id] || []).entries()) {
       const label = element("label", "condition-label");
@@ -202,6 +304,149 @@ function renderGraph() {
       card.append(label);
     }
     list.append(card);
+  }
+  renderVisual().catch(error => { if (!error.stale) message(error.message); });
+  if (graph.role === "owner" && byId("sharing-panel").open) {
+    loadSharing().catch(error => { if (!error.stale) message(error.message); });
+  }
+}
+
+function selectMatter(id) {
+  state.selectedMatter = id;
+  renderVisual().catch(error => { if (!error.stale) message(error.message); });
+}
+
+async function renderer() {
+  if (overviewRenderer) return overviewRenderer;
+  if (typeof window === "undefined" || typeof HTMLElement === "undefined") return null;
+  if (!rendererLoading) {
+    rendererLoading = import("/assets/local/map-renderer.js").then(module => {
+      overviewRenderer = module.createOverviewRenderer({
+        container: byId("visual-canvas"),
+        onSelect: id => selectMatter(id),
+        onError: () => message("The visual overview could not be displayed. Your matters are available below."),
+        reducedMotion: Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
+      });
+      return overviewRenderer;
+    }).catch(error => { rendererLoading = null; throw error; });
+  }
+  return rendererLoading;
+}
+
+async function renderVisual() {
+  const epoch = state.authEpoch;
+  const userId = state.user?.id;
+  const graphId = state.graph?.graph_id;
+  const visual = state.visual;
+  if (!visual || !graphId) return;
+  const nodes = visual.nodes || [];
+  if (state.selectedMatter && !nodes.some(node => node.id === state.selectedMatter)) state.selectedMatter = null;
+  const selected = nodes.find(node => node.id === state.selectedMatter);
+  byId("visual-focus").disabled = !selected;
+  byId("visual-overview").setAttribute("aria-pressed", String(state.visualMode === "overview"));
+  byId("visual-focus").setAttribute("aria-pressed", String(state.visualMode === "focus"));
+  byId("visual-selection").textContent = selected
+    ? `${selected.label}. Prerequisites: ${selected.prerequisites.map(id => id.replaceAll("_", " ")).join(", ") || "none"}. Dependents: ${selected.dependents.map(id => id.replaceAll("_", " ")).join(", ") || "none"}.`
+    : "Select a matter in the overview or list.";
+  const scene = await renderer();
+  if (!scene || !sameSession(epoch, userId) || state.graph?.graph_id !== graphId || state.visual !== visual) return;
+  const search = byId("visual-search").value.trim().toLowerCase();
+  const status = byId("visual-status").value || "all";
+  const matches = nodes.filter(node => (
+    (!search || `${node.id} ${node.label} ${node.conditions.map(condition => condition.label).join(" ")}`.toLowerCase().includes(search))
+    && (status === "all" || Boolean(node[status]))
+  )).map(node => node.id);
+  const context = state.visualMode === "focus" && selected
+    ? new Set([selected.id, ...selected.prerequisites, ...selected.dependents]) : null;
+  scene.setModel({
+    graphId, nodes: context ? nodes.filter(node => context.has(node.id)) : nodes,
+    edges: context ? (visual.edges || []).filter(edge => context.has(edge.source) && context.has(edge.target)) : visual.edges || [],
+    selectedId: state.selectedMatter,
+    ancestorIds: selected?.prerequisites || [], directDependentIds: selected?.dependents || [],
+    matchIds: matches, filterActive: Boolean(search) || status !== "all"
+  });
+  if (lastVisualMode !== state.visualMode) {
+    scene.resetCamera();
+    if (state.visualMode === "focus") scene.setCamera({ pitch: -1.25, yaw: 0 });
+    lastVisualMode = state.visualMode;
+  }
+  scene.resize();
+}
+
+function sharingScope() {
+  return { epoch: state.authEpoch, userId: state.user?.id, graphId: state.graph?.graph_id };
+}
+
+function requireSharingScope(scope) {
+  if (!scope.graphId || !sameSession(scope.epoch, scope.userId) || state.graph?.graph_id !== scope.graphId || state.requestedGraph !== scope.graphId) throw staleRequest();
+}
+
+async function loadSharing() {
+  const scope = sharingScope();
+  if (state.graph?.role !== "owner") throw staleRequest();
+  const request = ++state.sharingRequest;
+  const data = await api(`/api/graphs/${encodeURIComponent(scope.graphId)}/sharing`);
+  requireSharingScope(scope);
+  if (request !== state.sharingRequest) throw staleRequest();
+  byId("sharing-owner").textContent = `Owned by ${data.owner.email}. Viewers can read; editors can change graph contents. Only you can manage access.`;
+  const members = byId("sharing-members");
+  members.replaceChildren();
+  if (!data.members.length) members.append(element("p", "field-help", "No other people have access."));
+  for (const member of data.members) {
+    const row = element("div", "sharing-row");
+    const role = document.createElement("select");
+    role.setAttribute("aria-label", `Access for ${member.email}`);
+    for (const [value, label] of [["viewer", "Can view"], ["editor", "Can edit"]]) {
+      const option = element("option", "", label); option.value = value; role.append(option);
+    }
+    role.value = member.role;
+    role.addEventListener("change", async () => {
+      role.disabled = true;
+      try {
+        requireSharingScope(scope);
+        await api(`/api/graphs/${encodeURIComponent(scope.graphId)}/members/${encodeURIComponent(member.user_id)}`, { method: "PUT", body: JSON.stringify({ role: role.value }) });
+        requireSharingScope(scope);
+        await loadSharing();
+      } catch (error) { role.value = member.role; if (!error.stale) message(error.message); }
+      finally { role.disabled = false; }
+    });
+    const remove = element("button", "text-button", "Remove access");
+    remove.type = "button";
+    remove.addEventListener("click", async () => {
+      remove.disabled = true;
+      try {
+        requireSharingScope(scope);
+        await api(`/api/graphs/${encodeURIComponent(scope.graphId)}/members/${encodeURIComponent(member.user_id)}`, { method: "DELETE" });
+        requireSharingScope(scope);
+        await loadSharing();
+      } catch (error) { if (!error.stale) message(error.message); }
+      finally { remove.disabled = false; }
+    });
+    row.append(element("span", "", member.email), role, remove);
+    members.append(row);
+  }
+  const invitations = byId("sharing-invitations");
+  invitations.replaceChildren();
+  if (!data.invitations.length) invitations.append(element("p", "field-help", "No invitation links yet."));
+  for (const invitation of data.invitations) {
+    const row = element("div", "sharing-row");
+    row.append(element("span", "", invitation.email), element("small", "", `${invitation.role} · ${invitation.status}`));
+    if (invitation.status === "pending") {
+      const revoke = element("button", "text-button", "Revoke link");
+      revoke.type = "button";
+      revoke.addEventListener("click", async () => {
+        revoke.disabled = true;
+        try {
+          requireSharingScope(scope);
+          await api(`/api/graphs/${encodeURIComponent(scope.graphId)}/invitations/${encodeURIComponent(invitation.id)}`, { method: "DELETE" });
+          requireSharingScope(scope);
+          await loadSharing();
+        } catch (error) { if (!error.stale) message(error.message); }
+        finally { revoke.disabled = false; }
+      });
+      row.append(revoke);
+    }
+    invitations.append(row);
   }
 }
 
@@ -312,6 +557,67 @@ matterForm.addEventListener("submit", async event => {
 
 byId("refresh-graph").addEventListener("click", () => {
   if (state.graph) loadGraphs(state.requestedGraph || state.graph.graph_id).catch(error => { if (!error.stale) message(error.message); });
+});
+
+byId("visual-overview").addEventListener("click", () => { state.visualMode = "overview"; renderVisual().catch(error => { if (!error.stale) message(error.message); }); });
+byId("visual-focus").addEventListener("click", () => { state.visualMode = "focus"; renderVisual().catch(error => { if (!error.stale) message(error.message); }); });
+byId("visual-search").addEventListener("input", () => renderVisual().catch(error => { if (!error.stale) message(error.message); }));
+byId("visual-status").addEventListener("change", () => renderVisual().catch(error => { if (!error.stale) message(error.message); }));
+byId("visual-zoom-in").addEventListener("click", () => overviewRenderer?.zoom(1.2));
+byId("visual-zoom-out").addEventListener("click", () => overviewRenderer?.zoom(1 / 1.2));
+byId("visual-reset").addEventListener("click", () => overviewRenderer?.resetCamera());
+byId("sharing-panel").addEventListener("toggle", () => {
+  if (byId("sharing-panel").open && state.graph?.role === "owner") loadSharing().catch(error => { if (!error.stale) message(error.message); });
+});
+
+invitationForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const scope = sharingScope();
+  formBusy(invitationForm, true);
+  try {
+    requireSharingScope(scope);
+    const created = await api(`/api/graphs/${encodeURIComponent(scope.graphId)}/invitations`, {
+      method: "POST", body: JSON.stringify({ email: byId("invite-email").value.trim(), role: byId("invite-role").value })
+    });
+    requireSharingScope(scope);
+    const origin = typeof window === "undefined" ? "" : window.location.origin;
+    byId("invitation-link").value = `${origin}/#invite=${created.token}`;
+    invitationForm.reset();
+    await loadSharing();
+    message("Invitation link created. Copy it for the invited person; no email was sent.");
+  } catch (error) { if (!error.stale) message(error.message); }
+  finally { if (sameSession(scope.epoch, scope.userId)) formBusy(invitationForm, false); }
+});
+
+joinForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const epoch = state.authEpoch;
+  const userId = state.user?.id;
+  const navigation = state.generation;
+  let token = byId("join-token").value.trim();
+  if (token.includes("#")) token = new URLSearchParams(token.split("#", 2)[1]).get("invite") || "";
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) { message("Paste the invitation link or token the owner gave you."); return; }
+  formBusy(joinForm, true);
+  try {
+    const accepted = await api("/api/invitations/accept", { method: "POST", body: JSON.stringify({ token }) });
+    if (!sameSession(epoch, userId)) throw staleRequest();
+    incomingInvitation = null;
+    joinForm.reset();
+    await loadGraphs(navigation === state.generation ? accepted.graph_id : state.requestedGraph || state.graph?.graph_id);
+    message("You now have access to this graph.");
+  } catch (error) { if (!error.stale) message(error.message); }
+  finally { if (sameSession(epoch, userId)) formBusy(joinForm, false); }
+});
+
+dependencyForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const epoch = state.authEpoch;
+  const userId = state.user?.id;
+  formBusy(dependencyForm, true);
+  try {
+    await mutate(byId("dependency-operation").value, { source: byId("dependency-source").value, target: byId("dependency-target").value });
+  } catch (error) { if (!error.stale) message(error.message); }
+  finally { if (sameSession(epoch, userId)) formBusy(dependencyForm, false); }
 });
 
 (async () => {

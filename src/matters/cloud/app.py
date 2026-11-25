@@ -117,9 +117,14 @@ class CloudBoundaryMiddleware:
                 response_headers.extend([
                     (b"cache-control", b"no-store"),
                     (b"x-content-type-options", b"nosniff"),
-                    (b"referrer-policy", b"no-referrer"),
                     (b"content-security-policy", b"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"),
                 ])
+                # OAuth HTML forms need an origin-preserving policy: browsers
+                # send Origin:null for navigation POSTs under no-referrer.
+                # Respect the route's origin-only policy without adding a
+                # second, overriding value. Other responses retain no-referrer.
+                if not any(key.lower() == b"referrer-policy" for key, _ in response_headers):
+                    response_headers.append((b"referrer-policy", b"no-referrer"))
                 message = {**message, "headers": response_headers}
             await send(message)
 
@@ -295,11 +300,13 @@ class GraphOperation(APIModel):
         return self
 
 
-def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed_hosts=None):
+def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed_hosts=None, enable_mcp=False):
     """Create a pilot ASGI application owning its database-engine lifecycle."""
 
     if type(secure_cookies) is not bool:
         raise ValueError("secure_cookies must be a boolean")
+    if type(enable_mcp) is not bool:
+        raise ValueError("enable_mcp must be a boolean")
     parsed_origin = normalized_origin(public_origin) if public_origin else None
     if public_origin and parsed_origin is None:
         raise ValueError("public_origin must be an exact HTTP or HTTPS origin")
@@ -313,6 +320,13 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
         raise ValueError("public_origin host must be trusted")
     if not secure_cookies and any(not loopback_host(host) for host in allowed_hosts):
         raise ValueError("insecure development cookies require loopback hosts")
+    if enable_mcp and parsed_origin is None:
+        raise ValueError("hosted MCP requires an explicit public_origin")
+    if enable_mcp:
+        # Fail before touching a database when the optional SDK is absent.
+        from .mcp import create_hosted_mcp
+        from .oauth import CloudOAuth
+        from .oauth_routes import build_oauth_router
 
     db = Database(database_url)
     try:
@@ -322,11 +336,16 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
         raise
     accounts = CloudAccounts(db)
     graphs = GraphRepository(db)
+    hosted_mcp = None
 
     @asynccontextmanager
     async def lifespan(_app):
         try:
-            yield
+            if hosted_mcp is None:
+                yield
+            else:
+                async with hosted_mcp.lifespan():
+                    yield
         finally:
             db.close()
 
@@ -364,6 +383,14 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
         if not token or len(token) > 512:
             raise AccountError("Sign in to continue.", "unauthorized")
         return accounts.authenticate(token)
+
+    from .transfer import create_transfer_router
+    from .collaboration import register_collaboration_routes
+    from .visual import register_visual_routes
+
+    app.include_router(create_transfer_router(graphs, authenticated_user))
+    register_collaboration_routes(app, graphs, authenticated_user)
+    register_visual_routes(app, graphs, authenticated_user)
 
     @app.get("/healthz")
     def health():
@@ -429,5 +456,19 @@ def create_app(database_url, *, secure_cookies=True, public_origin=None, allowed
     ):
         return graphs.query_graph(user["id"], graph_id, view, matter_id=matter_id)
 
+    @app.get("/assets/local/map-renderer.js")
+    def shared_map_renderer():
+        return FileResponse(ASSETS.parent.parent / "web_assets" / "map-renderer.js")
+
     app.mount("/assets", StaticFiles(directory=str(ASSETS)), name="assets")
+    if enable_mcp:
+        # MCP and its SDK stay optional for ordinary Cloud/browser operation.
+        oauth = CloudOAuth(db, issuer_url=public_origin, allow_loopback_http=not secure_cookies)
+        app.state.oauth = oauth
+        app.include_router(build_oauth_router(
+            oauth, accounts, graphs, secure_cookies=secure_cookies, cookie_name=SESSION_COOKIE,
+        ))
+        hosted_mcp = create_hosted_mcp(oauth, graphs)
+        app.state.hosted_mcp = hosted_mcp
+        app.mount("/", hosted_mcp.app)
     return app

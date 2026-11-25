@@ -17,7 +17,7 @@ from sqlalchemy.exc import ArgumentError, SQLAlchemyError
 from sqlalchemy.pool import StaticPool
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 metadata = MetaData()
 
 schema_versions = Table(
@@ -72,6 +72,42 @@ graph_events = Table(
     Column("version", Integer, nullable=False),
     Column("created_at", BigInteger, nullable=False),
 )
+
+# Installation metadata stays outside the portable graph facts.
+graph_sources = Table(
+    "graph_sources", metadata,
+    Column("graph_id", String(36), ForeignKey("graphs.id", ondelete="CASCADE"), primary_key=True),
+    Column("document", JSON, nullable=False),
+)
+graph_invitations = Table(
+    "graph_invitations", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("graph_id", String(36), ForeignKey("graphs.id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("email", String(320), nullable=False),
+    Column("role", String(16), nullable=False),
+    Column("token_hash", String(64), nullable=False, unique=True),
+    Column("inviter_id", String(36), ForeignKey("users.id"), nullable=False),
+    Column("created_at", BigInteger, nullable=False),
+    Column("expires_at", BigInteger, nullable=False),
+    Column("accepted_at", BigInteger),
+    Column("revoked_at", BigInteger),
+    CheckConstraint("role IN ('editor', 'viewer')", name="ck_invitation_role"),
+)
+oauth_records = Table(
+    "oauth_records", metadata,
+    Column("id", String(128), primary_key=True),
+    Column("kind", String(32), nullable=False, index=True),
+    Column("user_id", String(36), ForeignKey("users.id", ondelete="CASCADE")),
+    Column("client_id", String(128), index=True),
+    Column("data", JSON, nullable=False),
+    Column("created_at", BigInteger, nullable=False),
+    Column("expires_at", BigInteger, nullable=False, index=True),
+)
+
+VERSION_ONE_TABLES = {
+    "schema_versions", "users", "sessions", "graphs", "graph_members", "graph_events",
+}
+VERSION_TWO_TABLES = (graph_sources, graph_invitations, oauth_records)
 
 
 class CloudDatabaseError(RuntimeError):
@@ -150,7 +186,7 @@ class Database:
                 else:
                     versions = connection.execute(select(schema_versions)).mappings().all()
                     if len(versions) != 1 or versions[0]["id"] != 1 or versions[0]["version"] != SCHEMA_VERSION:
-                        raise CloudDatabaseError("Unsupported Cloud schema version; an explicit migration is required.")
+                        raise CloudDatabaseError("Unsupported Cloud schema version; run matters cloud-migrate after a verified backup.")
                     if not required <= existing:
                         raise CloudDatabaseError("The Cloud schema is incomplete; recovery is required.")
         except CloudDatabaseError:
@@ -158,6 +194,47 @@ class Database:
         except SQLAlchemyError:
             raise CloudDatabaseError("Cloud database initialization failed.") from None
         return self
+
+    def migrate(self):
+        """Explicitly upgrade a complete version-1 installation in one transaction.
+
+        Startup never invokes this method. Existing graph/account rows are not
+        rewritten; this additive migration only creates installation tables.
+        """
+        try:
+            with self.transaction(write=True) as connection:
+                if "schema_versions" not in set(inspect(connection).get_table_names()):
+                    raise CloudDatabaseError("Migration requires an existing versioned Cloud database.")
+                rows = connection.execute(select(schema_versions).with_for_update()).mappings().all()
+                existing = set(inspect(connection).get_table_names())
+                if len(rows) != 1 or rows[0]["id"] != 1:
+                    raise CloudDatabaseError("The Cloud schema is incomplete; recovery is required.")
+                version = rows[0]["version"]
+                if version == SCHEMA_VERSION:
+                    if not set(metadata.tables) <= existing:
+                        raise CloudDatabaseError("The Cloud schema is incomplete; recovery is required.")
+                    return {"from_version": version, "to_version": version, "changed": False}
+                if version != 1:
+                    raise CloudDatabaseError("Unsupported Cloud schema version; migration was refused.")
+                if not VERSION_ONE_TABLES <= existing or any(t.name in existing for t in VERSION_TWO_TABLES):
+                    raise CloudDatabaseError("The Cloud schema is incomplete or partially migrated; recovery is required.")
+                inspector = inspect(connection)
+                if any(
+                    not set(metadata.tables[name].columns.keys()) <= {
+                        column["name"] for column in inspector.get_columns(name)
+                    }
+                    for name in VERSION_ONE_TABLES
+                ):
+                    raise CloudDatabaseError("The Cloud schema is incomplete; recovery is required.")
+                # Explicit BEGIN IMMEDIATE also makes SQLite DDL transactional.
+                for table in VERSION_TWO_TABLES:
+                    table.create(connection)
+                connection.execute(schema_versions.update().where(schema_versions.c.id == 1).values(version=SCHEMA_VERSION))
+        except CloudDatabaseError:
+            raise
+        except SQLAlchemyError:
+            raise CloudDatabaseError("Cloud schema migration failed and was rolled back.") from None
+        return {"from_version": 1, "to_version": SCHEMA_VERSION, "changed": True}
 
     def close(self):
         self.engine.dispose()

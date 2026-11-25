@@ -69,13 +69,13 @@
     "hosted_graph_service_available": [
       {
         "label": "Hosted graphs have stable IDs, persistent transactional storage, revision-checked writes, change history and the same authenticated HTTPS MCP tools, with isolation and concurrent-edit tests passing.",
-        "truth": false
+        "truth": true
       }
     ],
     "hosted_visual_interface_available": [
       {
         "label": "Authenticated web users can select and edit their permitted graphs using reused visual controls; hosted routes expose no terminal or arbitrary filesystem selection.",
-        "truth": false
+        "truth": true
       }
     ],
     "cloud_hosting_and_operations_ready": [
@@ -93,7 +93,7 @@
     "graph_collaboration_available": [
       {
         "label": "Whole graphs support owner, editor and viewer invitations and revocation; simultaneous edits produce reviewable conflicts and clients can refresh changes without exposing other graphs.",
-        "truth": false
+        "truth": true
       }
     ],
     "cloud_commercial_policy_decided": [

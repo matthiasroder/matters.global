@@ -87,6 +87,13 @@ def main(argv=None):
     cloud_parser.add_argument(
         "--public-origin", help="Exact public HTTPS origin when behind a trusted proxy."
     )
+    cloud_parser.add_argument(
+        "--mcp", action="store_true", help="Enable hosted OAuth and MCP; requires the mcp extra."
+    )
+    migration_parser = subparsers.add_parser(
+        "cloud-migrate", help="Explicitly upgrade an existing Cloud database after a verified backup."
+    )
+    migration_parser.add_argument("--database-url", help="Database URL; otherwise MATTERS_CLOUD_DATABASE_URL.")
     mcp_parser = subparsers.add_parser(
         "mcp", parents=[state_parent], help="Serve configured local graphs over MCP stdio."
     )
@@ -486,6 +493,28 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
+    if args.command == "cloud-migrate":
+        if args.state is not None or args.config is not None:
+            parser.error("--state and --config do not apply to matters cloud-migrate")
+        database_url = args.database_url or os.environ.get("MATTERS_CLOUD_DATABASE_URL")
+        if not database_url:
+            parser.error("set --database-url or MATTERS_CLOUD_DATABASE_URL")
+        try:
+            from .cloud.db import CloudDatabaseError, Database
+        except ModuleNotFoundError:
+            parser.error("Cloud support is optional; install matters-global[cloud] to migrate Cloud storage")
+        database = None
+        try:
+            database = Database(database_url)
+            result = database.migrate()
+        except CloudDatabaseError as error:
+            parser.error(str(error))
+        finally:
+            if database is not None:
+                database.close()
+        print(json.dumps(result))
+        return 0
+
     if args.command == "cloud":
         import ipaddress
 
@@ -510,10 +539,15 @@ def main(argv=None):
         except ModuleNotFoundError:
             parser.error("Cloud support is optional; install matters-global[cloud] to use matters cloud")
         try:
-            app = create_app(
-                database_url, secure_cookies=not args.development,
-                public_origin=args.public_origin,
-            )
+            options = {"secure_cookies": not args.development, "public_origin": args.public_origin}
+            if args.mcp:
+                if args.development and not args.public_origin:
+                    origin_host = f"[{args.host}]" if ":" in args.host else args.host
+                    options["public_origin"] = f"http://{origin_host}:{args.port}"
+                options["enable_mcp"] = True
+            app = create_app(database_url, **options)
+        except ModuleNotFoundError:
+            parser.error("Hosted MCP support is optional; install matters-global[cloud,mcp]")
         except ValueError as error:
             parser.error(str(error))
         except Exception:

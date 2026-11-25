@@ -22,6 +22,24 @@ from matters.cloud.app import MAX_REQUEST_BYTES, create_app
 PASSWORD = "A sufficiently long test password"
 
 
+def test_oauth_navigation_forms_keep_one_origin_preserving_referrer_policy():
+    """A duplicate no-referrer policy makes Chromium POST with Origin:null."""
+    pytest.importorskip("mcp")
+    app = create_app("sqlite://", secure_cookies=False, public_origin="http://localhost", enable_mcp=True)
+    with TestClient(app, base_url="http://localhost") as client:
+        registered = app.state.oauth.register_client({"redirect_uris": ["https://client.example/callback"]})
+        pending = app.state.oauth.create_authorization_request({
+            "client_id": registered["client_id"], "redirect_uri": registered["redirect_uris"][0],
+            "response_type": "code", "resource": "http://localhost/mcp",
+            "code_challenge": "a" * 43, "code_challenge_method": "S256",
+        })
+        response = client.get("/oauth/consent", params={"request": pending})
+        assert response.status_code == 200
+        assert response.headers.get_list("referrer-policy") == ["strict-origin"]
+        assert 'action="/oauth/consent/login"' in response.text
+        assert client.get("/").headers["referrer-policy"] == "no-referrer"
+
+
 @pytest.fixture
 def client(tmp_path):
     app = create_app(f"sqlite:///{tmp_path / 'cloud.db'}", secure_cookies=False)

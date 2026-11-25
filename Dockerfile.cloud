@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /opt/matters
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN python -m pip install --no-cache-dir '.[cloud]' && \
+RUN python -m pip install --no-cache-dir '.[cloud,mcp]' && \
     groupadd --system --gid 10001 matters && \
     useradd --system --uid 10001 --gid matters --create-home \
         --home-dir /var/lib/matters matters

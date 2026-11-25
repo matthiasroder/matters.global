@@ -146,6 +146,17 @@ def create_mcp_server(graphs, *, read_only=False):
         ),
         log_level="WARNING",
     )
+    return register_mcp_tools(server, service)
+
+
+def register_mcp_tools(server, service):
+    """Register the same versioned graph tools against an injected service.
+
+    Local and hosted adapters supply their own graph-access boundary. Tool
+    names, schemas, annotations, result envelopes and engine operations remain
+    identical across transports.
+    """
+
     reads = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
     writes = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False)
     deletions = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)

@@ -1,0 +1,4 @@
+FROM nginx:1.28-alpine
+COPY --chmod=0444 nginx.conf /etc/nginx/nginx.conf
+USER 101:101
+ENTRYPOINT ["nginx", "-g", "daemon off;"]

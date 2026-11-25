@@ -120,7 +120,22 @@ def api_error_for(error):
 
 
 def graph_payload(state_path=None):
-    matters, conditions, dependencies = load_state(state_path)
+    return {
+        **graph_payload_from_state(
+            *load_state(state_path), graph_id=graph_identity(state_path)
+        ),
+        "state_path": str(resolve_state_path(state_path)),
+    }
+
+
+def graph_payload_from_state(matters, conditions, dependencies, *, graph_id):
+    """Build the shared visual model without selecting or opening a file.
+
+    Hosted callers first authorize a graph through their repository, then pass
+    its exact snapshot and stable graph ID. The local path wrapper above keeps
+    its existing identity and display-path behavior.
+    """
+
     index = graph_index_or_api_error(matters, conditions, dependencies)
     overview_layout, overview_nodes = build_overview_layout(index)
 
@@ -143,9 +158,8 @@ def graph_payload(state_path=None):
         )
 
     return {
-        "graph_id": graph_identity(state_path),
+        "graph_id": graph_id,
         "revision": state_revision(matters, conditions, dependencies),
-        "state_path": str(resolve_state_path(state_path)),
         "nodes": nodes,
         "edges": [
             {"source": prerequisite, "target": dependent}

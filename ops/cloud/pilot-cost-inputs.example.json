@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "status": "unmeasured_template",
+  "observation_window": {"start_utc": null, "end_utc": null, "population": null},
+  "measurements": {
+    "active_accounts": null,
+    "graph_count": null,
+    "matter_count": null,
+    "condition_count": null,
+    "database_bytes": null,
+    "recorded_graph_changes": null,
+    "http_read_requests": null,
+    "http_write_requests": null,
+    "mcp_read_requests": null,
+    "mcp_write_requests": null,
+    "operation_errors": null,
+    "operation_latency_ms_p50": null,
+    "operation_latency_ms_p95": null,
+    "vcpu_hours": null,
+    "memory_gib_hours": null,
+    "network_outbound_bytes": null,
+    "encrypted_backup_bytes": null,
+    "retained_backup_count": null,
+    "restore_duration_seconds": null,
+    "matters_funded_model_input_tokens": null,
+    "matters_funded_model_output_tokens": null,
+    "human_operations_hours": null
+  },
+  "supplier_cost_inputs": [],
+  "assumptions": [],
+  "decisions": {
+    "provider": null, "region": null, "rpo": null, "rto": null,
+    "currency": null, "billing_unit": null, "free_allowance": null,
+    "subscription_prices": null, "model_cost_policy": null,
+    "cancellation_policy": null, "data_retention_policy": null
+  }
+}

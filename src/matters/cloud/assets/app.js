@@ -5,6 +5,7 @@ const byId = id => document.getElementById(id);
 const authForm = byId("auth-form");
 const graphForm = byId("new-graph-form");
 const matterForm = byId("new-matter-form");
+const addConditionForm = byId("add-condition-form");
 const invitationForm = byId("invitation-form");
 const joinForm = byId("join-graph-form");
 const dependencyForm = byId("dependency-form");
@@ -17,6 +18,91 @@ let lastVisualMode = null;
 let incomingInvitation = initialInvitation();
 let inspectorReturnFocus = null;
 const menuIds = ["graph-menu", "new-matter-panel", "account-menu"];
+const maxMatterConditions = 1000;
+let matterConditionRows = [];
+let matterDraftSerial = 0;
+let matterCreatePending = false;
+let addConditionSerial = 0;
+let addConditionScopeKey = null;
+let addConditionPending = false;
+
+function updateMatterConditionControls() {
+  matterConditionRows.forEach((row, index) => {
+    row.label.textContent = `Condition ${index + 1}`;
+    row.input.id = `matter-condition-${index + 1}`;
+    row.remove.setAttribute("aria-label", `Remove condition ${index + 1}`);
+    row.remove.disabled = matterCreatePending || matterConditionRows.length === 1;
+  });
+  byId("add-matter-condition").disabled = matterCreatePending || matterConditionRows.length >= maxMatterConditions;
+}
+
+function appendMatterCondition(focus = false) {
+  if (matterCreatePending || matterConditionRows.length >= maxMatterConditions) return;
+  const container = element("div", "matter-condition-row");
+  const label = element("label");
+  const caption = element("span");
+  const input = element("input");
+  input.name = "condition";
+  input.maxLength = 2000;
+  input.placeholder = "What would make it resolved?";
+  input.required = true;
+  input.addEventListener("input", () => input.setCustomValidity?.(""));
+  label.append(caption, input);
+  const remove = element("button", "text-button condition-remove", "Remove");
+  remove.type = "button";
+  const row = { container, label: caption, input, remove };
+  remove.addEventListener("click", () => {
+    if (matterCreatePending || matterConditionRows.length === 1) return;
+    const index = matterConditionRows.indexOf(row);
+    matterConditionRows.splice(index, 1);
+    container.remove();
+    updateMatterConditionControls();
+    matterConditionRows[Math.min(index, matterConditionRows.length - 1)].input.focus?.();
+  });
+  container.append(label, remove);
+  matterConditionRows.push(row);
+  byId("matter-condition-fields").append(container);
+  updateMatterConditionControls();
+  if (focus) input.focus?.();
+}
+
+function resetMatterDraft() {
+  matterDraftSerial += 1;
+  matterCreatePending = false;
+  matterForm.reset();
+  formBusy(matterForm, false);
+  matterConditionRows = [];
+  const label = element("p", "matter-conditions-label", "Resolved when");
+  label.id = "matter-conditions-label";
+  byId("matter-condition-fields").replaceChildren(label);
+  appendMatterCondition();
+}
+
+function resetAddConditionDraft() {
+  addConditionSerial += 1;
+  addConditionPending = false;
+  addConditionForm.reset();
+  for (const control of addConditionForm.elements) control.setCustomValidity?.("");
+  formBusy(addConditionForm, false);
+  byId("add-condition-panel").open = false;
+  byId("add-condition-message").textContent = "";
+}
+
+function clearConditionDraft() {
+  addConditionScopeKey = null;
+  resetAddConditionDraft();
+  byId("add-condition-panel").hidden = true;
+}
+
+function syncAddConditionForm() {
+  const graph = state.graph;
+  const writableSelection = graph && graph.role !== "viewer" && state.detailsMode === "matter"
+    && graph.state.matters.includes(state.selectedMatter) && state.requestedGraph === graph.graph_id;
+  const key = writableSelection ? JSON.stringify([state.authEpoch, state.user?.id, graph.graph_id, state.selectedMatter]) : null;
+  if (key !== addConditionScopeKey) resetAddConditionDraft();
+  addConditionScopeKey = key;
+  byId("add-condition-panel").hidden = !key;
+}
 
 function closeMenus(restoreFocus = false) {
   const opened = menuIds.map(byId).find(menu => menu.open);
@@ -83,9 +169,9 @@ function sameSession(epoch, userId) {
 function clearGraphDisplay() {
   closeMenus();
   graphForm.reset();
-  matterForm.reset();
+  resetMatterDraft();
+  clearConditionDraft();
   formBusy(graphForm, false);
-  formBusy(matterForm, false);
   for (const form of [invitationForm, joinForm, dependencyForm]) { form.reset(); formBusy(form, false); }
   byId("invitation-link").value = "";
   byId("visual-search").value = "";
@@ -233,8 +319,8 @@ function forgetCurrentGraph() {
   state.sharingRequest += 1;
   lastVisualMode = null;
   overviewRenderer?.setModel({ nodes: [], edges: [] });
-  matterForm.reset(); dependencyForm.reset(); invitationForm.reset();
-  formBusy(matterForm, false); formBusy(dependencyForm, false); formBusy(invitationForm, false);
+  resetMatterDraft(); clearConditionDraft(); dependencyForm.reset(); invitationForm.reset();
+  formBusy(dependencyForm, false); formBusy(invitationForm, false);
   byId("invitation-link").value = "";
   byId("sharing-owner").textContent = "";
   byId("sharing-members").replaceChildren(); byId("sharing-invitations").replaceChildren();
@@ -283,6 +369,10 @@ async function loadGraph(id) {
   const epoch = state.authEpoch;
   const userId = state.user?.id;
   if (!userId) throw staleRequest();
+  if (state.requestedGraph !== id) {
+    resetMatterDraft();
+    clearConditionDraft();
+  }
   const generation = ++state.generation;
   state.requestedGraph = id;
   let graph;
@@ -306,7 +396,8 @@ async function loadGraph(id) {
       state.detailsMode = null;
       inspectorReturnFocus = null;
       closeMenus();
-      matterForm.reset();
+      resetMatterDraft();
+      clearConditionDraft();
       state.visualMode = "overview";
       state.sharingRequest += 1;
       byId("invitation-link").value = "";
@@ -380,6 +471,7 @@ function renderMatters() {
   byId("toggle-list").setAttribute("aria-pressed", String(state.detailsMode === "list"));
   byId("inspector-title").hidden = state.detailsMode !== "list";
   byId("visual-selection").hidden = state.detailsMode !== "matter";
+  syncAddConditionForm();
   if (!visible) return;
   const ready = new Set(state.report.universe);
   const blocked = new Set(state.report.blocked);
@@ -689,7 +781,6 @@ graphForm.addEventListener("submit", async event => {
     graphForm.reset();
     await loadGraphs(navigation === state.generation ? graph.graph_id : state.requestedGraph);
     if (state.graph?.graph_id === graph.graph_id) {
-      closeMenus();
       byId("new-graph-panel").open = false;
     }
   } catch (error) { if (!error.stale) message(error.message); }
@@ -698,16 +789,90 @@ graphForm.addEventListener("submit", async event => {
 
 matterForm.addEventListener("submit", async event => {
   event.preventDefault();
+  if (matterCreatePending || !state.user || !state.graph || state.graph.role === "viewer" || state.requestedGraph !== state.graph.graph_id) return;
   const values = new FormData(matterForm);
   const id = values.get("name").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
   if (!id) { message("Use a matter name containing a letter or number."); return; }
+  const conditions = values.getAll("condition").map(value => ({ label: value.trim(), truth: false }));
+  if (!conditions.length || conditions.length > maxMatterConditions) {
+    message("Use between 1 and 1000 conditions.");
+    return;
+  }
+  const invalid = conditions.findIndex(condition => !condition.label || condition.label.length > 2000);
+  if (invalid !== -1) {
+    const input = matterConditionRows[invalid]?.input;
+    const error = conditions[invalid].label ? "Use at most 2000 characters for a condition." : "Enter a condition or remove this row.";
+    input?.setCustomValidity?.(error);
+    input?.reportValidity?.();
+    input?.focus?.();
+    message(error);
+    return;
+  }
+  const epoch = state.authEpoch;
+  const userId = state.user.id;
+  const graphId = state.graph.graph_id;
+  const serial = matterDraftSerial;
+  const selected = state.selectedMatter;
+  const current = () => serial === matterDraftSerial && sameSession(epoch, userId)
+    && state.graph?.graph_id === graphId && state.requestedGraph === graphId;
+  matterCreatePending = true;
   formBusy(matterForm, true);
   try {
-    await mutate("create_matter", { id, conditions: [{ label: values.get("condition").trim(), truth: false }] });
-    matterForm.reset();
-    selectMatter(id);
-  } catch (error) { if (!error.stale) message(error.message); }
-  finally { formBusy(matterForm, false); }
+    await mutate("create_matter", { id, conditions });
+    if (!current()) throw staleRequest();
+    resetMatterDraft();
+    if (state.selectedMatter === selected) selectMatter(id);
+  } catch (error) { if (!error.stale && current()) message(error.message); }
+  finally {
+    if (current()) {
+      matterCreatePending = false;
+      formBusy(matterForm, false);
+      updateMatterConditionControls();
+    }
+  }
+});
+
+byId("add-matter-condition").addEventListener("click", () => appendMatterCondition(true));
+
+addConditionForm.addEventListener("input", event => event.target?.setCustomValidity?.(""));
+addConditionForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (addConditionPending || !addConditionScopeKey || !state.user || !state.graph || state.graph.role === "viewer") return;
+  const label = String(new FormData(addConditionForm).get("condition") || "").trim();
+  if (!label || label.length > 2000) {
+    const input = addConditionForm.querySelector?.('input[name="condition"]');
+    const error = label ? "Use at most 2000 characters for a condition." : "Enter a condition.";
+    input?.setCustomValidity?.(error);
+    input?.reportValidity?.();
+    input?.focus?.();
+    byId("add-condition-message").textContent = error;
+    return;
+  }
+  const epoch = state.authEpoch;
+  const userId = state.user.id;
+  const graphId = state.graph.graph_id;
+  const matterId = state.selectedMatter;
+  const scope = addConditionScopeKey;
+  const serial = addConditionSerial;
+  const current = () => serial === addConditionSerial && scope === addConditionScopeKey && sameSession(epoch, userId)
+    && state.graph?.graph_id === graphId && state.requestedGraph === graphId
+    && state.selectedMatter === matterId && state.detailsMode === "matter" && state.graph.role !== "viewer";
+  if (!current()) return;
+  addConditionPending = true;
+  byId("add-condition-message").textContent = "";
+  formBusy(addConditionForm, true);
+  try {
+    await mutate("add_condition", { matter_id: matterId, label, truth: false });
+    if (!current()) throw staleRequest();
+    resetAddConditionDraft();
+  } catch (error) {
+    if (!error.stale && current()) byId("add-condition-message").textContent = error.message;
+  } finally {
+    if (current()) {
+      addConditionPending = false;
+      formBusy(addConditionForm, false);
+    }
+  }
 });
 
 byId("refresh-graph").addEventListener("click", () => {
@@ -962,6 +1127,8 @@ passwordChangeForm.addEventListener("submit", async event => {
   } catch (error) { if (!error.stale && sameSession(epoch, userId)) securityMessage(error.message); }
   finally { if (sameSession(epoch, userId)) formBusy(passwordChangeForm, false); }
 });
+
+resetMatterDraft();
 
 (async () => {
   const epoch = state.authEpoch;

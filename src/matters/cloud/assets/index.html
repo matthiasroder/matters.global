@@ -60,7 +60,14 @@
         <div class="menu-popup new-matter-popup">
           <form id="new-matter-form" class="stack" method="post">
             <label>Matter<input name="name" placeholder="What matters?" maxlength="128" required></label>
-            <label>Resolved when<input name="condition" placeholder="What would make it resolved?" maxlength="2000" required></label>
+            <div id="matter-condition-fields" class="matter-condition-fields" role="group" aria-labelledby="matter-conditions-label">
+              <p id="matter-conditions-label" class="matter-conditions-label">Resolved when</p>
+              <div class="matter-condition-row">
+                <label for="matter-condition-1">Condition 1<input id="matter-condition-1" name="condition" placeholder="What would make it resolved?" maxlength="2000" required></label>
+                <button class="text-button condition-remove" type="button" aria-label="Remove condition 1" disabled>Remove</button>
+              </div>
+            </div>
+            <button id="add-matter-condition" class="secondary-button" type="button">Add condition</button>
             <button class="primary-button" type="submit">Add matter</button>
           </form>
         </div>
@@ -141,6 +148,14 @@
               <header class="inspector-heading"><h2 id="inspector-title">Details</h2><button id="close-inspector" class="text-button close-inspector" type="button" aria-label="Close details">×</button></header>
               <div class="inspector-body">
                 <div id="matters-list" class="matters-list"></div>
+                <details id="add-condition-panel" class="add-condition-panel" hidden>
+                  <summary>Add condition</summary>
+                  <form id="add-condition-form" class="stack" method="post">
+                    <label>Condition<input name="condition" maxlength="2000" required></label>
+                    <button class="secondary-button" type="submit">Add condition</button>
+                  </form>
+                  <p id="add-condition-message" class="message" role="status" aria-live="polite"></p>
+                </details>
                 <p id="visual-selection" class="visual-selection" aria-live="polite"></p>
               </div>
             </aside>

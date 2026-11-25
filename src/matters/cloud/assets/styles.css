@@ -59,6 +59,13 @@ a { color: var(--green); }
 .account-email { margin-bottom: 10px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .sign-out { margin-top: 12px; }
 .stack { display: grid; gap: 14px; }
+.matter-condition-fields { display: grid; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.matter-conditions-label { margin: 0; color: #526158; font-size: 12px; font-weight: 550; }
+.matter-condition-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.condition-remove { font-size: 12px; }
+.add-condition-panel { margin-top: 14px; }
+.add-condition-panel summary { min-height: 40px; padding: 10px 0; color: var(--green); font-size: 12px; font-weight: 550; }
+.add-condition-panel form { margin-top: 6px; }
 label { display: grid; gap: 7px; min-width: 0; color: #526158; font-size: 12px; font-weight: 550; }
 input, select { width: 100%; min-width: 0; min-height: 40px; border: 1px solid #d4ddd5; border-radius: 5px; background: #fff; padding: 9px 10px; color: var(--ink); }
 input::placeholder { color: #89958d; font-weight: 400; }

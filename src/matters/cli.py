@@ -103,6 +103,17 @@ def main(argv=None):
         help="Print the unlock report and its graph revision as JSON.",
     )
 
+    follow_parser = subparsers.add_parser(
+        "follow", parents=[state_parent],
+        help="Start Codex with a Stop hook for a target matter.",
+    )
+    follow_parser.add_argument("matter", help="Target matter id.")
+    follow_parser.add_argument(
+        "--max-continuations", type=int, default=12,
+        help="Maximum hook continuations during the session (default: %(default)s).",
+    )
+    subparsers.add_parser("codex-stop", help="Handle a Codex Stop event on stdin.")
+
     extract_parser = subparsers.add_parser(
         "extract",
         parents=[state_parent],
@@ -474,6 +485,19 @@ def main(argv=None):
     if args.command == "state-path":
         print(resolve_state_path(args.state))
         return 0
+
+    if args.command in {"follow", "codex-stop"}:
+        from .codex_stop import follow, stop
+
+        if args.command == "codex-stop":
+            stop()
+            return 0
+        if args.max_continuations < 1:
+            parser.error("--max-continuations must be at least 1")
+        try:
+            return follow(args.matter, args.state, args.max_continuations)
+        except (RuleError, OSError, ValueError) as error:
+            parser.error(str(error))
 
     if args.command == "web":
         from .web import is_remote_bind_host, serve

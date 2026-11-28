@@ -158,6 +158,33 @@ condition and its context before retrying. Existing marks without the optional
 flag retain their behavior. CLI condition numbers start at 1; the `index` in
 `show --json` starts at 0.
 
+### Follow a matter in Codex
+
+With Matters and the Codex CLI installed, start a local session for one graph
+target. Run this from the workspace where Codex should do the work.
+
+```sh
+matters follow ship_first_version --state project.json
+```
+
+On first use, review and trust the Matters `Stop` hook in Codex with `/hooks`.
+If Codex already finished its first response while the hook was awaiting trust,
+ask it to continue toward the same target.
+
+At the end of a turn, the hook reads the graph and considers the target and its
+transitive prerequisites. It continues with a false condition whose prerequisites
+are resolved. It yields when the target is resolved, progress needs human input
+or an external event, or a continuation fails to verify a new in-scope condition.
+Use `[human]` or `[external]` at the start of a condition label to explicitly
+identify a wait. The hook also recognizes common approval and confirmation labels.
+Codex can report a blocker that the graph does not label by explaining it and
+ending its response with `[MATTERS_WAITING]` on its own line.
+
+The hook reads the graph. Codex records verified conditions through `matters mark`
+within the authority you gave it. The launch allows up to 12 hook continuations
+by default. Use `--max-continuations` to set a different limit. A new `matters follow`
+command starts a fresh run.
+
 ## Matter sources
 
 To link a matter to its evidence, put a source file next to the graph. Replace

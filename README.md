@@ -220,22 +220,18 @@ The JSON form adds a `sources` array, empty when the file or matter entry is
 missing. The graph revision describes the graph snapshot. Update citations in
 the source file.
 
-## Agent-driven triage with Beads
+## Agent-driven triage
 
-The [triage skill](skills/matters-triage/SKILL.md) guides the calling agent through
-graph inspection, a linked Beads plan, execution or delegation, verification,
-and checked completion marks. There is no separate `matters triage` command.
-Tasks and acceptance evidence live in Beads. A closed task prompts verification
-against the current Matters condition; it does not automatically make that
-condition true. Matters resolution remains derived from conditions and
-prerequisites.
+The [triage skill](skills/matters-triage/SKILL.md) works through eligible conditions
+in the selected graph. It verifies each outcome and records completion with
+`mark --expected-revision`. Use [`matters follow`](#follow-a-matter-in-codex) when
+you want Codex to keep working toward one matter across turns.
 
-The skill includes a local POSIX coordinator-lock helper and a
-[Beads linkage and recovery contract](skills/matters-triage/references/beads-workflow.md).
-Workers may execute independent tasks while one coordinator owns planning and
-graph updates. The helper coordinates cooperating agents on the same machine;
-it does not provide a distributed lease. Automated triage marks require a CLI
-with revision-bearing reads and `mark --expected-revision`.
+For projects that track execution in Beads, the skill also supports
+[linked tasks and recovery](skills/matters-triage/references/beads-workflow.md).
+The local POSIX coordinator lock lets one agent own planning and graph updates
+while workers handle independent tasks. A closed task prompts verification
+against the current Matters condition.
 
 ## Browser Graph UI
 

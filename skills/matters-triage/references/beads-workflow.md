@@ -1,6 +1,20 @@
 # Beads linkage and recovery
 
-Use this contract for durable planning, execution and resumption. Beads stores tasks, ownership, dependencies, blockers, attempts and work evidence. The triage journal records graph linkage and reconciliation events, not another task status system.
+Use this contract for Beads-backed planning, execution and resumption. Beads stores tasks, ownership, dependencies, blockers, attempts and work evidence. The triage journal records graph linkage and reconciliation events.
+
+## Start a tracked run
+
+Resolve and pin the workspace with `bd where --json`. Use `bd -C <workspace>` or the verified database route, and follow the installed Beads guidance and `bd prime`. If Beads is unavailable, report the blocker for the tracked run. Graph inspection is still available.
+
+For durable planning or execution on a POSIX host, choose a run ID and acquire the coordinator lock in a retained interactive tool session:
+
+```sh
+python3 <skill-directory>/scripts/coordinator_lock.py --state <canonical-path> --run-id <run-id>
+```
+
+Require the acquired JSON response and a still-running session. Stdin EOF releases the lock. On contention, defer new planning and writes until the coordinator releases it. The lock coordinates local triage agents on one host. If the holder exits unexpectedly, pause new assignments and graph writes, reconcile workers, and reacquire before continuing. On finish or interruption, settle delegated work and record its state, then release with Ctrl-C or stdin EOF. Leave the lock file in place.
+
+Keep the journal outside the graph and installed skill, preferably at `triage-runs/<run-id>.jsonl` alongside the graph. Beads holds the task backlog. Reviews and dry runs only read.
 
 ## Pin and reuse
 
@@ -15,6 +29,8 @@ bd -C <workspace> list --all --limit 0 --json
 Filter by metadata/labels where useful, then inspect candidate issues with `show`. Search for both exact recorded task keys and existing work that serves the same acceptance criterion. If several records match, reconcile them rather than creating another. Task closure is not a reason to discard evidence or automatically create a replacement.
 
 Only the coordinator creates/reuses tasks. The local coordinator lock prevents competing triage planners; per-task claims do not. Do not assume `external-ref` is unique or that repeating `create --id` is a safe create-if-absent operation.
+
+Create tasks for concrete actions with acceptance criteria. A task may serve several conditions and several tasks may contribute to one. Group a substantial plan in an epic when useful. The coordinator owns graph writes. Workers get explicit task and resource ownership, acceptance checks, and authority boundaries. Workers return evidence through their assigned Beads. Run independent tasks in parallel when resources and dependencies permit it.
 
 ## Task metadata
 
@@ -64,6 +80,8 @@ bd -C <workspace> close <issue-id> --reason 'Acceptance verified; evidence: <loc
 ```
 
 Claims coordinate work on one task; use distinct worker identities or coordinator-managed assignment so different workers do not appear to own the same task. A failed claim is not permission to execute anyway. Keep actual task dependencies in Beads; do not blindly mirror Matters edges, because useful preparation can precede resolution of a prerequisite matter.
+
+Close a Bead after recording evidence that its own acceptance criteria are met. Preserve partial work, failures and blockers in Beads. Verify the full current graph condition before marking it true. Cancelled, superseded and duplicate tasks require their own independent evidence before they can support any completion mark.
 
 ## Reconciliation journal
 
